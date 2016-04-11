@@ -113,7 +113,7 @@
 % *** GRAPHICS RELATED PACKAGES ***
 %
 \ifCLASSINFOpdf
-  % \usepackage[pdftex]{graphicx}
+  \usepackage[pdftex]{graphicx}
   % declare the path(s) where your graphic files are
   % \graphicspath{{../pdf/}{../jpeg/}}
   % and their extensions so you won't have to specify these with
@@ -358,7 +358,7 @@
 % not capitalized unless they are the first or last word of the title.
 % Linebreaks \\ can be used within to get better formatting as desired.
 % Do not put math or special symbols in the title.
-\title{Bare Demo of IEEEtran.cls\\ for IEEE Journals}
+\title{Fast, jitter-free membership changes in Paxos}
 %
 %
 % author names and IEEE memberships
@@ -370,13 +370,9 @@
 % was not built to handle multiple paragraphs
 %
 
-\author{Michael~Shell,~\IEEEmembership{Member,~IEEE,}
-        John~Doe,~\IEEEmembership{Fellow,~OSA,}
-        and~Jane~Doe,~\IEEEmembership{Life~Fellow,~IEEE}% <-this % stops a space
-\thanks{M. Shell was with the Department
-of Electrical and Computer Engineering, Georgia Institute of Technology, Atlanta,
-GA, 30332 USA e-mail: (see http://www.michaelshell.org/contact.html).}% <-this % stops a space
-\thanks{J. Doe and J. Doe are with Anonymous University.}% <-this % stops a space
+\author{David C. Turner% <-this % stops a space
+\thanks{D. Turner is with the Operations and Planning Systems division of Tracsis plc
+}% <-this % stops a space
 \thanks{Manuscript received April 19, 2005; revised August 26, 2015.}}
 
 % note the % following the last \IEEEmembership and also \thanks - 
@@ -401,7 +397,7 @@ GA, 30332 USA e-mail: (see http://www.michaelshell.org/contact.html).}% <-this %
 
 % The paper headers
 \markboth{Journal of \LaTeX\ Class Files,~Vol.~14, No.~8, August~2015}%
-{Shell \MakeLowercase{\textit{et al.}}: Bare Demo of IEEEtran.cls for IEEE Journals}
+{Turner: Fast, jitter-free membership changes in Paxos}
 % The only time the second header will appear is for the odd numbered pages
 % after the title page when using the twoside option.
 % 
@@ -433,13 +429,13 @@ GA, 30332 USA e-mail: (see http://www.michaelshell.org/contact.html).}% <-this %
 % As a general rule, do not put math, special symbols or citations
 % in the abstract or keywords.
 \begin{abstract}
-The abstract goes here.
+The abstract goes here. %TODO
 \end{abstract}
 
 % Note that keywords are not normally used for peerreview papers.
-\begin{IEEEkeywords}
-IEEE, IEEEtran, journal, \LaTeX, paper, template.
-\end{IEEEkeywords}
+%\begin{IEEEkeywords} TODO???
+%IEEE, IEEEtran, journal, \LaTeX, paper, template.
+%\end{IEEEkeywords}
 
 
 
@@ -459,31 +455,46 @@ IEEE, IEEEtran, journal, \LaTeX, paper, template.
 
 
 \section{Introduction}
-% The very first letter is a 2 line initial drop letter followed
-% by the rest of the first word in caps.
-% 
-% form to use if the first word consists of a single letter:
-% \IEEEPARstart{A}{demo} file is ....
-% 
-% form to use if you need the single drop letter followed by
-% normal text (unknown if ever used by the IEEE):
-% \IEEEPARstart{A}{}demo file is ....
-% 
-% Some journals put the first two words in caps:
-% \IEEEPARstart{T}{his demo} file is ....
-% 
-% Here we have the typical use of a "T" for an initial drop letter
-% and "HIS" in caps to complete the first word.
-\IEEEPARstart{T}{his} demo file is intended to serve as a ``starter file''
-for IEEE journal papers produced under \LaTeX\ using
-IEEEtran.cls version 1.8b and later.
-% You must have at least 2 lines in the paragraph with the drop letter
-% (should never be an issue)
-I wish you the best of success.
 
-\hfill mds
- 
-\hfill August 26, 2015
+\IEEEPARstart{P}{axos} is an algorithm for achieving consensus on a sequence of
+values in a distributed, fault-tolerant fashion. It typically runs on a cluster
+of $2f+1$ nodes, where $f$ is the number of faulty nodes that should be
+tolerated, and decisions are reached when votes from a majority of the nodes
+have been received.
+
+Each value in the sequence is decided using a separate instance of a two-phase
+consensus protocol known as \textit{Synod}. The full Paxos protocol starts by
+running the first phase of infinitely many of these instances at once and then
+runs the second phase of each instance in turn to yield the desired sequence of
+values. These instances of the second phase can be \textit{pipelined}: later
+instances can be started before earlier ones have finished. However, if it is
+necessary to run the first phase again, the pipeline stalls until it is
+complete and the running of the second phases can resume. This can be observed
+as jitter in the rate at which values are decided.
+
+The first phase must only be run again if certain nodes become faulty, or if
+messages between certain pairs of nodes cease to be delivered reliably for a
+period, or if the membership of the cluster changes. It is unavoidable that a
+fault in the system would have an impact on its performance, but changing the
+membership of the cluster is a common task and it is undesirable that it
+should have any such effect.
+
+Cluster membership changes are themselves represented as particular values in
+the sequence. The usual approach to avoiding a pipeline stall when a cluster
+membership change is agreed at instance $i$ is to postpone the effects of the
+change until instance $i + \alpha$ for some $\alpha \ge 0$. If $\alpha$ is
+large enough, there is time to run the new first-phase before the pipeline
+stalls. On the other hand, if $\alpha$ is too large then the membership change
+can take an unreasonably long time to take effect.
+
+As described below, it is in fact possible to delay the effect of a membership
+change for as long as required to run the first phase again, but then to allow
+it to take effect once the first phase has completed, without needing to decide
+on a carefully-chosen fixed value for $\alpha$ ahead of time.
+
+
+
+
 
 \subsection{Subsection Heading Here}
 Subsection text here.
