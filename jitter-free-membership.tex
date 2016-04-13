@@ -156,7 +156,12 @@
 
 % *** MATH PACKAGES ***
 %
-%\usepackage{amsmath}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{amsthm}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
 % A popular package from the American Mathematical Society that provides
 % many useful and powerful commands for dealing with mathematics.
 %
@@ -492,7 +497,65 @@ change for as long as required to run the first phase again, but then to allow
 it to take effect once the first phase has completed, without needing to decide
 on a carefully-chosen fixed value for $\alpha$ ahead of time.
 
+\subsection{The Synod algorithm}
 
+Synod is an algorithm for achieving consensus on a single value in a
+distributed system comprising a set of nodes which can communicate by sending
+messages to each other. Messages may be delayed, reordered, duplicated and
+dropped.
+
+Let $\mathbb P$ be a set of \textit{proposal identifiers} with a wellfounded
+total order $\prec$. Let $\mathbb A$ be a set of \textit{node identifiers} and
+let $\mathbb V$ be the set of values to be chosen.
+
+\def\prep#1{\mathbf{prepare}(#1)}
+\def\prom#1#2{\mathbf{promised}(#1,#2)}
+\def\fprom#1#2{\mathbf{promised}(#1,#2,\bot)}
+\def\bprom#1#2#3{\mathbf{promised}(#1,#2,#3)}
+\def\prop#1{\mathbf{proposed}(#1)}
+\def\acc#1#2{\mathbf{accepted}(#1,#2)}
+\def\chosen#1{\mathbf{chosen}(#1)}
+\def\owner#1{\mathrm{owner}(#1)}
+
+The Synod algorithm involves four kinds of message, described below.
+Throughout, $p, p' \in \mathbb P$, $a \in \mathbb A$.  The first phase starts
+with a \textit{prepare} message $\prep{p}$ to which node $a$ may respond with a
+\textit{promise} message, either a \textit{free promise} written $\fprom{a}{p}$
+or a \textit{forced promise} written $\bprom{a}{p}{p'}$.  The second phase
+starts with a \textit{proposal} message $\prop{p}$ to which node $a$ may
+respond with an \textit{acceptance} message $\acc{a}{p}$. It is convenient to
+add another kind of message $\chosen{p}$ which can be thought of as being sent
+when a proposal has been chosen. There is also a function $v : \mathbb P \to
+\mathbb V$ assigning a value to each proposal, and a function $\mathrm{owner} :
+\mathbb P \to \mathbb A$ assigning an owner to each proposal.
+
+It is also convenient to treat these as predicates indicating that the
+corresponding messages have been sent. For instance, the predicate
+$\acc{a}{p}$ indicates that the message $\acc{a}{p}$ has been sent.
+
+Theorem \ref{synod-safety-theorem} shows the safety property of the Synod algorithm:
+whenever $\chosen{p_1}$ and $\chosen{p_2}$ then $v(p_1) = v(p_2)$. The full
+details of the conditions under which nodes can send these messages is included
+in appendix \ref{synod-safety}.
+
+A node considers the first phase of the algorithm to be complete when promise
+messages (either free or forced) have been received from a \textit{quorum} of
+nodes, and similarly considers the second phase of the algorithm to be complete
+when acceptances have been received from a quorum of nodes. The choice of
+quorums can depend on the proposal number $p$, but for any $p$ it must be the
+case that there is at least one node that is in both quorums. More formally, if
+$p \in \mathbb P$ then write $Q_1(p)$ and $Q_2(p) \subseteq \mathcal P \mathbb
+A$ for the sets of first-phase and second-phase quorums for proposal $p$
+respectively. The crucial property is that for each $q_1 \in Q_1(p)$ and $q_2
+\in Q_2(p)$ it must be the case that $q_1 \cap q_2 \ne \varnothing$.
+
+It is usual to have $Q_1(p) = Q_2(p)$ and the original presentation of the
+Synod algorithm did not allow for them to be unequal. The proof of theorem
+\ref{synod-safety-theorem} in appendix \ref{synod-safety} is a minor
+generalisation of the original one to demonstrate that safety is preserved even
+when $Q_1(p) \ne Q_2(p)$.
+
+\subsection{The Paxos algorithm}
 
 
 
@@ -626,8 +689,106 @@ The conclusion goes here.
 
 
 \appendices
-\section{Proof of the First Zonklar Equation}
-Appendix one text goes here.
+\section{Details of the Synod algorithm}
+\label{synod-safety}
+
+Nodes participating in the Synod algorithm must obey the following rules:
+
+\begin{enumerate}
+
+\item \label{synod-fprom} A node $a$ may send a $\fprom{a}{p}$ message only if
+it has not sent an $\acc{a}{p'}$ message where $p' \prec p$.
+
+\item \label{synod-bprom} A node $a$ may send a $\bprom{a}{p}{p'}$ message only
+if
+\begin{itemize}
+\item $p' \prec p$,
+\item $\acc{a}{p'}$, and
+\item for all $p''$ such that $p' \prec p'' \prec p$ it has sent no
+$\acc{a}{p''}$ message.
+\end{itemize}
+
+\item \label{synod-prop} A node $a$ may send a $\prop{p}$ message whenever
+$\owner{p} = a$ and there is a quorum $q \in Q_1(p)$ such that
+\begin{itemize}
+\item for every $a' \in q$ either $\fprom{a'}{p}$ or $\exists p'.
+\bprom{a'}{p}{p'}$, and
+\item if $P = \{ p'. \exists a' \in q. \bprom{a'}{p}{p'} \} \ne \varnothing$
+then $v(p) = v(\mathrm{max}(P))$.
+\end{itemize}
+
+\item \label{synod-acc} A node $a$ may send an $\acc{a}{p}$ message as long as
+
+\begin{itemize}
+\item $\prop{p}$, and
+\item it has not sent a $\fprom{a}{p'}$ or $\bprom{a}{p'}{p''}$ message with $p
+\prec p'$.
+\end{itemize}
+
+\item \label{synod-chosen} A node may send a $\chosen{p}$ message whenever
+there is a quorum $q \in Q_2(p)$ such that for every $a \in q$ it has received
+an $\acc{a}{p}$ message.
+
+\end{enumerate}
+
+\begin{lemma}\label{synod-acc-fprom}If $\acc{a}{p_2}$ and $p_2 \prec p_1$ then
+it cannot be the case that $\fprom{a}{p_1}$.\end{lemma}
+
+\begin{proof}At the point in time that node $a$ sent $\acc{a}{p_2}$, by rule
+\ref{synod-acc} it had not previously sent $\fprom{a}{p_1}$. However by rule
+\ref{synod-fprom} having sent $\acc{a}{p_2}$ it may not subsequently send
+$\fprom{a}{p_1}$ either, as required.\end{proof}
+
+\begin{lemma}\label{synod-acc-bprom}If $\acc{a}{p_2}$, $\bprom{a}{p_1}{p_3}$
+and $p_2 \prec p_1$ then $p_2 \preceq p_3$.\end{lemma}
+
+\begin{proof}At the point in time that node $a$ sent
+$\acc{a}{p_2}$, because $p_2 \prec p_1$ and by rule \ref{synod-acc} it must
+have not already sent $\bprom{a}{p_1}{p_3}$, so it must have sent this message
+later. By rule \ref{synod-bprom} it must also be the case that $\acc{a}{p_3}$,
+and $p_3$ is the highest-numbered proposal $a$ has accepted when it sent this
+message, so $p_2 \preceq p_3$ as required. \end{proof}
+
+\begin{lemma}\label{synod-lemma} If $\chosen{p_2}$, $\prop{p_1}$ and $p_2 \prec
+p_1$ then $v(p_1) = v(p_2)$. \end{lemma}
+
+\begin{proof}Suppose for a contradiction the result is false, and since $\prec$
+is wellfounded suppose without loss of generality that $p_1$ is the
+smallest-numbered proposal at which it is false.
+
+Since $\chosen{p_2}$, by rule \ref{synod-chosen} there is a quorum $q_2 \in
+Q_2(p_2)$ such that $\acc{a}{p_2}$ for every $a \in q_2$. By lemma
+\ref{synod-acc-fprom} it cannot be that $\fprom{a}{p_1}$ for any $a \in q_2$.
+
+Also, since $\prop{p_1}$, by rule \ref{synod-prop} there is a quorum $q_1 \in
+Q_1(p_1)$ such that either $\fprom{a}{p_1}$ or $\exists p'. \bprom{a}{p_1}{p'}$
+for all $a \in q_1$.
+
+Let $P = \{ p'. \exists a \in q_1.  \bprom{a}{p_1}{p'} \}$ be the set of
+proposals referenced by forced promises. By definition of $Q_1$ and $Q_2$, $q_1
+\cap q_2 \ne \varnothing$ so it follows that $P \ne \varnothing$, which means
+that $v(p_1) = v(\mathrm{max}(P))$ by rule \ref{synod-prop}. Let
+$a_{\mathrm{max}} \in q_1$ be such that
+$\bprom{a_{\mathrm{max}}}{p_1}{\mathrm{max}(P)}$. By rule \ref{synod-bprom} it
+follows that $\mathrm{max}(P) \prec p_1$ and also that
+$\acc{a_{\mathrm{max}}}{\mathrm{max}(P)}$ and hence $\prop{\mathrm{max}(P)}$ by
+rule \ref{synod-acc}. Furthermore by lemma \ref{synod-acc-bprom} it follows
+that $p_2 \preceq \mathrm{max}(P)$ and since $p_1$ was assumed to be the
+smallest counterexample it must be that $v(\mathrm{max}(P)) = v(p_2)$. Hence
+$v(p_1) = v(p_2)$ which is a contradiction as required.  \end{proof}
+
+\begin{theorem}\label{synod-safety-theorem} If $\chosen{p_1}$ and
+$\chosen{p_2}$ then $v(p_1) = v(p_2)$.  \end{theorem}
+
+\begin{proof} If $p_1 = p_2$ then the result is clear, so assume that $p_1 \ne
+p_2$ and therefore without loss of generality that $p_2 \prec p_1$. By rule
+\ref{synod-chosen} there is a quorum $q \in Q_2(p_1)$ such that $\acc{a}{p_1}$
+for every node $a \in q$. Since $q$ is nonempty, by rule \ref{synod-acc} it
+must be that $\prop{p_1}$ was previously sent. Therefore by lemma
+\ref{synod-lemma} it follows that $v(p_1) = v(p_2)$ as required.  \end{proof}
+
+
+
 
 % you can choose not to have a title for an appendix
 % if you want by leaving the argument blank
