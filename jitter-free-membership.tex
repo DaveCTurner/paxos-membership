@@ -613,9 +613,10 @@ node $a$ may respond with an acceptance $\acc{i}{a}{p}$ and once acceptances
 have been received from a quorum of nodes then the instance is chosen and
 $\chosen{i}{p}$ may be emitted.
 
-There is a function $v_i : \mathbb P \to \mathbb V$ for each instance $i$ and a
-function $\mathrm{owner} : \mathbb P \to \mathbb A$ which does not depend on the
-instance.
+There is a function $v_i : \mathbb P \to \mathbb V$ for each instance $i$
+defining the value for each proposal, and theorem \ref{paxos-safety} shows that
+whenever $\chosen{i}{p}$ and $\chosen{i}{p'}$ it follows that $v_i(p) =
+v_i(p')$.
 
 
 
@@ -860,8 +861,13 @@ required.  \end{proof}
 
 % you can choose not to have a title for an appendix
 % if you want by leaving the argument blank
-\section{}
-Appendix two text goes here.
+\section{Invariants preserved by the Paxos algorithm}
+
+\begin{theorem}\label{paxos-safety-theorem} If $\chosen{i}{p_1}$ and
+$\chosen{i}{p_2$ then $v_i(p_1) = v_i(p_2)$.
+\end{theorem}
+
+\begin{proof}TODO\end{proof}
 
 
 % use section* for acknowledgment
