@@ -554,9 +554,9 @@ $\prop{}{p}$ may only originate from node $\mathrm{owner}(p)$.
 
 There is also a function $v : \mathbb P \to \mathbb V$ assigning a value to
 each proposal, and theorem \ref{synod-safety-theorem} shows the safety property
-of the Synod algorithm: whenever $\chosen{}{p_1}$ and $\chosen{}{p_2}$ then
-$v(p_1) = v(p_2)$. The full details of the conditions under which nodes can
-send these messages is included in appendix \ref{synod-safety}.
+of the Synod algorithm: whenever $\chosen{}{p}$ and $\chosen{}{p'}$ then $v(p)
+= v(p')$. The full details of the conditions under which nodes can send these
+messages is included in appendix \ref{synod-safety}.
 
 Each node operates as a state machine whose transitions are caused by the
 receipts of messages. A node may consider phase I to be complete at proposal
@@ -605,7 +605,7 @@ As in the Synod algorithm, phase I starts with a broadcast of $\prep{p}$ for
 some $p$ to which each node $a$ may respond with a set of promises
 $\fprom{i}{a}{p}$, $\bprom{i}{a}{p}{p'}$ and $\mprom{i}{a}{p}$ according to the
 state of its state machines. If a node receives $\mprom{i}{a}{p}$ messages from
-a quorum of nodes then the state machine $S_\infty$ has completed phase I at
+a quorum of nodes then its state machine $S_\infty$ has completed phase I at
 $p$, and therefore any state machines that are subsequently spawned will also
 have completed phase I at $p$. Each phase II instance $i$ operates just as in
 the Synod algorithm, starting with a broadcast of $\prop{i}{p}$ to which each
