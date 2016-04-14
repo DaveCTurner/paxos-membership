@@ -692,7 +692,10 @@ failure of all the dependent nodes.
 
 To control this sitation, the cluster may be divided into \textit{zones}, where
 the nodes within a single zone may share infrastructure but failures in
-different zones are considered to be independent.
+different zones can be considered to be independent. The goal is now to remain
+available as long as fewer than $f$ zones have failed, which can be ensured as
+long as each zone contains less than $\frac{1}{2f}$ of the total weight at all
+times.
 
 
 each of which 
