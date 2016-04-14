@@ -51,6 +51,7 @@
 
 
 \documentclass[journal]{IEEEtran}
+\usepackage[paperwidth=210mm,paperheight=150mm]{geometry} % TODO just for on-screen
 %
 % If IEEEtran.cls has not been installed into the LaTeX system files,
 % manually specify the path to it like:
@@ -657,38 +658,66 @@ Let a \textit{weight} function be a function $w : \mathbb A \to \mathbb N$ that
 only takes finitely many nonzero values. This can be used to define a
 membership $M(w)$ by \textit{majority}: \[M(w) = \left\{ q. \sum_{a \in q} 2
 w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] It is clear that if $q, q' \in
-M(w)$ then $q \cap q' = \varnothing$. If $w(a) = 0$ for all $a$ then $M(w) =
-\varnothing$ is the \textit{empty membership}.
+M(w)$ then $q \cap q' = \varnothing$. If $w(a) = 0$ for all $a$ then $w$
+is said to be \textit{weightless} and $M(w) = \varnothing$.
 
 A sequence $w_0, w_1, \ldots$ of weight functions can be used to define the
 sequence of memberships used by a Paxos cluster. Recall that if $q^\textrm{I}
 \in M(w_e) \cup M(w_{e-1})$ and $q^\textrm{II} \in M(w_e)$ then it is necessary
-that $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$. There are four simple
+that $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$. There are three simple
 ways to ensure this property holds:
 
 \begin{enumerate}
 
-\item If $w_{e-1}(a) = 0$ for all $a$ then $M(w_{e-1}) = \varnothing$ is the
-empty membership, and the property trivially holds.
-
-\item Similarly, if $w_e(a) = 0$ for all $a$ then $M(w_e) = \varnothing$.
+\item If either $w_{e-q}$ or $w_e$ is weightless then the property trivially
+holds.
 
 \item If $w_{e-1}$ and $w_e$ differ by a constant factor, in the sense that
-there are integers $d_{e-1}$ and $d_e$ such that $d_{e-1} w_{e-1}(a) = d_e
-w_e(a)$ for all $a$, then $M(w_{e-1}) = M(w_e)$ and hence the property holds.
+there are integers $m$ and $n$ such that $m w_{e-1}(a) = n w_e(a)$ for all $a$,
+then $M(w_{e-1}) = M(w_e)$ and hence the property holds.
 
 \item Finally, by theorem \ref{weights-nearly-equal} if $w_{e-1}$ and $w_e$
 differ by at most $1$ at at most one node then the property holds.
 
 \end{enumerate}
 
-By design, a Paxos cluster can remain available unless a majority of the nodes
-fail simultaneously. Assuming that node failures are independent, the
-probability of a cluster-wide failure appears to be extremely small. However,
-in a real-world system node failures are certainly not independent: certain
-sets of nodes may share critical infrastructure such as power or network
-connectivity, so a failure of this infrastructure would cause a simultaneous
-failure of all the dependent nodes.
+Recall that Paxos is designed to be resilient to $\le f$ failures, which can be
+achieved if each node always holds $< \frac{1}{2f}$ of the total weight. This
+resilience can also be used to perform routine maintenance on the nodes by
+means of a \textit{rolling upgrade} where each node is taken offline and
+upgraded in turn. During such a process there is only ever one node offline for
+maintenance and therefore the system remains available.
+
+However, a na\"ive approach to perform a rolling upgrade puts the system at risk
+during the upgrade: if $f = 1$ and one of the nodes is down for maintenance then
+the failure of another node would render the system unavailable. In terms of
+weights:
+\begin{tabular}{rccc}
+&$A$&$B$&$C$ \\
+1.&1&1&1\\
+2.&0&1&1\\
+3.&1&1&1
+\end{tabular}
+On line 2, node $A$ has been taken down for maintenance so both $B$ and $C$
+have $\ge \frac{1}{2}$ of the total weight which means the system is
+temporarily not resilient to any failures. A common solution to this problem is
+simply to provision for more failures than are actually requir
+\begin{tabular}{rcccccl}
+&$A$&$B$&$C$&$D$&$E$ \\
+1.&1&1&1&1&1\\
+2.&0&1&1&1&1\\
+3.&1&1&1&1&1\\
+\end{tabular}
+
+
+
+taken offline for maintenance for a period of time
+
+Assuming that node failures are independent, the probability of a cluster-wide
+failure appears to be extremely small. However, in a real-world system node
+failures are not independent: certain sets of nodes may share critical
+infrastructure such as power or network connectivity, and a failure of this
+infrastructure would cause a simultaneous failure of all the dependent nodes.
 
 To control this sitation, the cluster may be divided into \textit{zones}, where
 the nodes within a single zone may share infrastructure but failures in
@@ -696,6 +725,10 @@ different zones can be considered to be independent. The goal is now to remain
 available as long as fewer than $f$ zones have failed, which can be ensured as
 long as each zone contains less than $\frac{1}{2f}$ of the total weight at all
 times.
+
+A common use for changing the membership of the cluster is to perform
+a rolling upgrade of a node remove a node
+for planned maintenance
 
 
 each of which 
