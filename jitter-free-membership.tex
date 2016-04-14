@@ -618,13 +618,148 @@ defining the value for each proposal, and theorem \ref{paxos-safety-theorem}
 shows that whenever $\chosen{i}{p}$ and $\chosen{i}{p'}$ it follows that
 $v_i(p) = v_i(p')$.
 
-Membership changes are handled by defining a sequence of memberships $Q_1, Q_2,
-\ldots$ that is itself chosen by Paxos.  More precisely, there is a state
-machine whose state is a finite sequence of memberships $Q_1, Q_2, \ldots, Q_m$
+\subsubsection{Membership changes}
+
+TODO - describe the distributed state machine approach earlier?? Allow for
+multiple state machines running in parallel.
+
+Changes in the cluster membership are handled by assigning an \textit{epoch
+number} $e(i) > 0$ to each instance $i$, and defining a sequence of memberships
+$Q_0, Q_1, Q_2, \ldots$ such that the membership $Q_{e(i)}$ is used for phase
+II of instance $i$. Normally, $Q_{e(i)}$ is also used for phase I of instance
+$i$ but while a membership change is in progress it is useful to be able to use
+the previous membership $Q_{e(i)-1}$ as well. Recall that the safety property
+of the Synod algorithm relies on every phase-I quorum intersecting every
+phase-II quorum: this means that for every epoch number $e$ and for every
+$q^\textrm{I} \in Q_{e} \cup Q_{e-1}$ and $q^\textrm{II} \in Q_{e}$ it must be
+that $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$.
+
+
+
+Epoch numbers and the sequence of memberships are
+themselves chosen by Paxos. More precisely, there are two
+statemachines
+
+is a state
+machine whose state is a pair $\big((Q_e)_{e=0}^{e(i)}\big)$
 and whose transitions append one or more memberships to this sequence.
 Transitions occur when particular values are chosen by Paxos, ensuring that all
 nodes agree on the current sequence of memberships.
 
+Additionally there is a %TODO define membership version for each instance.
+
+There is an increasing function $m : \mathbb P \to \mathbb N$ assigning a
+membership to each proposal.
+
+\subsection{Sequences of memberships}
+
+Let a \textit{weight} function be a function $w : \mathbb A \to \mathbb N$ that
+only takes finitely many nonzero values. This can be used to define a
+membership $M(w)$ by \textit{majority}: \[M(w) = \left\{ q. \sum_{a \in q} 2
+w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] It is clear that if $q, q' \in
+M(w)$ then $q \cap q' = \varnothing$. If $w(a) = 0$ for all $a$ then $M(w) =
+\varnothing$ is the \textit{empty membership}.
+
+A sequence $w_0, w_1, \ldots$ of weight functions can be used to define the
+sequence of memberships used by a Paxos cluster. Recall that if $q^\textrm{I}
+\in M(w_e) \cup M(w_{e-1})$ and $q^\textrm{II} \in M(w_e)$ then it is necessary
+that $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$. There are four simple
+ways to ensure this property holds:
+
+\begin{enumerate}
+
+\item If $w_{e-1}(a) = 0$ for all $a$ then $M(w_{e-1}) = \varnothing$ is the
+empty membership, and the property trivially holds.
+
+\item Similarly, if $w_e(a) = 0$ for all $a$ then $M(w_e) = \varnothing$.
+
+\item If $w_{e-1}$ and $w_e$ differ by a constant factor, in the sense that
+there are integers $d_{e-1}$ and $d_e$ such that $d_{e-1} w_{e-1}(a) = d_e
+w_e(a)$ for all $a$, then $M(w_{e-1}) = M(w_e)$ and hence the property holds.
+
+\item Finally, by theorem \ref{weights-nearly-equal} if $w_{e-1}$ and $w_e$
+differ by at most $1$ at at most one node then the property holds.
+
+\end{enumerate}
+
+By design, a Paxos cluster can remain available unless a majority of the nodes
+fail simultaneously. Assuming that node failures are independent, the
+probability of a cluster-wide failure appears to be extremely small. However,
+in a real-world system node failures are certainly not independent: certain
+sets of nodes may share critical infrastructure such as power or network
+connectivity, so a failure of this infrastructure would cause a simultaneous
+failure of all the dependent nodes.
+
+To control this sitation, the cluster may be divided into \textit{zones}, where
+the nodes within a single zone may share infrastructure but failures in
+different zones are considered to be independent.
+
+
+each of which 
+
+In a real operational system, this could occur
+due to 
+
+Consider the situation where 
+
+It is common for a cluster of nodes to be divided into \textit{zones},
+where the nodes within a single zone may 
+
+where the nodes within a single zone may share critical resources such as power
+or network connectivity. To ensure the availability of a system it is important
+that 
+
+
+
+\begin{theorem} \label{weights-nearly-equal} Let $w, w' : \mathbb A \to \mathbb
+N$ be weight functions and let $a_0 \in \mathbb A$ be such that $|w(a_0) -
+w'(a_0)| \le 1$ and $w(a) = w'(a)$ for all $a \ne a_0$.  Let $q \in M(w)$ and
+$q' \in M(w')$. Then $q \cap q' \ne \varnothing$.  \end{theorem}
+
+\begin{proof} By the definition of $M$, and since $w$ and $w'$ take only
+integer values,
+%
+$\sum_{a \in q} 2 w(a) \ge \sum_{a \in \mathbb A} w(a) + 1$
+%
+and
+%
+$\sum_{a \in q'} 2 w'(a) \ge \sum_{a \in \mathbb A} w'(a) + 1$.
+%
+Assume without loss of generality that $w(a_0) \le w'(a_0)$ and let $d_{\mathbb
+A} = w'(a_0) - w(a_0)$. If $a_0 \in q'$ then let $d_{q'} = d_{\mathbb A}$,
+otherwise let $d_{q'} = 0$, so that
+%
+\[\sum_{a \in \mathbb A} w'(a) = \sum_{a \in \mathbb A} w(a) + d_{\mathbb A}
+%
+\textrm{ and }
+%
+\sum_{a \in q'} w'(a) = \sum_{a \in q} w(a) + d_{q'}.\]
+%
+Then
+\begin{gather*}
+%
+\sum_{a \in \mathbb A} w(a) + \sum_{a \in \mathbb A} w(a) + d_{\mathbb A} + 2 \\
+%
+\begin{aligned}
+%
+&= \left( \sum_{a \in \mathbb A} w(a)  + 1\right)
++  \left( \sum_{a \in \mathbb A} w'(a) + 1\right) \\
+%
+&\le \sum_{a \in q}  2w(a)
++    \sum_{a \in q'} 2w'(a) \\
+%
+&= \sum_{a \in q}  2w(a)
++  \sum_{a \in q'} 2w(a) + 2d_{q'}\\
+%
+&= \sum_{a \in q \cup q'} 2w(a)
++  \sum_{a \in q \cap q'} 2w(a) + 2d_{q'}\\
+%
+&\le \sum_{a \in \mathbb A} 2w(a)
++    \sum_{a \in q \cap q'} 2w(a) + 2d_{q'},\\
+%
+\end{aligned}\end{gather*} so that $\sum_{a \in q \cap q'} 2w(a) \ge d_{\mathbb
+A} + 2 - 2d_{q'} \ge 1$ and hence $q \cap q' \ne \varnothing$ as desired.
+\end{proof}
 
 \subsection{Subsection Heading Here}
 Subsection text here.
