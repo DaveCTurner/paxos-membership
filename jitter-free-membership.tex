@@ -87,7 +87,6 @@
 
 
 
-
 % *** CITATION PACKAGES ***
 %
 %\usepackage{cite}
@@ -163,6 +162,7 @@
 \usepackage{amsthm}
 \newtheorem{theorem}{Theorem}
 \newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
 % A popular package from the American Mathematical Society that provides
 % many useful and powerful commands for dealing with mathematics.
 %
@@ -514,8 +514,8 @@ a value for the delay parameter $\alpha$.
 
 Synod is an algorithm for achieving consensus on a single value in a
 distributed system comprising a set of nodes which can communicate by sending
-messages to each other. Messages may be delayed, reordered, duplicated and
-dropped.
+messages to each other. Communication is asynchronous, in the sense that each
+messages may be delayed, reordered, duplicated or dropped.
 
 Let $\mathbb P$ be a set of \textit{proposal identifiers} with a wellfounded
 total order $\prec$. Let $\mathbb A$ be a set of \textit{node identifiers} and
@@ -621,129 +621,166 @@ $v_i(p) = v_i(p')$.
 
 \subsubsection{Membership changes}
 
-TODO - describe the distributed state machine approach earlier?? Allow for
-multiple state machines running in parallel.
+Changes\footnote{ TODO - describe the distributed state machine approach
+earlier?? Allow for multiple state machines running in parallel.} in the
+cluster membership are handled by assigning an \textit{epoch number} $e(i) > 0$
+to each instance $i$, and defining a sequence of memberships $Q_0, Q_1, Q_2,
+\ldots$ such that the membership $Q_{e(i)}$ is used for phase II of instance
+$i$. Normally, $Q_{e(i)}$ is also used for phase I of instance $i$ but while a
+membership change is in progress it is useful to be able to use the previous
+membership $Q_{e(i)-1}$ as well. Recall that the safety property of the Synod
+algorithm relies on every phase-I quorum intersecting every phase-II quorum:
+this means that for every epoch number $e$ and for every $q^\textrm{I} \in
+Q_{e} \cup Q_{e-1}$ and $q^\textrm{II} \in Q_{e}$ it must be that $q^\textrm{I}
+\cap q^\textrm{II} \ne \varnothing$, the so-called \textit{consecutive epoch
+intersection} property.
 
-Changes in the cluster membership are handled by assigning an \textit{epoch
-number} $e(i) > 0$ to each instance $i$, and defining a sequence of memberships
-$Q_0, Q_1, Q_2, \ldots$ such that the membership $Q_{e(i)}$ is used for phase
-II of instance $i$. Normally, $Q_{e(i)}$ is also used for phase I of instance
-$i$ but while a membership change is in progress it is useful to be able to use
-the previous membership $Q_{e(i)-1}$ as well. Recall that the safety property
-of the Synod algorithm relies on every phase-I quorum intersecting every
-phase-II quorum: this means that for every epoch number $e$ and for every
-$q^\textrm{I} \in Q_{e} \cup Q_{e-1}$ and $q^\textrm{II} \in Q_{e}$ it must be
-that $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$.
+The advantage of using a sequence of memberships that satisfy this property is
+that when changing epoch the system does not need to wait for another phase I
+to complete before starting to run phase II. In more detail, if there is a
+quorum of nodes $q \in Q_{e-1}$ which have sent multi-promises
+$\mprom{j}{a}{p}$ then phase I is complete for all instances $i \ge j$ having
+$e(i) \in \{e-1, e\}$. When the system changes to epoch $e$ it may launch a new
+phase I to attempt to obtain multi-promises from another quorum $q' \in Q_e$ in
+the new epoch $e$, but this phase I does not prevent further phase II instances
+from running.
 
-
-
-Epoch numbers and the sequence of memberships are
-themselves chosen by Paxos. More precisely, there are two
-statemachines
-
-is a state
-machine whose state is a pair $\big((Q_e)_{e=0}^{e(i)}\big)$
-and whose transitions append one or more memberships to this sequence.
-Transitions occur when particular values are chosen by Paxos, ensuring that all
-nodes agree on the current sequence of memberships.
 
 Additionally there is a %TODO define membership version for each instance.
 
 There is an increasing function $m : \mathbb P \to \mathbb N$ assigning a
 membership to each proposal.
 
-\subsection{Sequences of memberships}
+\subsection{Weight-based memberships}
+\label{weight-based-memberships}
 
 Let a \textit{weight} function be a function $w : \mathbb A \to \mathbb N$ that
 only takes finitely many nonzero values. This can be used to define a
 membership $M(w)$ by \textit{majority}: \[M(w) = \left\{ q. \sum_{a \in q} 2
-w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] It is clear that if $q, q' \in
-M(w)$ then $q \cap q' = \varnothing$. If $w(a) = 0$ for all $a$ then $w$
-is said to be \textit{weightless} and $M(w) = \varnothing$.
+w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] If $w(a) = 0$ for all $a$ then
+$w$ is said to be \textit{weightless} and $M(w) = \varnothing$.
 
 A sequence $w_0, w_1, \ldots$ of weight functions can be used to define the
-sequence of memberships used by a Paxos cluster. Recall that if $q^\textrm{I}
-\in M(w_e) \cup M(w_{e-1})$ and $q^\textrm{II} \in M(w_e)$ then it is necessary
-that $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$. There are three simple
-ways to ensure this property holds:
+sequence of memberships used by a Paxos cluster. Recall that this sequence of
+memberships must satisfy the consecutive epoch intersection property: if
+$q^\textrm{I} \in M(w_e) \cup M(w_{e-1})$ and $q^\textrm{II} \in M(w_e)$ then
+it is necessary that $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$. There
+are three simple ways to ensure this:
 
 \begin{enumerate}
 
-\item If either $w_{e-q}$ or $w_e$ is weightless then the property trivially
-holds.
+\item If either $w_{e-1}$ or $w_e$ is weightless then the property holds: it is
+vacuous if $w_e$ is weightless and corollary \ref{weights-equal} shows it to be
+true if $w_{e-1}$ is weightless.
 
 \item If $w_{e-1}$ and $w_e$ differ by a constant factor, in the sense that
-there are integers $m$ and $n$ such that $m w_{e-1}(a) = n w_e(a)$ for all $a$,
-then $M(w_{e-1}) = M(w_e)$ and hence the property holds.
+there are positive integers $m$ and $n$ such that $m w_{e-1}(a) = n w_e(a)$ for
+all $a$, then $M(w_{e-1}) = M(w_e)$ and hence the property holds by corollary
+\ref{weights-equal}.
 
 \item Finally, by theorem \ref{weights-nearly-equal} if $w_{e-1}$ and $w_e$
 differ by at most $1$ at at most one node then the property holds.
 
 \end{enumerate}
 
-Recall that Paxos is designed to be resilient to $\le f$ failures, which can be
-achieved if each node always holds $< \frac{1}{2f}$ of the total weight. This
-resilience can also be used to perform routine maintenance on the nodes by
-means of a \textit{rolling upgrade} where each node is taken offline and
-upgraded in turn. During such a process there is only ever one node offline for
-maintenance and therefore the system remains available.
+Typically the nodes in a system must be taken offline for maintenance from time
+to time. Since Paxos is designed to be resilient to failures of nodes, a simple
+approach is to treat offline nodes just as if they have failed. By taking each
+node offline in turn, the system can remain available even while maintenance is
+being performed.
 
-However, a na\"ive approach to perform a rolling upgrade puts the system at risk
-during the upgrade: if $f = 1$ and one of the nodes is down for maintenance then
-the failure of another node would render the system unavailable. In terms of
-weights:
-\[\begin{align*}
-&$A$&$B$&$C$ \\
-1.&1&1&1\\
-2.&0&1&1\\
-3.&1&1&1
-\end{align*}\]
-On line 2, node $A$ has been taken down for maintenance so both $B$ and $C$
-have $\ge \frac{1}{2}$ of the total weight which means the system is
-temporarily not resilient to any failures. A common solution to this problem is
-simply to provision for more failures than are actually requir
-\begin{tabular}{rcccccl}
-&$A$&$B$&$C$&$D$&$E$ \\
-1.&1&1&1&1&1\\
-2.&0&1&1&1&1\\
-3.&1&1&1&1&1\\
-\end{tabular}
+However, a na\"ive approach to this puts the system at risk during the upgrade:
+in a cluster of three equally-weighted nodes if one of the nodes is taken
+offline then the failure of another node would render the system unavailable.
+More generally, if the system is to be resilient to $\le f$ failures then a
+node $a_{\textrm{maint}}$ may be safely taken offline if all other nodes have
+weight $< \sum_{a \in \mathbb A} \frac{w(a)}{2f} - w(a_{\textrm{maint}})$. For
+example, if $f = 1$ and all nodes have equal weights then the smallest cluster
+in which a node may be safely taken offline for maintenance has five nodes.
+Assuming that the cost of operating a cluster is proportional to the number of
+nodes, this represents a significant overhead simply to cover relatively rare
+periods of maintenance: if maintenance is ignored then only three nodes are
+required.
 
+The required number of nodes can be reduced using a membership change as
+follows. A cluster of four equally-weighted nodes can only tolerate a single
+failure, but by reducing the weight of node $a_{\textrm{maint}}$ to zero before
+taking it offline, the remaining three nodes can tolerate the loss of another
+node. The sequence of weights used for this procedure is as follows, with
+maintenance on $a_{\textrm{maint}}$ occurring during while $w_{e+1}$ is in use.
+\[\begin{array}{rcccc}
+\textrm{node}&a_{\textrm{maint}}&a_1&a_2&a_3 \\
+w_e&1&1&1&1\\
+w_{e+1}&0&1&1&1\\
+w_{e+2}&1&1&1&1\\
+\end{array}\]
+Note that this sequence satisfies the consecutive epoch intersection property
+since each step changes the weight of a single node by $1$.
 
+In many situations it is feasible simply to replace a node $a_{\textrm{old}}$
+with a new node $a_{\textrm{new}}$ rather than to upgrade it in-situ. If
+$a_{\textrm{new}}$ is brought online before $a_{\textrm{old}}$ is taken offline
+then the system is not put at risk.  This still requires four nodes to perform
+maintenance but only three in normal operation:
+\[\begin{array}{rcccc}
+\textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
+w_e&1&0&1&1\\
+w_{e+1}&1&1&1&1\\
+w_{e+2}&0&1&1&1\\
+\end{array}\]
 
-taken offline for maintenance for a period of time
+Since it is allowable to have no instances in an epoch, it is possible to skip
+epoch $e+1$ and jump straight from $e$ to $e+2$ as follows.
+\[\begin{array}{rcccc}
+\textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
+w_e&1&0&1&1\\
+w_{e+2}&0&1&1&1\\
+\end{array}\]
+In fact, if $w_{e+1}$ is weightless then the consecutive epoch intersection
+property holds even if $w_e$ and $w_{e+2}$ are completely unrelated. The
+problem with skipping epochs like this is jitter.
 
 Assuming that node failures are independent, the probability of a cluster-wide
-failure appears to be extremely small. However, in a real-world system node
-failures are not independent: certain sets of nodes may share critical
+failure can appear to be extremely small. However, in a real-world system node
+failures are not always independent: certain sets of nodes may share critical
 infrastructure such as power or network connectivity, and a failure of this
 infrastructure would cause a simultaneous failure of all the dependent nodes.
 
 To control this sitation, the cluster may be divided into \textit{zones}, where
 the nodes within a single zone may share infrastructure but failures in
-different zones can be considered to be independent. The goal is now to remain
-available as long as fewer than $f$ zones have failed, which can be ensured as
-long as each zone contains less than $\frac{1}{2f}$ of the total weight at all
-times.
+different zones can be considered to be independent.  The four-node approach
+described above is only safe if each node is in a different zone: if any two of
+them share infrastructure then the system is at risk during the upgrade. On the
+other hand, arranging for four zones is likely to be much harder than arranging
+for three\footnote{For instance, at time of writing, only one Amazon Web
+Services region (\texttt{us-east-1}) has four independent zones, whereas four
+of them have three: \texttt{ap-southeast-2}, \texttt{eu-west-1},
+\texttt{sa-east-1} and \texttt{us-west-2}.}.  Fortunately, it is possible to
+safely replace a node within a single zone $z_{\textrm{maint}}$ using only
+three zones and the following sequence of operations.
+\[\begin{array}{rcccc}
+\textrm{zone}&z_{\textrm{maint}}&z_{\textrm{maint}}&z_1&z_2\\
+\textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2\\
+w_e&1&0&1&1\\
+w_{e+1}&2&0&2&2\\
+w_{e+2}&1&0&2&2\\
+w_{e+3}&1&1&2&2\\
+w_{e+4}&0&1&2&2\\
+w_{e+5}&0&2&2&2\\
+w_{e+6}&0&1&1&1\\
+\end{array}\]
+At every stage it is clear that every zone contains less than half of the total
+weight, so the system is never at risk. Note that the first and last steps
+rely on the ability to simultaneously change the weights of every node by a
+constant factor, and every other step changes the weight of a single node by
+one, so this can be performed without jitter.
 
-A common use for changing the membership of the cluster is to perform
-a rolling upgrade of a node remove a node
-for planned maintenance
-
-
-each of which 
-
-In a real operational system, this could occur
-due to 
-
-Consider the situation where 
-
-It is common for a cluster of nodes to be divided into \textit{zones},
-where the nodes within a single zone may 
-
-where the nodes within a single zone may share critical resources such as power
-or network connectivity. To ensure the availability of a system it is important
-that 
+\[\begin{array}{rcccc}
+\textrm{zone}&z_{\textrm{maint}}&z_{\textrm{maint}}&z_1&z_2\\
+\textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
+w_e&1&0&1&1\\
+w_{e+2}&0&1&1&1\\
+\end{array}\]
 
 
 
@@ -795,6 +832,14 @@ Then
 %
 \end{aligned}\end{gather*} so that $\sum_{a \in q \cap q'} 2w(a) \ge d_{\mathbb
 A} + 2 - 2d_{q'} \ge 1$ and hence $q \cap q' \ne \varnothing$ as desired.
+\end{proof}
+
+\begin{corollary} \label{weights-equal} Let $w : \mathbb A \to \mathbb N$ be a
+weight function and let $q, q' \in M(w)$. Then $q \cap q' \ne \varnothing$.
+\end{corollary}
+
+\begin{proof}
+This is a special case of theorem \ref{weights-nearly-equal}, where $w = w'$.
 \end{proof}
 
 \subsection{Subsection Heading Here}
