@@ -495,14 +495,14 @@ re-run. A pipeline stall can be observed as jitter in the rate at which values
 are decided.
 
 It is unavoidable that a faulty node or disrupted communications may have an
-impact on its performance, but changing the set of quorums $Q$ of the cluster
-is a common task and it is undesirable that it should have any such effect.
-The usual approach to avoiding jitter caused by a pipeline stall when a cluster
-membership change is agreed at instance $i$ is to postpone the effects of the
-change until instance $i + \alpha$ for some $\alpha \ge 0$. If $\alpha$ is
-large enough, there is time to run the new phase I before the pipeline stalls.
-On the other hand, if $\alpha$ is too large then the membership change can take
-an unreasonably long time to take effect.
+impact on the system's performance, but changing the set of quorums $Q$ of the
+cluster is a common task and it is undesirable that it should have any such
+effect.  The usual approach to avoiding jitter caused by a pipeline stall when
+a cluster membership change is agreed at instance $i$ is to postpone the
+effects of the change until instance $i + \alpha$ for some $\alpha \ge 0$. If
+$\alpha$ is large enough, there is time to run the new phase I before the
+pipeline stalls.  On the other hand, if $\alpha$ is too large then the
+membership change can take an unreasonably long time to take effect.
 
 As described below, it is in fact possible to delay the effect of a membership
 change for as long as required to run phase I again, but then to allow it to
@@ -521,50 +521,51 @@ total order $\prec$. Let $\mathbb A$ be a set of \textit{node identifiers} and
 let $\mathbb V$ be the set of values to be chosen.
 
 \def\prep#1{\mathbf{prepare}(#1)}
-\def\prom#1#2{\mathbf{promised}(#1,#2)}
-\def\fprom#1#2{\mathbf{promised}(#1,#2)}
-\def\bprom#1#2#3{\mathbf{promised}(#1,#2;#3)}
-\def\prop#1{\mathbf{proposed}(#1)}
-\def\acc#1#2{\mathbf{accepted}(#1,#2)}
-\def\chosen#1{\mathbf{chosen}(#1)}
+\def\mprom#1#2#3{\mathbf{promised}_{\ge #1}(#2,#3)}
+\def\fprom#1#2#3{\mathbf{promised}_{#1}(#2,#3)}
+\def\bprom#1#2#3#4{\mathbf{promised}_{#1}(#2,#3;#4)}
+\def\prop#1#2{\mathbf{proposed}_{#1}(#2)}
+\def\acc#1#2#3{\mathbf{accepted}_{#1}(#2,#3)}
+\def\chosen#1#2{\mathbf{chosen}_{#1}(#2)}
 \def\owner#1{\mathrm{owner}(#1)}
 
 The Synod algorithm involves four kinds of message, described below.
 Throughout, $p, p' \in \mathbb P$ and $a \in \mathbb A$.  Phase I starts with
 the broadcast of a \textit{prepare} message $\prep{p}$ to which each node $a$
 may respond with a \textit{promise} message, either a \textit{free promise}
-written $\fprom{a}{p}$ or a \textit{forced promise} written $\bprom{a}{p}{p'}$.
-Phase II starts with the broadcast of a \textit{proposal} message $\prop{p}$ to
+written $\fprom{}{a}{p}$ or a \textit{forced promise} written $\bprom{}{a}{p}{p'}$.
+Phase II starts with the broadcast of a \textit{proposal} message $\prop{}{p}$ to
 which each node $a$ may respond with an \textit{acceptance} message
-$\acc{a}{p}$. It is convenient to add another kind of message $\chosen{p}$
+$\acc{}{a}{p}$. It is convenient to add another kind of message $\chosen{}{p}$
 which can be thought of as being sent by any node when a proposal has been
 chosen. There is also a function $v : \mathbb P \to \mathbb V$ assigning a
 value to each proposal, and a function $\mathrm{owner} : \mathbb P \to \mathbb
 A$ assigning an owner to each proposal.
 
 It is also convenient to treat these as predicates indicating that the
-corresponding messages have been sent. For instance, the predicate $\acc{a}{p}$
-indicates that the message $\acc{a}{p}$ has been sent and $\neg \prop{p}$
-indicates that the message $\prop{p}$ has not been sent. Because messages may
+corresponding messages have been sent. For instance, the predicate $\acc{}{a}{p}$
+indicates that the message $\acc{}{a}{p}$ has been sent and $\neg \prop{}{p}$
+indicates that the message $\prop{}{p}$ has not been sent. Because messages may
 be delayed or dropped, a node can only know a message has not been sent if it
 can prove, based solely on the messages it alone has sent and received, that no
 other node has sent it.
 
 Theorem \ref{synod-safety-theorem} shows the safety property of the Synod algorithm:
-whenever $\chosen{p_1}$ and $\chosen{p_2}$ then $v(p_1) = v(p_2)$. The full
+whenever $\chosen{}{p_1}$ and $\chosen{}{p_2}$ then $v(p_1) = v(p_2)$. The full
 details of the conditions under which nodes can send these messages is included
 in appendix \ref{synod-safety}.
 
-A node considers phase I to be complete when promise messages (either free or
-forced) have been received from a quorum of nodes, and similarly considers
-phase II to be complete when acceptances have been received from a quorum.  The
-choice of quorums can depend on the proposal number $p$, but for any $p$ it
-must be the case that there is at least one node that is in both quorums. More
-formally, if $p \in \mathbb P$ then write $Q^\textrm{I}(p)$ and
-$Q^\textrm{II}(p) \subseteq \mathcal P \mathbb A$ for the sets of phase I and
-phase II quorums for proposal $p$ respectively. The crucial property is that
-for each $q_1 \in Q^\textrm{I}(p)$ and $q_2 \in Q^\textrm{II}(p)$ it must be
-the case that $q_1 \cap q_2 \ne \varnothing$.
+Each node operates as a state machine whose transitions are caused by the
+receipts of messages. A node may consider phase I to be complete when promise
+messages (either free or forced) have been received from a quorum of nodes, and
+similarly considers phase II to be complete when acceptances have been received
+from a quorum.  The choice of quorums can depend on the proposal number $p$,
+but for any $p$ it must be the case that there is at least one node that is in
+both quorums. More formally, if $p \in \mathbb P$ then write $Q^\textrm{I}(p)$
+and $Q^\textrm{II}(p) \subseteq \mathcal P \mathbb A$ for the sets of phase I
+and phase II quorums for proposal $p$ respectively, then the crucial property
+is that for each $q_1 \in Q^\textrm{I}(p)$ and $q_2 \in Q^\textrm{II}(p)$ it
+must be the case that $q_1 \cap q_2 \ne \varnothing$.
 
 It is usual to have $Q^\textrm{I}(p) = Q^\textrm{II}(p)$ and the original
 presentation of the Synod algorithm did not allow for them to be unequal. The
@@ -573,6 +574,44 @@ minor generalisation of the original one to demonstrate that safety is
 preserved even when $Q^\textrm{I}(p) \ne Q^\textrm{II}(p)$.
 
 \subsection{The Paxos algorithm}
+
+Conceptually, Paxos is a sequence of distinct instances of the Synod algorithm
+all running simultaneously. To achieve this, the messages of the Synod
+algorithm above are indexed with the instance number $i \in \mathbb N$:
+$\fprom{i}{a}{p}$, $\bprom{i}{a}{p}{p'}$, $\prop{i}{p}$, $\acc{i}{a}{p}$ and
+$\chosen{i}{p}$. There is another kind of message known as a
+\textit{multi-promise}, written $\mprom{i}{a}{p}$, which can be thought of as
+standing for the infinite set of free promises $\{ \fprom{j}{a}{p}. j \ge i
+\}$. In this presentation, prepare messages $\prep{p}$ apply to all instances
+so do not need to be indexed.
+
+Recall that in each Synod instance each node is a state machine whose
+transitions are caused by the receipt of messages. In Paxos, let $S_i$ be the
+state machine for instance $i$. Because each node has only ever received
+finitely many messages, there must be an instance number $i_\infty$ such that
+all instances $i \ge i_\infty$ are in the same state. A Paxos node therefore
+needs to have a separate state machine $S_i$ for each instance $i < i_\infty$
+but then just a single state machine $S_\infty$ that represents all instances
+$i \ge i_\infty$. When a message mentioning an instance $i \ge i_\infty$ is
+received, the node must increase $i_\infty$ to $i'_\infty > i$ and create (or
+\textit{spawn}) state machines $S_j$ for $i_\infty \le j < i'_\infty$, all of
+which start in the same state as $S_\infty$.
+
+As in the Synod algorithm, phase I starts with a broadcast of $\prep{p}$ for
+some $p$ to which each node $a$ may respond with a set of promises
+$\fprom{i}{a}{p}$, $\bprom{i}{a}{p}{p'}$ and $\mprom{i}{a}{p}$ according to the
+state of its state machines. If a node receives $\mprom{i}{a}{p}$ messages from
+a quorum of nodes then the state machine $S_\infty$ has completed phase I, and
+therefore any state machines that are subsequently spawned will also have
+completed phase I. Each phase II instance $i$ operates just as in the Synod
+algorithm, starting with a broadcast of $\prop{i}{p}$ to which each node $a$
+may respond with an acceptance $\acc{i}{a}{p}$ and once acceptances have been
+received from a quorum of nodes then the instance is chosen and $\chosen{i}{p}$
+may be emitted.
+
+There is a function $v_i : \mathbb P \to \mathbb V$ for each instance $i$ and a
+function $\mathrm{owner} : \mathbb P \to \mathbb A$ which does not depend on the
+instance.
 
 
 
@@ -719,96 +758,96 @@ there are sets of quorums $Q^\textrm{I}(p), Q^\textrm{II}(p) \subseteq \mathcal
 P \mathbb A$ such that $q_1 \cap q_2 \ne \varnothing$ for all $q_1 \in
 Q^\textrm{I}(p)$ and $q_2 \in Q^\textrm{II}(p)$.
 
-\item \label{synod-fprom} A node $a$ may send a $\fprom{a}{p}$ message only if
-$\neg\acc{a}{p'}$ for all $p' \prec p$.
+\item \label{synod-fprom} A node $a$ may send a $\fprom{}{a}{p}$ message only if
+$\neg\acc{}{a}{p'}$ for all $p' \prec p$.
 
-\item \label{synod-bprom} A node $a$ may send a $\bprom{a}{p}{p'}$ message only
+\item \label{synod-bprom} A node $a$ may send a $\bprom{}{a}{p}{p'}$ message only
 if
 \begin{itemize}
 \item $p' \prec p$,
-\item $\acc{a}{p'}$, and
-\item $p'$ is the greatest such proposal, in the sense that $\neg\acc{a}{p''}$
+\item $\acc{}{a}{p'}$, and
+\item $p'$ is the greatest such proposal, in the sense that $\neg\acc{}{a}{p''}$
 for all $p''$ such that $p' \prec p'' \prec p$.
 \end{itemize}
 
-\item \label{synod-prop} A node $a$ may send a $\prop{p}$ message whenever
+\item \label{synod-prop} A node $a$ may send a $\prop{}{p}$ message whenever
 $\owner{p} = a$ and there is a quorum $q \in Q^\textrm{I}(p)$ such that
 \begin{itemize}
-\item for every $a' \in q$ either $\fprom{a'}{p}$ or $\exists p'.
-\bprom{a'}{p}{p'}$, and
-\item if $P = \{ p'. \exists a' \in q. \bprom{a'}{p}{p'} \} \ne \varnothing$
+\item for every $a' \in q$ either $\fprom{}{a'}{p}$ or $\exists p'.
+\bprom{}{a'}{p}{p'}$, and
+\item if $P = \{ p'. \exists a' \in q. \bprom{}{a'}{p}{p'} \} \ne \varnothing$
 then $v(p) = v(\mathrm{max}(P))$.
 \end{itemize}
 
-\item \label{synod-acc} A node $a$ may send an $\acc{a}{p}$ message as long as
+\item \label{synod-acc} A node $a$ may send an $\acc{}{a}{p}$ message as long as
 
 \begin{itemize}
-\item $\prop{p}$,
-\item $\neg\fprom{a}{p'}$ for all $p' \succ p$, and
-\item $\neg\bprom{a}{p'}{p''}$ for all $p' \succ p$ and any $p''$.
+\item $\prop{}{p}$,
+\item $\neg\fprom{}{a}{p'}$ for all $p' \succ p$, and
+\item $\neg\bprom{}{a}{p'}{p''}$ for all $p' \succ p$ and any $p''$.
 \end{itemize}
 
-\item \label{synod-chosen} A node may send a $\chosen{p}$ message whenever
+\item \label{synod-chosen} A node may send a $\chosen{}{p}$ message whenever
 there is a quorum $q \in Q^\textrm{II}(p)$ such that for every $a \in q$ it has
-received an $\acc{a}{p}$ message.
+received an $\acc{}{a}{p}$ message.
 
 \end{enumerate}
 
-\begin{lemma}\label{synod-acc-fprom}If $\acc{a}{p_2}$ and $p_2 \prec p_1$ then
-it cannot be the case that $\fprom{a}{p_1}$.\end{lemma}
+\begin{lemma}\label{synod-acc-fprom}If $\acc{}{a}{p_2}$ and $p_2 \prec p_1$ then
+it cannot be the case that $\fprom{}{a}{p_1}$.\end{lemma}
 
-\begin{proof}At the point in time that node $a$ sent $\acc{a}{p_2}$, by
-invariant \ref{synod-acc} it had not previously sent $\fprom{a}{p_1}$. However
-by invariant \ref{synod-fprom} having sent $\acc{a}{p_2}$ it may not
-subsequently send $\fprom{a}{p_1}$ either, as required.\end{proof}
+\begin{proof}At the point in time that node $a$ sent $\acc{}{a}{p_2}$, by
+invariant \ref{synod-acc} it had not previously sent $\fprom{}{a}{p_1}$. However
+by invariant \ref{synod-fprom} having sent $\acc{}{a}{p_2}$ it may not
+subsequently send $\fprom{}{a}{p_1}$ either, as required.\end{proof}
 
-\begin{lemma}\label{synod-acc-bprom}If $\acc{a}{p_2}$, $\bprom{a}{p_1}{p_3}$
+\begin{lemma}\label{synod-acc-bprom}If $\acc{}{a}{p_2}$, $\bprom{}{a}{p_1}{p_3}$
 and $p_2 \prec p_1$ then $p_2 \preceq p_3$.\end{lemma}
 
-\begin{proof}At the point in time that node $a$ sent $\acc{a}{p_2}$, because
+\begin{proof}At the point in time that node $a$ sent $\acc{}{a}{p_2}$, because
 $p_2 \prec p_1$ and by invariant \ref{synod-acc} it must have not already sent
-$\bprom{a}{p_1}{p_3}$, so it must have sent this message later. By invariant
-\ref{synod-bprom} it must also be the case that $\acc{a}{p_3}$, and $p_3$ is
+$\bprom{}{a}{p_1}{p_3}$, so it must have sent this message later. By invariant
+\ref{synod-bprom} it must also be the case that $\acc{}{a}{p_3}$, and $p_3$ is
 the highest-numbered proposal $a$ has accepted when it sent this message, so
 $p_2 \preceq p_3$ as required. \end{proof}
 
-\begin{lemma}\label{synod-lemma} If $\chosen{p_2}$, $\prop{p_1}$ and $p_2 \prec
+\begin{lemma}\label{synod-lemma} If $\chosen{}{p_2}$, $\prop{}{p_1}$ and $p_2 \prec
 p_1$ then $v(p_1) = v(p_2)$. \end{lemma}
 
 \begin{proof}Suppose for a contradiction the result is false, and since $\prec$
 is wellfounded suppose without loss of generality that $p_1$ is the
 smallest-numbered proposal at which it is false.
 
-Since $\chosen{p_2}$, by invariant \ref{synod-chosen} there is a quorum $q_2
-\in Q^\textrm{II}(p_2)$ such that $\acc{a}{p_2}$ for every $a \in q_2$. By
-lemma \ref{synod-acc-fprom} it cannot be that $\fprom{a}{p_1}$ for any $a \in
+Since $\chosen{}{p_2}$, by invariant \ref{synod-chosen} there is a quorum $q_2
+\in Q^\textrm{II}(p_2)$ such that $\acc{}{a}{p_2}$ for every $a \in q_2$. By
+lemma \ref{synod-acc-fprom} it cannot be that $\fprom{}{a}{p_1}$ for any $a \in
 q_2$.
 
-Also, since $\prop{p_1}$, by invariant \ref{synod-prop} there is a quorum $q_1
-\in Q^\textrm{I}(p_1)$ such that either $\fprom{a}{p_1}$ or $\exists p'.
-\bprom{a}{p_1}{p'}$ for all $a \in q_1$.
+Also, since $\prop{}{p_1}$, by invariant \ref{synod-prop} there is a quorum $q_1
+\in Q^\textrm{I}(p_1)$ such that either $\fprom{}{a}{p_1}$ or $\exists p'.
+\bprom{}{a}{p_1}{p'}$ for all $a \in q_1$.
 
-Let $P = \{ p'. \exists a \in q_1.  \bprom{a}{p_1}{p'} \}$ be the set of
+Let $P = \{ p'. \exists a \in q_1.  \bprom{}{a}{p_1}{p'} \}$ be the set of
 proposals referenced by forced promises. By invariant \ref{synod-quorums}, $q_1
 \cap q_2 \ne \varnothing$ so it follows that $P \ne \varnothing$, which means
 that $v(p_1) = v(\mathrm{max}(P))$ by invariant \ref{synod-prop}. Let
 $a_{\mathrm{max}} \in q_1$ be such that
-$\bprom{a_{\mathrm{max}}}{p_1}{\mathrm{max}(P)}$. By invariant
+$\bprom{}{a_{\mathrm{max}}}{p_1}{\mathrm{max}(P)}$. By invariant
 \ref{synod-bprom} it follows that $\mathrm{max}(P) \prec p_1$ and also that
-$\acc{a_{\mathrm{max}}}{\mathrm{max}(P)}$ and hence $\prop{\mathrm{max}(P)}$ by
+$\acc{}{a_{\mathrm{max}}}{\mathrm{max}(P)}$ and hence $\prop{}{\mathrm{max}(P)}$ by
 invariant \ref{synod-acc}. Furthermore by lemma \ref{synod-acc-bprom} it
 follows that $p_2 \preceq \mathrm{max}(P)$ and since $p_1$ was assumed to be
 the smallest counterexample it must be that $v(\mathrm{max}(P)) = v(p_2)$.
 Hence $v(p_1) = v(p_2)$ which is a contradiction as required.  \end{proof}
 
-\begin{theorem}\label{synod-safety-theorem} If $\chosen{p_1}$ and
-$\chosen{p_2}$ then $v(p_1) = v(p_2)$.  \end{theorem}
+\begin{theorem}\label{synod-safety-theorem} If $\chosen{}{p_1}$ and
+$\chosen{}{p_2}$ then $v(p_1) = v(p_2)$.  \end{theorem}
 
 \begin{proof} If $p_1 = p_2$ then the result is clear, so assume that $p_1 \ne
 p_2$ and therefore without loss of generality that $p_2 \prec p_1$. By
 invariant \ref{synod-chosen} there is a quorum $q \in Q^\textrm{II}(p_1)$ such
-that $\acc{a}{p_1}$ for every node $a \in q$. Since $q$ is nonempty, by
-invariant \ref{synod-acc} it must be that $\prop{p_1}$ was previously sent.
+that $\acc{}{a}{p_1}$ for every node $a \in q$. Since $q$ is nonempty, by
+invariant \ref{synod-acc} it must be that $\prop{}{p_1}$ was previously sent.
 Therefore by lemma \ref{synod-lemma} it follows that $v(p_1) = v(p_2)$ as
 required.  \end{proof}
 
