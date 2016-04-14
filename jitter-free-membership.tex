@@ -714,9 +714,10 @@ invariants.
 
 \begin{enumerate}
 
-\item \label{synod-quorums} There are sets of quorums $Q^\textrm{I},
-Q^\textrm{II} \subseteq \mathcal P \mathbb A$ such that $q_1 \cap q_2 \ne
-\varnothing$ for all $q_1 \in Q^\textrm{I}$ and $q_2 \in Q^\textrm{II}$.
+\item \label{synod-quorums} For every proposal identifier $p \in \mathbb P$
+there are sets of quorums $Q^\textrm{I}(p), Q^\textrm{II}(p) \subseteq \mathcal
+P \mathbb A$ such that $q_1 \cap q_2 \ne \varnothing$ for all $q_1 \in
+Q^\textrm{I}(p)$ and $q_2 \in Q^\textrm{II}(p)$.
 
 \item \label{synod-fprom} A node $a$ may send a $\fprom{a}{p}$ message only if
 $\neg\acc{a}{p'}$ for all $p' \prec p$.
