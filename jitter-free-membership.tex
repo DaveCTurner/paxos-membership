@@ -614,9 +614,9 @@ have been received from a quorum of nodes then the instance is chosen and
 $\chosen{i}{p}$ may be emitted.
 
 There is a function $v_i : \mathbb P \to \mathbb V$ for each instance $i$
-defining the value for each proposal, and theorem \ref{paxos-safety} shows that
-whenever $\chosen{i}{p}$ and $\chosen{i}{p'}$ it follows that $v_i(p) =
-v_i(p')$.
+defining the value for each proposal, and theorem \ref{paxos-safety-theorem}
+shows that whenever $\chosen{i}{p}$ and $\chosen{i}{p'}$ it follows that
+$v_i(p) = v_i(p')$.
 
 
 
@@ -864,8 +864,7 @@ required.  \end{proof}
 \section{Invariants preserved by the Paxos algorithm}
 
 \begin{theorem}\label{paxos-safety-theorem} If $\chosen{i}{p_1}$ and
-$\chosen{i}{p_2$ then $v_i(p_1) = v_i(p_2)$.
-\end{theorem}
+$\chosen{i}{p_2}$ then $v_i(p_1) = v_i(p_2)$.  \end{theorem}
 
 \begin{proof}TODO\end{proof}
 
