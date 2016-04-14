@@ -461,31 +461,46 @@ The abstract goes here. %TODO
 
 \section{Introduction}
 
-\IEEEPARstart{P}{axos} is an algorithm for achieving consensus on a sequence of
-values in a distributed, fault-tolerant fashion. It typically runs on a cluster
-of $2f+1$ nodes, where $f$ is the number of faulty nodes that should be
-tolerated, and decisions are reached when votes from a majority of the nodes
-have been received.
+\IEEEPARstart{P}{axos} is an algorithm for achieving consensus on (or
+\textit{choosing}) a sequence $v_0, v_1, \ldots$ of values in a distributed,
+fault-tolerant fashion. It typically runs on a cluster of $2f+1$ nodes, where
+$f$ is the number of faulty nodes that should be tolerated, and consensus is
+achieved on a value $v_i \in \mathbb V$ when $\ge f+1$ (i.e.  a majority) of
+the nodes agree. More generally, if $\mathbb A$ is the set of all nodes then
+there is a set $Q \subseteq \mathcal P \mathbb A$ of \textit{quorums}, and a
+value is chosen when all nodes $a \in q$ agree for some quorum $q \in Q$.
 
-Each value in the sequence is decided using a separate instance of a two-phase
-consensus protocol known as \textit{Synod}. The full Paxos protocol starts by
-running the first phase of infinitely many of these instances at once and then
-runs the second phase of each instance in turn to yield the desired sequence of
-values. These instances of the second phase can be \textit{pipelined}: later
-instances can be started before earlier ones have finished. However, if it is
-necessary to run the first phase again, the pipeline stalls until it is
-complete and the running of the second phases can resume. This can be observed
+It is normally necessary to be able to add or remove nodes from the cluster,
+which amounts to the ability to change the set $Q$ of quorums while the cluster
+is running. Since it is crucial that all participating nodes agree on what
+constitutes a majority at all times, the membership of the cluster is normally
+represented as a state machine whose transitions occur when particular values
+in the sequence are chosen.
+
+Each value $v_i \in \mathbb V$ is chosen using a separate instance $i$ of a
+two-phase consensus protocol known as \textit{Synod}. The full Paxos algorithm
+optimises this approach by using the observation that there is a $N$ such that
+all Synod instances $i > N$ are in the same state at any one time and this set
+of instances can therefore be manipulated as a single entity. It starts by
+running the first phase of all instances at once and then runs the second phase
+of each instance in turn to yield the desired sequence of chosen values. It
+normally remains in this second phase, but will return to the first phase if
+certain nodes become faulty, or if messages between certain pairs of nodes
+cease to be delivered reliably for a period, or if the set of quorums $Q$
+changes.
+
+The algorithm allows for \textit{pipelining} in the second phase: later
+instances can be started before earlier ones have been chosen, which means that
+the rate of choosing values is not limited by network latency. The pipeline
+runs smoothly as long as the first phase does not need to run again, but may
+stall if the system re-runs the first phase. A pipeline stall can be observed
 as jitter in the rate at which values are decided.
 
-The first phase must only be run again if certain nodes become faulty, or if
-messages between certain pairs of nodes cease to be delivered reliably for a
-period, or if the membership of the cluster changes. It is unavoidable that a
-fault in the system would have an impact on its performance, but changing the
-membership of the cluster is a common task and it is undesirable that it
-should have any such effect.
+It is unavoidable that a fault in the system would have an impact on its
+performance, but changing the set of quorums $Q$ of the cluster is a common
+task and it is undesirable that it should have any such effect.
 
-Cluster membership changes are themselves represented as particular values in
-the sequence. The usual approach to avoiding a pipeline stall when a cluster
+The usual approach to avoiding a pipeline stall when a cluster
 membership change is agreed at instance $i$ is to postpone the effects of the
 change until instance $i + \alpha$ for some $\alpha \ge 0$. If $\alpha$ is
 large enough, there is time to run the new first-phase before the pipeline
