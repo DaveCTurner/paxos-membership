@@ -692,12 +692,12 @@ However, a na\"ive approach to perform a rolling upgrade puts the system at risk
 during the upgrade: if $f = 1$ and one of the nodes is down for maintenance then
 the failure of another node would render the system unavailable. In terms of
 weights:
-\begin{tabular}{rccc}
+\[\begin{align*}
 &$A$&$B$&$C$ \\
 1.&1&1&1\\
 2.&0&1&1\\
 3.&1&1&1
-\end{tabular}
+\end{align*}\]
 On line 2, node $A$ has been taken down for maintenance so both $B$ and $C$
 have $\ge \frac{1}{2}$ of the total weight which means the system is
 temporarily not resilient to any failures. A common solution to this problem is
