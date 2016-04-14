@@ -618,6 +618,12 @@ defining the value for each proposal, and theorem \ref{paxos-safety-theorem}
 shows that whenever $\chosen{i}{p}$ and $\chosen{i}{p'}$ it follows that
 $v_i(p) = v_i(p')$.
 
+Membership changes are handled by defining a sequence of memberships $Q_1, Q_2,
+\ldots$ that is itself chosen by Paxos.  More precisely, there is a state
+machine whose state is a finite sequence of memberships $Q_1, Q_2, \ldots, Q_m$
+and whose transitions append one or more memberships to this sequence.
+Transitions occur when particular values are chosen by Paxos, ensuring that all
+nodes agree on the current sequence of memberships.
 
 
 \subsection{Subsection Heading Here}
