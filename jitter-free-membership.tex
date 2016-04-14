@@ -363,7 +363,7 @@
 % not capitalized unless they are the first or last word of the title.
 % Linebreaks \\ can be used within to get better formatting as desired.
 % Do not put math or special symbols in the title.
-\title{Fast, jitter-free membership changes in Paxos}
+\title{Membership changes in Paxos}
 %
 %
 % author names and IEEE memberships
@@ -457,8 +457,6 @@ The abstract goes here. %TODO
 % creates the second title. It will be ignored for other modes.
 \IEEEpeerreviewmaketitle
 
-
-
 \section{Introduction}
 
 \IEEEPARstart{P}{axos} is an algorithm for achieving consensus on (or
@@ -482,35 +480,34 @@ two-phase consensus protocol known as \textit{Synod}. The full Paxos algorithm
 optimises this approach by using the observation that there is a $N$ such that
 all Synod instances $i > N$ are in the same state at any one time and this set
 of instances can therefore be manipulated as a single entity. It starts by
-running the first phase of all instances at once and then runs the second phase
-of each instance in turn to yield the desired sequence of chosen values. It
-normally remains in this second phase, but will return to the first phase if
+running phase I of all instances at once and then runs phase II of each
+instance in turn to yield the desired sequence of chosen values. It normally
+remains in phase II for an extended period, but will return to phase I if
 certain nodes become faulty, or if messages between certain pairs of nodes
 cease to be delivered reliably for a period, or if the set of quorums $Q$
 changes.
 
-The algorithm allows for \textit{pipelining} in the second phase: later
-instances can be started before earlier ones have been chosen, which means that
-the rate of choosing values is not limited by network latency. The pipeline
-runs smoothly as long as the first phase does not need to run again, but may
-stall if the system re-runs the first phase. A pipeline stall can be observed
-as jitter in the rate at which values are decided.
+The algorithm allows for \textit{pipelining} in phase II: later instances can
+be started before earlier ones have been chosen, which means that the rate of
+choosing values is not limited by network latency. The pipeline runs smoothly
+as long as phase I does not need to run again, but may stall if phase I is
+re-run. A pipeline stall can be observed as jitter in the rate at which values
+are decided.
 
-It is unavoidable that a fault in the system would have an impact on its
-performance, but changing the set of quorums $Q$ of the cluster is a common
-task and it is undesirable that it should have any such effect.
-
-The usual approach to avoiding a pipeline stall when a cluster
+It is unavoidable that a faulty node or disrupted communications may have an
+impact on its performance, but changing the set of quorums $Q$ of the cluster
+is a common task and it is undesirable that it should have any such effect.
+The usual approach to avoiding jitter caused by a pipeline stall when a cluster
 membership change is agreed at instance $i$ is to postpone the effects of the
 change until instance $i + \alpha$ for some $\alpha \ge 0$. If $\alpha$ is
-large enough, there is time to run the new first-phase before the pipeline
-stalls. On the other hand, if $\alpha$ is too large then the membership change
-can take an unreasonably long time to take effect.
+large enough, there is time to run the new phase I before the pipeline stalls.
+On the other hand, if $\alpha$ is too large then the membership change can take
+an unreasonably long time to take effect.
 
 As described below, it is in fact possible to delay the effect of a membership
-change for as long as required to run the first phase again, but then to allow
-it to take effect once the first phase has completed, without needing to decide
-on a carefully-chosen fixed value for $\alpha$ ahead of time.
+change for as long as required to run phase I again, but then to allow it to
+take effect once the phase I has completed, without needing to carefully choose
+a value for the delay parameter $\alpha$.
 
 \subsection{The Synod algorithm}
 
@@ -533,16 +530,17 @@ let $\mathbb V$ be the set of values to be chosen.
 \def\owner#1{\mathrm{owner}(#1)}
 
 The Synod algorithm involves four kinds of message, described below.
-Throughout, $p, p' \in \mathbb P$, $a \in \mathbb A$.  The first phase starts
-with a \textit{prepare} message $\prep{p}$ to which node $a$ may respond with a
-\textit{promise} message, either a \textit{free promise} written $\fprom{a}{p}$
-or a \textit{forced promise} written $\bprom{a}{p}{p'}$.  The second phase
-starts with a \textit{proposal} message $\prop{p}$ to which node $a$ may
-respond with an \textit{acceptance} message $\acc{a}{p}$. It is convenient to
-add another kind of message $\chosen{p}$ which can be thought of as being sent
-when a proposal has been chosen. There is also a function $v : \mathbb P \to
-\mathbb V$ assigning a value to each proposal, and a function $\mathrm{owner} :
-\mathbb P \to \mathbb A$ assigning an owner to each proposal.
+Throughout, $p, p' \in \mathbb P$ and $a \in \mathbb A$.  Phase I starts with
+the broadcast of a \textit{prepare} message $\prep{p}$ to which each node $a$
+may respond with a \textit{promise} message, either a \textit{free promise}
+written $\fprom{a}{p}$ or a \textit{forced promise} written $\bprom{a}{p}{p'}$.
+Phase II starts with the broadcast of a \textit{proposal} message $\prop{p}$ to
+which each node $a$ may respond with an \textit{acceptance} message
+$\acc{a}{p}$. It is convenient to add another kind of message $\chosen{p}$
+which can be thought of as being sent by any node when a proposal has been
+chosen. There is also a function $v : \mathbb P \to \mathbb V$ assigning a
+value to each proposal, and a function $\mathrm{owner} : \mathbb P \to \mathbb
+A$ assigning an owner to each proposal.
 
 It is also convenient to treat these as predicates indicating that the
 corresponding messages have been sent. For instance, the predicate
@@ -553,22 +551,22 @@ whenever $\chosen{p_1}$ and $\chosen{p_2}$ then $v(p_1) = v(p_2)$. The full
 details of the conditions under which nodes can send these messages is included
 in appendix \ref{synod-safety}.
 
-A node considers the first phase of the algorithm to be complete when promise
-messages (either free or forced) have been received from a \textit{quorum} of
-nodes, and similarly considers the second phase of the algorithm to be complete
-when acceptances have been received from a quorum of nodes. The choice of
-quorums can depend on the proposal number $p$, but for any $p$ it must be the
-case that there is at least one node that is in both quorums. More formally, if
-$p \in \mathbb P$ then write $Q_1(p)$ and $Q_2(p) \subseteq \mathcal P \mathbb
-A$ for the sets of first-phase and second-phase quorums for proposal $p$
-respectively. The crucial property is that for each $q_1 \in Q_1(p)$ and $q_2
-\in Q_2(p)$ it must be the case that $q_1 \cap q_2 \ne \varnothing$.
+A node considers phase I to be complete when promise messages (either free or
+forced) have been received from a quorum of nodes, and similarly considers
+phase II to be complete when acceptances have been received from a quorum.  The
+choice of quorums can depend on the proposal number $p$, but for any $p$ it
+must be the case that there is at least one node that is in both quorums. More
+formally, if $p \in \mathbb P$ then write $Q^\textrm{I}(p)$ and
+$Q^\textrm{II}(p) \subseteq \mathcal P \mathbb A$ for the sets of phase I and
+phase II quorums for proposal $p$ respectively. The crucial property is that
+for each $q_1 \in Q^\textrm{I}(p)$ and $q_2 \in Q^\textrm{II}(p)$ it must be
+the case that $q_1 \cap q_2 \ne \varnothing$.
 
-It is usual to have $Q_1(p) = Q_2(p)$ and the original presentation of the
-Synod algorithm did not allow for them to be unequal. The proof of theorem
-\ref{synod-safety-theorem} in appendix \ref{synod-safety} is a minor
-generalisation of the original one to demonstrate that safety is preserved even
-when $Q_1(p) \ne Q_2(p)$.
+It is usual to have $Q^\textrm{I}(p) = Q^\textrm{II}(p)$ and the original
+presentation of the Synod algorithm did not allow for them to be unequal. The
+proof of theorem \ref{synod-safety-theorem} in appendix \ref{synod-safety} is a
+minor generalisation of the original one to demonstrate that safety is
+preserved even when $Q^\textrm{I}(p) \ne Q^\textrm{II}(p)$.
 
 \subsection{The Paxos algorithm}
 
