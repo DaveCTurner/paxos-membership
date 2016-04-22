@@ -364,7 +364,7 @@
 % not capitalized unless they are the first or last word of the title.
 % Linebreaks \\ can be used within to get better formatting as desired.
 % Do not put math or special symbols in the title.
-\title{Membership changes in Paxos}
+\title{Jitter-free Dynamic Paxos}
 %
 %
 % author names and IEEE memberships
@@ -403,7 +403,7 @@
 
 % The paper headers
 \markboth{Journal of \LaTeX\ Class Files,~Vol.~14, No.~8, August~2015}%
-{Turner: Fast, jitter-free membership changes in Paxos}
+{Turner: Jitter-free Dynamic Paxos}
 % The only time the second header will appear is for the odd numbered pages
 % after the title page when using the twoside option.
 % 
@@ -496,19 +496,37 @@ re-run. A pipeline stall can be observed as jitter in the rate at which values
 are chosen.
 
 It is unavoidable that a faulty node or disrupted communications may have an
-impact on the system's performance, but changing its membership is a common
-task and it is undesirable that it should have any such effect.  The usual
-approach to avoiding jitter caused by a pipeline stall when a cluster
-membership change is agreed at instance $i$ is to postpone the effects of the
-change until instance $i + \alpha$ for some $\alpha \ge 0$. If $\alpha$ is
-large enough, there is time to run the new phase I before the pipeline stalls.
-On the other hand, if $\alpha$ is too large then the membership change can take
-an unreasonably long time to take effect.
+impact on the system's performance, but changing its membership is a routine
+task which should have no such effect. Dynamic Paxos\footnote{TODO cite} avoids
+a pipeline stall when a cluster membership change is chosen at instance $i$ by
+postponing the effects of the change until instance $i + \alpha$ for some
+$\alpha > 0$. If $\alpha$ is large enough, there is time to run the new phase I
+before the pipeline stalls.  On the other hand, if $\alpha$ is too large then
+the membership change can take an unreasonably long time to take effect.
 
-As described below, it is in fact possible to delay the effect of a membership
-change for as long as required to run phase I again, but then to allow it to
-take effect once the phase I has completed, without needing to carefully choose
-a value for the delay parameter $\alpha$.
+The value of the delay parameter $\alpha$ may vary while the system is running,
+so it is certainly possible to design a mechanism for choosing a reasonably
+suitable value and adapting it to changing system conditions. The approach
+described here shows an alternative technique which runs the new phase I
+without needing to fix the instance at which the membership change takes
+effect. As this technique imposes no limit on how soon the new phase I must be
+completed, it entirely avoids the possibility of jitter caused by a pipeline
+stall.
+
+It also does not need to fix exactly what the membership change will be and
+works as long as the change is sufficiently small, in a sense which is made
+precise below.  Larger changes can often be performed as a sequence of these
+small, jitter-free changes but it is also shown that this technique generalises
+that of Dynamic Paxos so 
+
+
+
+Finally, a simple characterisation of a useful set of ``sufficiently small''
+membership changes is given, along with examples showing how sequences of these
+small changes can be used to achieve common administrative tasks.
+
+
+
 
 \subsection{The Synod algorithm}
 
