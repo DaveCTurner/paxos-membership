@@ -711,24 +711,29 @@ and has received $\acc{i}{a}{p}$ from a quorum $q^\textrm{II} \in Q_{e(i)}$.
 Thus if $\chosen{i}{p}$ then $e(p) \in \{ e(i)-1, e(i) \}$ and hence
 $q^\textrm{I} \in Q_{e(p)} \subseteq Q_{e(i)-1} \cup Q_{e(i)}$ so that
 $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$ as required. It is worth
-emphasising the subtle point that nodes use the membership $Q_{e(p)}$
-corresponding to the proposal $p$ for phase I, but the membership $Q_{e(i)}$ of
-the instance $i$ for phase II.
+emphasising the subtle point that the membership $Q_{e(p)}$ corresponding to
+the proposal $p$ is used for phase I, but the membership $Q_{e(i)}$ for the
+instance $i$ is used for phase II.
+
+TODO show that this allows for membership change without rerunning phase I.
 
 \subsection{Types of membership change}
 
-There are two qualitatively different kinds of membership change that satisfy
-the consecutive epoch intersection property. The first is where $Q_{e-1}$ and
-$Q_e$ are nonempty, then the property is satisfied as long as the memberships
-are sufficiently similar. For example, if \[Q_{e-1} = \{ \{ a_0, a_1 \}, \{
-a_0, a_2 \}, \{ a_1, a_2 \}, \{ a_0, a_1, a_2 \} \}\] is the set of all
-majority subsets of $\{ a_0, a_1, a_2 \}$ and \[\begin{aligned}Q_e
-    &=& \{ \{ a_0, a_1, a_2 \}, \{ a_0, a_1, a_3 \}, \\&&
-    \{ a_0, a_2, a_3 \}, \{ a_1, a_2, a_3 \}, \{ a_0, a_1,
-a_2, a_3 \}\}\end{aligned}\] is the set of all majority subsets of $\{a_0, a_1, a_2, a_3\}$
-then these are sufficiently similar, in the sense that they are nonempty and
-satisfy the consecutive epoch intersection property.
+\def\maj#1{\mathbf{maj}(#1)}
 
+There are two qualitatively different types of membership change that satisfy
+the consecutive epoch intersection property. If $Q_{e-1}$ and $Q_e$ are both
+nonempty then they can satisfy the property by being sufficiently similar. For
+example, if the nodes are numbered $a_1, a_2, \ldots$ then let $s_n = \{a_1,
+\ldots, a_n\}$ and let $\maj{s} = \{ q \subseteq s \mid 2 |q| > |s| \}$ be the
+set of all majority subsets of $s$. Then $\maj{s_3}$ and $\maj{s_4}$ are
+sufficiently similar, in the sense that they are nonempty and satisfy the
+consecutive epoch intersection property. On the other hand, $\maj{s_5}$ is not
+sufficiently similar to $\maj{s_3}$ because $\{a_1, a_2\} \in \maj{s_3}$ and
+$\{a_3, a_4, a_5\} \in \maj{s_5}$ do not intersect.
+
+The second type of membership change is where either $Q_{e-1} = \varnothing$ or
+$Q_e = \varnothing$.
 
 \subsection{Defining new memberships and epochs}
 
