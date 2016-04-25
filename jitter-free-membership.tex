@@ -583,17 +583,18 @@ shown the key consistency property of the Synod algorithm: \[\textrm{if }
 \chosen{}{p} \textrm{ and } \chosen{}{p'} \textrm { then } v(p) = v(p').\]
 
 Each node operates as a state machine whose transitions are caused by the
-receipts of messages. A node may consider phase I to be complete at proposal
-$p$ when promise messages for $p$ have been received from a quorum of nodes,
-and similarly considers phase II to be complete at $p$, and hence
-$\chosen{}{p}$, when a quorum of acceptances of $p$ has been received. The
-quorums themselves can depend on the proposal number $p$ and the phase, but for
-any $p$ it must be the case that there is at least one node that is in a quorum
-of each phase.  More formally, if $p \in \mathbb P$ then write
-$Q^\textrm{I}(p)$ and $Q^\textrm{II}(p) \subseteq \mathcal P \mathbb A$ for the
-sets of phase I and phase II quorums for proposal $p$ respectively, and then
-for each $q_1 \in Q^\textrm{I}(p)$ and $q_2 \in Q^\textrm{II}(p)$ it must be
-the case that $q_1 \cap q_2 \ne \varnothing$.
+receipts of messages. A node may emit $\prop{}{p}$ when it considers phase I to
+be complete at proposal $p$, and similarly may emit $\chosen{}{p}$ when phase
+II is complete.  A node considers phase I to be complete at proposal $p$ when
+promise messages for $p$ have been received from a quorum of nodes, and
+similarly considers phase II to be complete at $p$ when a quorum of acceptances
+of $p$ has been received. The quorums themselves can depend on the proposal
+number $p$ and the phase, but for any $p$ it must be the case that there is at
+least one node that is in a quorum of each phase.  More formally, if $p \in
+\mathbb P$ then write $Q^\textrm{I}(p)$ and $Q^\textrm{II}(p) \subseteq
+\mathcal P \mathbb A$ for the sets of phase I and phase II quorums for proposal
+$p$ respectively, and then for each $q_1 \in Q^\textrm{I}(p)$ and $q_2 \in
+Q^\textrm{II}(p)$ it must be the case that $q_1 \cap q_2 \ne \varnothing$.
 
 \subsection{The Paxos algorithm}
 
@@ -644,19 +645,20 @@ $v_i(p) = v_i(p')$.
 
 \subsection{Value function}
 
-In the classic presentation of Paxos, the values of proposals are carried along
-with their identifiers in the messages $\bprom{}{a}{p}{ p',v(p') }$, $\prop{}{
-p,v(p)}$ and $\acc{}{a}{ p,v(p) }$. Observation O4 in TODO\footnote{Cheap
-Paxos} observes that these values can be replaced in some cases by hashes,
-which is useful if the values themselves are expensive to transmit between
-nodes. The presentation here goes one step further and shows that the values
-can be completely elided from the messages that take part in Paxos, allowing
-considerably more freedom in the implementation of the function $v$ without
-sacrificing consistency.  This works because if the invariants of appendix
-\ref{synod-safety} are satisfied with a value function $v$ then they are
-satisfied for any value function $v'$ having $\prop{}{p} \implies v(p) =
-v'(p)$.  Furthermore only $\owner{p}$ may propose $p$, so if it has not yet
-proposed a value for $p$ it can, in effect, freely modify $v(p)$ as desired.
+In the classic presentation of the Synod algorithm, the values of proposals are
+carried along with their identifiers in the messages $\bprom{}{a}{p}{ p',v(p')
+}$, $\prop{}{ p,v(p)}$ and $\acc{}{a}{ p,v(p) }$. Observation O4 in
+TODO\footnote{Cheap Paxos} observes that these values can be replaced in some
+cases by hashes, which is useful if the values themselves are expensive to
+transmit between nodes. The presentation here goes one step further and shows
+that the values can be completely elided from the messages that take part in
+the Synod protocol, allowing considerably more freedom in the implementation of
+the function $v$ without sacrificing consistency.  This works because if the
+invariants of appendix \ref{synod-safety} are satisfied with a value function
+$v$ then they are satisfied for any value function $v'$ having $\prop{}{p}
+\implies v(p) = v'(p)$.  Furthermore only $\owner{p}$ may propose $p$, so if it
+has not yet proposed a value for $p$ it can, in effect, freely modify $v(p)$ as
+desired.
 
 To ensure the system satisfies the desired liveness properties, the
 implementation of $v$ must be resilient to the same failure modes as the rest
@@ -665,7 +667,7 @@ by including pertinent values of $v$ in all relevant messages, but since the
 value of each proposal $p$ has at most one writer, $\owner{p}$, more efficient
 mechanisms are available. For instance, the values of proposed proposals may be
 represented as an insert-only set of pairs $\{ \langle p, v(p) \rangle \mid
-\prop{}{p} \}$, which can be implemented as a simple conflict-free replicated
+\prop{}{p} \}$ which can be implemented as a simple conflict-free replicated
 data type or CRDT\footnote{TODO cite}.
 
 Alternatively, $\mathbb V$ may comprise sequences of database commands, and $v$
@@ -674,50 +676,64 @@ even before a proposal is chosen and then only committing the transaction once
 the proposal is chosen; the transaction is aborted if a different proposal is
 chosen. Resilience can be ensured by running the same commands against multiple
 independent databases, and consistency is still preserved even though the
-commands themselves are not shared in Paxos messages.
+commands themselves are not shared in Synod messages.
 
-\subsection{Per-phase quorums}
+\subsection{Per-phase quorums}\label{per-phase-quorums}
 
-In the classic presentation of Paxos the set of quorums did not depend on the
-phase: $Q^\textrm{I}(p) = Q^\textrm{II}(p)$. The ability to vary the quorums
-between the two phases is the key ingredient in being able to perform
-jitter-free membership changes. The proof of theorem \ref{synod-safety-theorem}
-in appendix \ref{synod-safety} is a minor generalisation of the original one to
-demonstrate that safety is preserved even when $Q^\textrm{I}(p) \ne
-Q^\textrm{II}(p)$, as long as $q_1 \cap q_2 \ne \varnothing$ for all $q_1 \in
-Q^\textrm{I}(p)$ and $q_2 \in Q^\textrm{II}(p)$.
+In the classic presentation of the Synod algorithm the set of quorums did not
+depend on the phase. The ability to vary the quorums between the two phases is
+the key ingredient in being able to perform jitter-free membership changes. The
+proof of theorem \ref{synod-safety-theorem} in appendix \ref{synod-safety} is a
+minor generalisation of the original one to demonstrate that consistency is
+preserved even when $Q^\textrm{I}(p) \ne Q^\textrm{II}(p)$ as long as
+$q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$ for all $q^\textrm{I} \in
+Q^\textrm{I}(p)$ and $q^\textrm{II} \in Q^\textrm{II}(p)$.
 
-\subsection{Membership changes}
+\section{Membership changes}
 
-Changes\footnote{ TODO - describe the distributed state machine approach
-earlier?? Allow for multiple state machines running in parallel.} in the
-cluster membership are handled by assigning an \textit{epoch number} $e(i) > 0$
-to each instance $i$, and defining a sequence of memberships $Q_0, Q_1, Q_2,
-\ldots$ such that the membership $Q_{e(i)}$ is used for phase II of instance
-$i$. Normally, $Q_{e(i)}$ is also used for phase I of instance $i$ but while a
-membership change is in progress it is useful to be able to use the previous
-membership $Q_{e(i)-1}$ as well. Recall that the safety property of the Synod
-algorithm relies on every phase-I quorum intersecting every phase-II quorum:
-this means that for every epoch number $e$ and for every $q^\textrm{I} \in
-Q_{e} \cup Q_{e-1}$ and $q^\textrm{II} \in Q_{e}$ it must be that $q^\textrm{I}
-\cap q^\textrm{II} \ne \varnothing$, the so-called \textit{consecutive epoch
-intersection} property.
+Changes in the cluster membership are handled with a sequence of numbered
+\textit{epochs} $1, 2, \ldots$ and memberships $Q_0, Q_1, Q_2, \ldots$ that
+satisfy the \textit{consecutive epoch intersection} property: for every epoch
+$e$, every $q^\textrm{I} \in Q_{e} \cup Q_{e-1}$ and every $q^\textrm{II} \in
+Q_{e}$ it must be that $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$.
+There is also a nondecreasing function that assigns an epoch number $e(i)$ to
+each instance $i$.  The consecutive epoch intersection property along with the
+observation of section \ref{per-phase-quorums} above means that phase I of
+instance $i$ can use $Q_{e(i)-1} \cup Q_{e(i)}$ for its set of quorums and
+phase II can use $Q_{e(i)}$.
 
-The advantage of using a sequence of memberships that satisfy this property is
-that when changing epoch the system does not need to wait for another phase I
-to complete before starting to run phase II. In more detail, if there is a
-quorum of nodes $q \in Q_{e-1}$ which have sent multi-promises
-$\mprom{j}{a}{p}$ then phase I is complete for all instances $i \ge j$ having
-$e(i) \in \{e-1, e\}$. When the system changes to epoch $e$ it may launch a new
-phase I to attempt to obtain multi-promises from another quorum $q' \in Q_e$ in
-the new epoch $e$, but this phase I does not prevent further phase II instances
-from running.
+There is also a nondecreasing function which assigns an epoch number $e(p)$ to
+each proposal $p$. A node considers phase I to be complete at instance $i$ and
+proposal $p$ if $e(p) \le e(i)$ and it has received promises for proposal $p$
+in instance $i$ from a quorum $q^\textrm{I} \in Q_{e(p)}$. A node considers
+phase II to be complete at instance $i$ and proposal $p$ if $e(i) \le e(p)+1$
+and has received $\acc{i}{a}{p}$ from a quorum $q^\textrm{II} \in Q_{e(i)}$.
+Thus if $\chosen{i}{p}$ then $e(p) \in \{ e(i)-1, e(i) \}$ and hence
+$q^\textrm{I} \in Q_{e(p)} \subseteq Q_{e(i)-1} \cup Q_{e(i)}$ so that
+$q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$ as required. It is worth
+emphasising the subtle point that nodes use the membership $Q_{e(p)}$
+corresponding to the proposal $p$ for phase I, but the membership $Q_{e(i)}$ of
+the instance $i$ for phase II.
+
+\subsection{Types of membership change}
+
+There are two qualitatively different kinds of membership change that satisfy
+the consecutive epoch intersection property. The first is where $Q_{e-1}$ and
+$Q_e$ are nonempty, then the property is satisfied as long as the memberships
+are sufficiently similar. For example, if \[Q_{e-1} = \{ \{ a_0, a_1 \}, \{
+a_0, a_2 \}, \{ a_1, a_2 \}, \{ a_0, a_1, a_2 \} \}\] is the set of all
+majority subsets of $\{ a_0, a_1, a_2 \}$ and \[\begin{aligned}Q_e
+    &=& \{ \{ a_0, a_1, a_2 \}, \{ a_0, a_1, a_3 \}, \\&&
+    \{ a_0, a_2, a_3 \}, \{ a_1, a_2, a_3 \}, \{ a_0, a_1,
+a_2, a_3 \}\}\end{aligned}\] is the set of all majority subsets of $\{a_0, a_1, a_2, a_3\}$
+then these are sufficiently similar, in the sense that they are nonempty and
+satisfy the consecutive epoch intersection property.
 
 
-Additionally there is a %TODO define membership version for each instance.
+\subsection{Defining new memberships and epochs}
 
-There is an increasing function $m : \mathbb P \to \mathbb N$ assigning a
-membership to each proposal.
+As in Dynamic Paxos, the memberships $Q_0, Q_1, \ldots$ and epoch numbers
+$e(i)$ are themselves chosen by Paxos.
 
 \subsection{Weight-based memberships}
 \label{weight-based-memberships}
@@ -729,7 +745,8 @@ w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] If $w(a) = 0$ for all $a$ then
 $w$ is said to be \textit{weightless} and $M(w) = \varnothing$.
 
 A sequence $w_0, w_1, \ldots$ of weight functions can be used to define the
-sequence of memberships used by a Paxos cluster. Recall that this sequence of
+sequence of memberships used by a  a value for instance $j$ may be proposed.
+cluster. Recall that this sequence of
 memberships must satisfy the consecutive epoch intersection property: if
 $q^\textrm{I} \in M(w_e) \cup M(w_{e-1})$ and $q^\textrm{II} \in M(w_e)$ then
 it is necessary that $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$. There
