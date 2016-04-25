@@ -706,7 +706,7 @@ each proposal $p$. A node considers phase I to be complete at instance $i$ and
 proposal $p$ if $e(p) \le e(i)$ and it has received promises for proposal $p$
 in instance $i$ from a quorum $q^\textrm{I} \in Q_{e(p)}$. A node considers
 phase II to be complete at instance $i$ and proposal $p$ if $e(i) \le e(p)+1$
-and has received $\acc{i}{a}{p}$ from a quorum $q^\textrm{II} \in Q_{e(i)}$.
+and it has received $\acc{i}{a}{p}$ from a quorum $q^\textrm{II} \in Q_{e(i)}$.
 Thus if $\chosen{i}{p}$ then $e(p) \in \{ e(i)-1, e(i) \}$ and hence
 $q^\textrm{I} \in Q_{e(p)} \subseteq Q_{e(i)-1} \cup Q_{e(i)}$ so that
 $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$ as required. It is worth
@@ -767,10 +767,10 @@ $\{a_3, a_4, a_5\} \in \maj{s_5}$ do not intersect.
 
 The second type of membership change is where either $Q_{e-1} = \varnothing$ or
 $Q_e = \varnothing$. Clearly if there is an instance $i$ such that $Q_{e(i)} =
-\varnothing$ then no value can ever be chosen for $i$, but empty memberships
-can be skipped by letting $e(i) = e(i-1) + 2$. If $Q_{e(i)-1} = \varnothing$
-then the consecutive epoch intersection property is trivial and $Q_{e(i-1)}$
-and $Q_{e(i)}$ can be unrelated. Note that if an epoch is to be skipped like
+\varnothing$ then no value can ever be chosen for $i$, but epochs may be
+skipped by letting $e(i) = e(i-1) + 2$. If $Q_{e(i)-1} = \varnothing$ then the
+consecutive epoch intersection property is trivial and $Q_{e(i-1)}$ and
+$Q_{e(i)}$ need not be related. Note that if an epoch is to be skipped like
 this then phase I must be re-run for a new proposal $p'$ having $e(p') \ge
 e(i)$, since if phase I is complete at proposal $p$ then $e(p) \le e(i-1) <
 e(i) - 1$ and hence $\neg\chosen{i}{p}$. Thus an empty membership and an epoch
@@ -811,6 +811,8 @@ all $a$, then $M(w_{e-1}) = M(w_e)$ and hence the property holds by corollary
 differ by at most $1$ at at most one node then the property holds.
 
 \end{enumerate}
+
+\section{Discussion}
 
 Typically the nodes in a system must be taken offline for maintenance from time
 to time. Since Paxos is designed to be resilient to failures of nodes, a simple
@@ -879,7 +881,7 @@ To control this sitation, the cluster may be divided into \textit{zones}, where
 the nodes within a single zone may share infrastructure but failures in
 different zones can be considered to be independent.  The four-node approach
 described above is only safe if each node is in a different zone: if any two of
-them share infrastructure then the system is at risk during the upgrade. On the
+them share infrastructure then the system is at risk in epoch $w_{e+1}$. On the
 other hand, arranging for four zones is likely to be much harder than arranging
 for three\footnote{For instance, at time of writing, only one Amazon Web
 Services region (\texttt{us-east-1}) has four independent zones, whereas four
@@ -899,86 +901,12 @@ w_{e+5}&0&2&2&2\\
 w_{e+6}&0&1&1&1\\
 \end{array}\]
 At every stage it is clear that every zone contains less than half of the total
-weight, so the system is never at risk. Note that the first and last steps
-rely on the ability to simultaneously change the weights of every node by a
-constant factor, and every other step changes the weight of a single node by
-one, so this can be performed without jitter.
+weight, so the system is never at risk. Note that the first and last steps rely
+on the ability to simultaneously change the weights of every node by a constant
+factor, and every other step changes the weight of a single node by one, so
+this satisfies the consecutive epoch intersection property and can be performed
+without jitter.
 
-\[\begin{array}{rcccc}
-\textrm{zone}&z_{\textrm{maint}}&z_{\textrm{maint}}&z_1&z_2\\
-\textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
-w_e&1&0&1&1\\
-w_{e+2}&0&1&1&1\\
-\end{array}\]
-
-
-
-\begin{theorem} \label{weights-nearly-equal} Let $w, w' : \mathbb A \to \mathbb
-N$ be weight functions and let $a_0 \in \mathbb A$ be such that $|w(a_0) -
-w'(a_0)| \le 1$ and $w(a) = w'(a)$ for all $a \ne a_0$.  Let $q \in M(w)$ and
-$q' \in M(w')$. Then $q \cap q' \ne \varnothing$.  \end{theorem}
-
-\begin{proof} By the definition of $M$, and since $w$ and $w'$ take only
-integer values,
-%
-$\sum_{a \in q} 2 w(a) \ge \sum_{a \in \mathbb A} w(a) + 1$
-%
-and
-%
-$\sum_{a \in q'} 2 w'(a) \ge \sum_{a \in \mathbb A} w'(a) + 1$.
-%
-Assume without loss of generality that $w(a_0) \le w'(a_0)$ and let $d_{\mathbb
-A} = w'(a_0) - w(a_0)$. If $a_0 \in q'$ then let $d_{q'} = d_{\mathbb A}$,
-otherwise let $d_{q'} = 0$, so that
-%
-\[\sum_{a \in \mathbb A} w'(a) = \sum_{a \in \mathbb A} w(a) + d_{\mathbb A}
-%
-\textrm{ and }
-%
-\sum_{a \in q'} w'(a) = \sum_{a \in q} w(a) + d_{q'}.\]
-%
-Then
-\begin{gather*}
-%
-\sum_{a \in \mathbb A} w(a) + \sum_{a \in \mathbb A} w(a) + d_{\mathbb A} + 2 \\
-%
-\begin{aligned}
-%
-&= \left( \sum_{a \in \mathbb A} w(a)  + 1\right)
-+  \left( \sum_{a \in \mathbb A} w'(a) + 1\right) \\
-%
-&\le \sum_{a \in q}  2w(a)
-+    \sum_{a \in q'} 2w'(a) \\
-%
-&= \sum_{a \in q}  2w(a)
-+  \sum_{a \in q'} 2w(a) + 2d_{q'}\\
-%
-&= \sum_{a \in q \cup q'} 2w(a)
-+  \sum_{a \in q \cap q'} 2w(a) + 2d_{q'}\\
-%
-&\le \sum_{a \in \mathbb A} 2w(a)
-+    \sum_{a \in q \cap q'} 2w(a) + 2d_{q'},\\
-%
-\end{aligned}\end{gather*} so that $\sum_{a \in q \cap q'} 2w(a) \ge d_{\mathbb
-A} + 2 - 2d_{q'} \ge 1$ and hence $q \cap q' \ne \varnothing$ as desired.
-\end{proof}
-
-\begin{corollary} \label{weights-equal} Let $w : \mathbb A \to \mathbb N$ be a
-weight function and let $q, q' \in M(w)$. Then $q \cap q' \ne \varnothing$.
-\end{corollary}
-
-\begin{proof}
-This is a special case of theorem \ref{weights-nearly-equal}, where $w = w'$.
-\end{proof}
-
-\subsection{Subsection Heading Here}
-Subsection text here.
-
-% needed in second column of first page if using \IEEEpubid
-%\IEEEpubidadjcol
-
-\subsubsection{Subsubsection Heading Here}
-Subsubsection text here.
 
 
 % An example of a floating figure using the graphicx package.
@@ -1219,6 +1147,68 @@ $\chosen{i}{p_2}$ then $v_i(p_1) = v_i(p_2)$.  \end{theorem}
 
 \begin{proof}TODO\end{proof}
 
+\section{Consecutive epochs using weight-based membership}
+
+\begin{theorem} \label{weights-nearly-equal} Let $w, w' : \mathbb A \to \mathbb
+N$ be weight functions and let $a_0 \in \mathbb A$ be such that $|w(a_0) -
+w'(a_0)| \le 1$ and $w(a) = w'(a)$ for all $a \ne a_0$.  Let $q \in M(w)$ and
+$q' \in M(w')$. Then $q \cap q' \ne \varnothing$.  \end{theorem}
+
+\begin{proof} By the definition of $M$, and since $w$ and $w'$ take only
+integer values,
+%
+$\sum_{a \in q} 2 w(a) \ge \sum_{a \in \mathbb A} w(a) + 1$
+%
+and
+%
+$\sum_{a \in q'} 2 w'(a) \ge \sum_{a \in \mathbb A} w'(a) + 1$.
+%
+Let $d_{\mathbb A} = w'(a_0) - w(a_0)$ so that $\sum_{a \in \mathbb A} w'(a) =
+\sum_{a \in \mathbb A} w(a) + d_{\mathbb A}$. Also let \[
+d_{q'} =
+\begin{cases}
+%
+d_{\mathbb A} & a_0 \in q' \\
+%
+0 & \textrm{otherwise,}
+%
+\end{cases}
+\]
+so that $\sum_{a \in q'} w'(a) = \sum_{a \in q} w(a) + d_{q'}$.
+%
+Then
+\begin{gather*}
+%
+\sum_{a \in \mathbb A} w(a) + \sum_{a \in \mathbb A} w(a) + d_{\mathbb A} + 2 \\
+%
+\begin{aligned}
+%
+&= \left( \sum_{a \in \mathbb A} w(a)  + 1\right)
++  \left( \sum_{a \in \mathbb A} w'(a) + 1\right) \\
+%
+&\le \sum_{a \in q}  2w(a)
++    \sum_{a \in q'} 2w'(a) \\
+%
+&= \sum_{a \in q}  2w(a)
++  \sum_{a \in q'} 2w(a) + 2d_{q'}\\
+%
+&= \sum_{a \in q \cup q'} 2w(a)
++  \sum_{a \in q \cap q'} 2w(a) + 2d_{q'}\\
+%
+&\le \sum_{a \in \mathbb A} 2w(a)
++    \sum_{a \in q \cap q'} 2w(a) + 2d_{q'},\\
+%
+\end{aligned}\end{gather*} so that $\sum_{a \in q \cap q'} 2w(a) \ge d_{\mathbb
+A} + 2 - 2d_{q'} = 2 \pm d_\mathbb A \ge 1$ and hence $q \cap q' \ne \varnothing$ as desired.
+\end{proof}
+
+\begin{corollary} \label{weights-equal} Let $w : \mathbb A \to \mathbb N$ be a
+weight function and let $q, q' \in M(w)$. Then $q \cap q' \ne \varnothing$.
+\end{corollary}
+
+\begin{proof}
+This is a special case of theorem \ref{weights-nearly-equal}, where $w' = w$.
+\end{proof}
 
 % use section* for acknowledgment
 \section*{Acknowledgment}
