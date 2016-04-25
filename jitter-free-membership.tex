@@ -722,15 +722,15 @@ TODO show that this allows for membership change without rerunning phase I.
 \def\maj#1{\mathbf{maj}(#1)}
 
 There are two qualitatively different types of membership change that satisfy
-the consecutive epoch intersection property. If $Q_{e-1}$ and $Q_e$ are both
-nonempty then they can satisfy the property by being sufficiently similar. For
-example, if the nodes are numbered $a_1, a_2, \ldots$ then let $s_n = \{a_1,
-\ldots, a_n\}$ and let $\maj{s} = \{ q \subseteq s \mid 2 |q| > |s| \}$ be the
-set of all majority subsets of $s$. Then $\maj{s_3}$ and $\maj{s_4}$ are
-sufficiently similar, in the sense that they are nonempty and satisfy the
-consecutive epoch intersection property. On the other hand, $\maj{s_5}$ is not
-sufficiently similar to $\maj{s_3}$ because $\{a_1, a_2\} \in \maj{s_3}$ and
-$\{a_3, a_4, a_5\} \in \maj{s_5}$ do not intersect.
+the consecutive epoch intersection property. Firstly, if $Q_{e-1}$ and $Q_e$
+are both nonempty then they can satisfy the property by being sufficiently
+similar. For example, if the nodes are numbered $a_1, a_2, \ldots$ then let
+$s_n = \{a_1, \ldots, a_n\}$ and let $\maj{s} = \{ q \subseteq s \mid 2 |q| >
+|s| \}$ be the set of all majority subsets of $s$. Then $\maj{s_3}$ and
+$\maj{s_4}$ are sufficiently similar, in the sense that they are nonempty and
+satisfy the consecutive epoch intersection property. On the other hand,
+$\maj{s_5}$ is not sufficiently similar to $\maj{s_3}$ because $\{a_1, a_2\}
+\in \maj{s_3}$ and $\{a_3, a_4, a_5\} \in \maj{s_5}$ do not intersect.
 
 The second type of membership change is where either $Q_{e-1} = \varnothing$ or
 $Q_e = \varnothing$.
