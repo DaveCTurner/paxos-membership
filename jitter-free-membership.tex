@@ -529,8 +529,8 @@ small changes can be used to achieve common administrative tasks.
 \section{A Review of Paxos}
 
 The Paxos algorithm was introduced in TODO. It is briefly reviewed here for the
-sake of consistency of notation and to introduce some slight generalisations
-which are discussed in more detail in section \ref{deviations-from-classic}.
+sake of consistency of notation and to introduce some generalisations which are
+discussed in more detail in section \ref{deviations-from-classic}.
 
 \subsection{The Synod algorithm}
 
@@ -568,12 +568,11 @@ $\acc{}{a}{p}$ indicates that the message $\acc{}{a}{p}$ has been sent and
 $\neg \prop{}{p}$ indicates that the message $\prop{}{p}$ has not been sent.
 Because messages may be delayed or dropped, a node can only know a message has
 not been sent if it can prove, based solely on the messages it alone has sent
-and received, that no other node has sent it. This is not possible in general
-but works in practice because the messages $\fprom{}{a}{p}$,
-$\bprom{}{a}{p}{p'}$ and $\acc{}{a}{p}$ may only originate from the node $a$,
-and there is a function $\mathrm{owner} : \mathbb P \to \mathbb A$ assigning an
-owner to each proposal such that the message $\prop{}{p}$ may only originate
-from node $\owner{p}$.
+and received, that no other node has sent it. This works in practice because
+the messages $\fprom{}{a}{p}$, $\bprom{}{a}{p}{p'}$ and $\acc{}{a}{p}$ may only
+originate from the node $a$, and there is a function $\mathrm{owner} : \mathbb
+P \to \mathbb A$ assigning an owner to each proposal such that the message
+$\prop{}{p}$ may only originate from node $\owner{p}$.
 
 It is convenient to add another predicate $\chosen{}{p}$ which indicates that
 some node has chosen a proposal $p$. There is also a function $v : \mathbb P
@@ -655,10 +654,10 @@ that the values can be completely elided from the messages that take part in
 the Synod protocol, allowing considerably more freedom in the implementation of
 the function $v$ without sacrificing consistency.  This works because if the
 invariants of appendix \ref{synod-safety} are satisfied with a value function
-$v$ then they are satisfied for any value function $v'$ having $\prop{}{p}
-\implies v(p) = v'(p)$.  Furthermore only $\owner{p}$ may propose $p$, so if it
-has not yet proposed a value for $p$ it can, in effect, freely modify $v(p)$ as
-desired.
+$v$ then they are satisfied for any value function $v'$ that agrees with $v$ on
+sent proposals, i.e. having $v(p) = v'(p)$ whenever $\prop{}{p}$.  Furthermore
+only $\owner{p}$ may propose $p$, so if it has not yet proposed a value for $p$
+it can, in effect, freely modify $v(p)$ as desired.
 
 To ensure the system satisfies the desired liveness properties, the
 implementation of $v$ must be resilient to the same failure modes as the rest
@@ -670,7 +669,7 @@ represented as an insert-only set of pairs $\{ \langle p, v(p) \rangle \mid
 \prop{}{p} \}$ which can be implemented as a simple conflict-free replicated
 data type or CRDT\footnote{TODO cite}.
 
-Alternatively, $\mathbb V$ may comprise sequences of database commands, and $v$
+Alternatively, $\mathbb V$ may contain sequences of database commands, and $v$
 may be implemented by speculatively running these commands within a transaction
 even before a proposal is chosen and then only committing the transaction once
 the proposal is chosen; the transaction is aborted if a different proposal is
@@ -711,9 +710,27 @@ and has received $\acc{i}{a}{p}$ from a quorum $q^\textrm{II} \in Q_{e(i)}$.
 Thus if $\chosen{i}{p}$ then $e(p) \in \{ e(i)-1, e(i) \}$ and hence
 $q^\textrm{I} \in Q_{e(p)} \subseteq Q_{e(i)-1} \cup Q_{e(i)}$ so that
 $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$ as required. It is worth
-emphasising the subtle point that the membership $Q_{e(p)}$ corresponding to
-the proposal $p$ is used for phase I, but the membership $Q_{e(i)}$ for the
-instance $i$ is used for phase II.
+emphasising the subtle point that phase I uses the membership $Q_{e(p)}$
+corresponding to the proposal $p$ whereas phase II uses the membership
+$Q_{e(i)}$ for the instance $i$.
+
+\subsection{Defining new memberships and epochs}
+
+As in Dynamic Paxos, the memberships $Q_0, Q_1, \ldots$ and epoch numbers
+$e(i)$ are themselves chosen by Paxos. In more detail, the sequence of
+memberships is tracked by a state machine whose state is an initial segment of
+the sequence, $Q_0, \ldots, Q_{e_\mathrm{max}}$, and whose transitions append
+one or more memberships to this sequence. Similarly, the epoch numbers are
+defined by a state machine whose state is the sequence of values $e(0), \ldots,
+e(i_\mathrm{max})$ and whose transitions append one or more values to this
+sequence. The values are chosen so that at instance $i$ the epoch-number state
+machine satisfies $i_\mathrm{max} > i$, and similarly $e_\mathrm{max} \ge
+e(i_\mathrm{max})$ in the membership-sequence state machine.  Wherever the
+epoch number $e(i)$ is required for an instance $i > i_\mathrm{max}$ it is safe
+to use the lower bound $e(i_\mathrm{max}) \le e(i)$ since $e$ is an increasing
+function.
+
+\subsection{Allowing for membership changes...}
 
 To see that this allows for membership changes without requiring a new phase I
 to run, let $i_0$ be a fixed instance and suppose that the node $\owner{p}$ has
@@ -731,6 +748,7 @@ on the critical path of the phase II of any future instances, so cannot cause
 jitter if it is delayed. Typically, as with Cheap Paxos, this new phase I is
 run on a subset of all the nodes while the remaining nodes continue to run
 phase II on proposal $p$.
+
 
 \subsection{Types of membership change}\label{types-of-membership-change}
 
@@ -759,22 +777,6 @@ e(i) - 1$ and hence $\neg\chosen{i}{p}$. Thus an empty membership and an epoch
 skip can be used to recover the ability to perform arbitrary membership changes
 as in Dynamic Paxos, but this requires a phase I to be performed on the
 critical path which risks jitter if it is not completed quickly enough.
-
-\subsection{Defining new memberships and epochs}
-
-As in Dynamic Paxos, the memberships $Q_0, Q_1, \ldots$ and epoch numbers
-$e(i)$ are themselves chosen by Paxos. In more detail, the sequence of
-memberships is tracked by a state machine whose state is an initial segment of
-the sequence, $Q_0, \ldots, Q_{e_\mathrm{max}}$, and whose transitions append
-one or more memberships to this sequence. Similarly, the epoch numbers are
-defined by a state machine whose state is the sequence of values $e(0), \ldots,
-e(i_\mathrm{max})$ and whose transitions append one or more values to this
-sequence. The values are chosen so that at instance $i$ the epoch-number state
-machine satisfies $i_\mathrm{max} > i$, and similarly $e_\mathrm{max} \ge
-e(i_\mathrm{max})$ in the membership-sequence state machine.  Wherever the
-epoch number $e(i)$ is required for an instance $i > i_\mathrm{max}$ it is safe
-to use the lower bound $e(i_\mathrm{max}) \le e(i)$ since $e$ is an increasing
-function.
 
 
 \subsection{Weight-based memberships}
