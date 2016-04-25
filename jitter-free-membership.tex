@@ -508,11 +508,12 @@ the membership change can take an unreasonably long time to take effect.
 The value of the delay parameter $\alpha$ may be allowed to vary while the
 system is running, so it is certainly possible to design a mechanism for
 choosing a reasonably suitable value and adapting it to changing system
-conditions. The approach described here shows an alternative technique which
-runs the new phase I without needing to fix the instance at which the
-membership change takes effect. As this technique imposes no limit on how soon
-the new phase I must be completed, it eliminates the possibility of jitter
-caused by a pipeline stall.
+conditions. The approach described here shows an alternative
+technique\footnote{TODO this is not quite aligned with the description in
+\ref{membership-changes}} which runs the new phase I without needing to fix the
+instance at which the membership change takes effect. As this technique imposes
+no limit on how soon the new phase I must be completed, it eliminates the
+possibility of jitter caused by a pipeline stall.
 
 It also does not need to fix exactly what the membership change will be and
 works as long as the change is sufficiently small, in a sense which is made
@@ -688,7 +689,7 @@ preserved even when $Q^\textrm{I}(p) \ne Q^\textrm{II}(p)$ as long as
 $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$ for all $q^\textrm{I} \in
 Q^\textrm{I}(p)$ and $q^\textrm{II} \in Q^\textrm{II}(p)$.
 
-\section{Membership changes}
+\section{Membership changes}\label{membership-changes}
 
 Changes in the cluster membership are handled with a sequence of numbered
 \textit{epochs} $1, 2, \ldots$ and memberships $Q_0, Q_1, Q_2, \ldots$ that
