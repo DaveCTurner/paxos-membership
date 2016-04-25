@@ -648,7 +648,7 @@ $v_i(p) = v_i(p')$.
 In the classic presentation of the Synod algorithm, the values of proposals are
 carried along with their identifiers in the messages $\bprom{}{a}{p}{ p',v(p')
 }$, $\prop{}{ p,v(p)}$ and $\acc{}{a}{ p,v(p) }$. Observation O4 in
-TODO\footnote{Cheap Paxos} observes that these values can be replaced in some
+TODO\footnote{Cheap Paxos} notes that these values can be replaced in some
 cases by hashes, which is useful if the values themselves are expensive to
 transmit between nodes. The presentation here goes one step further and shows
 that the values can be completely elided from the messages that take part in
@@ -720,16 +720,15 @@ $Q_{e(i)}$ for the instance $i$.
 As in Dynamic Paxos, the memberships $Q_0, Q_1, \ldots$ and epoch numbers
 $e(i)$ are themselves chosen by Paxos. In more detail, the sequence of
 memberships is tracked by a state machine whose state is an initial segment of
-the sequence, $Q_0, \ldots, Q_{e_\mathrm{max}}$, and whose transitions append
-one or more memberships to this sequence. Similarly, the epoch numbers are
+the sequence, $Q_0, \ldots, Q_{e_\mathrm{max}}$, and the epoch numbers are
 defined by a state machine whose state is the sequence of values $e(0), \ldots,
-e(i_\mathrm{max})$ and whose transitions append one or more values to this
-sequence. The values are chosen so that at instance $i$ the epoch-number state
-machine satisfies $i_\mathrm{max} > i$, and similarly $e_\mathrm{max} \ge
-e(i_\mathrm{max})$ in the membership-sequence state machine.  Wherever the
-epoch number $e(i)$ is required for an instance $i > i_\mathrm{max}$ it is safe
-to use the lower bound $e(i_\mathrm{max}) \le e(i)$ since $e$ is an increasing
-function.
+e(i_\mathrm{max})$. The transitions of these state machines append one or more
+elements to these sequences, but do not change any existing elements.  At
+instance $i$ the epoch-number state machine satisfies $i_\mathrm{max} > i$, and
+similarly $e_\mathrm{max} \ge e(i_\mathrm{max})$ in the membership-sequence
+state machine.  Wherever the epoch number $e(i)$ is required for an instance $i
+> i_\mathrm{max}$ it is safe to use the lower bound $e(i_\mathrm{max}) \le
+e(i)$ since $e$ is an increasing function.
 
 \subsection{Allowing for membership changes...}
 
@@ -755,7 +754,8 @@ phase II on proposal $p$.
 
 \def\maj#1{\mathbf{maj}(#1)}
 
-There are two qualitatively different types of membership change that satisfy
+There are two\footnote{TODO bring this in line with
+the section on weights.} qualitatively different types of membership change that satisfy
 the consecutive epoch intersection property. Firstly, if $Q_{e-1}$ and $Q_e$
 are both nonempty then they can satisfy the property by being sufficiently
 similar. For example, if $\mathbb A = \{ a_1, a_2, \ldots \}$ then let $s_n =
@@ -791,11 +791,10 @@ $w$ is said to be \textit{weightless} and $M(w) = \varnothing$.
 
 A sequence $w_0, w_1, \ldots$ of weight functions can be used to define the
 sequence of memberships used by a  a value for instance $j$ may be proposed.
-cluster. Recall that this sequence of
-memberships must satisfy the consecutive epoch intersection property: if
-$q^\textrm{I} \in M(w_e) \cup M(w_{e-1})$ and $q^\textrm{II} \in M(w_e)$ then
-it is necessary that $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$. There
-are three simple ways to ensure this:
+Recall that this sequence of memberships must satisfy the consecutive epoch
+intersection property: if $q^\textrm{I} \in M(w_e) \cup M(w_{e-1})$ and
+$q^\textrm{II} \in M(w_e)$ then it is necessary that $q^\textrm{I} \cap
+q^\textrm{II} \ne \varnothing$. There are three simple ways to ensure this:
 
 \begin{enumerate}
 
@@ -870,7 +869,8 @@ w_{e+2}&0&1&1&1\\
 \end{array}\]
 In fact, if $w_{e+1}$ is weightless then the consecutive epoch intersection
 property holds even if $w_e$ and $w_{e+2}$ are completely unrelated. The
-problem with skipping epochs like this is jitter.
+problem with skipping epochs like this is jitter\footnote{TODO Relate this to
+the section on memberships, already discussed}.
 
 Assuming that node failures are independent, the probability of a cluster-wide
 failure can appear to be extremely small. However, in a real-world system node
