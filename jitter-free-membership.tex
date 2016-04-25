@@ -752,32 +752,38 @@ phase II on proposal $p$.
 
 \subsection{Types of membership change}\label{types-of-membership-change}
 
+Clearly each membership $Q_e$ in the sequence must satisfy that every $q, q'
+\in Q_e$ have nonempty intersection in order to satisfy the consecutive epoch
+intersection property. In addition, every $q^\textrm{I} \in Q_{e-1}$ and
+$q^\textrm{II} \in Q_e$ must have nonempty intersection. There are two useful
+ways that this can be achieved.
+
+Firstly, note that this property holds (vacuously) if either $Q_{e-1} =
+\varnothing$ or $Q_e = \varnothing$. Clearly if there is an instance $i$ such
+that $Q_{e(i)} = \varnothing$ then no value can ever be chosen for $i$, but
+epochs may be skipped by letting $e(i) = e(i-1) + 2$ at some instance $i$. By
+doing so, and having the skipped membership $Q_{e(i)-1} = \varnothing$ then the
+consecutive epoch intersection property holds for any memberships $Q_{e(i-1)}$
+and $Q_{e(i)}$.  Note that if an epoch is to be skipped like this then phase I
+must be re-run for a new proposal $p'$ having $e(p') \ge e(i)$, since if phase
+I is complete at proposal $p$ then $e(p) \le e(i-1) < e(i) - 1$ and hence
+$\neg\chosen{i}{p}$. Thus an empty membership and an epoch skip can be used to
+perform arbitrary membership changes as in Dynamic Paxos, but this requires a
+phase I to be performed on the critical path which risks jitter if it is not
+completed quickly enough.
+
 \def\maj#1{\mathbf{maj}(#1)}
 
-There are two\footnote{TODO bring this in line with
-the section on weights.} qualitatively different types of membership change that satisfy
-the consecutive epoch intersection property. Firstly, if $Q_{e-1}$ and $Q_e$
-are both nonempty then they can satisfy the property by being sufficiently
-similar. For example, if $\mathbb A = \{ a_1, a_2, \ldots \}$ then let $s_n =
-\{a_1, \ldots, a_n\}$ and let $\maj{s} = \{ q \subseteq s \mid 2 |q| > |s| \}$
-be the set of all majority subsets of $s$. Then $\maj{s_3}$ and $\maj{s_4}$ are
-sufficiently similar, in the sense that they are nonempty and satisfy the
-consecutive epoch intersection property. On the other hand, $\maj{s_5}$ is not
-sufficiently similar to $\maj{s_3}$ because $\{a_1, a_2\} \in \maj{s_3}$ and
-$\{a_3, a_4, a_5\} \in \maj{s_5}$ do not intersect.
+Secondly, if $Q_{e-1}$ and $Q_e$ are sufficiently similar then they may satisfy
+the consecutive epoch intersection property.  Certainly if $Q_{e-1} = Q_e$ then
+the property holds. For a less trivial example, suppose $\mathbb A = \{ a_1,
+a_2, \ldots \}$, let $s_n = \{a_1, \ldots, a_n\}$ and let $\maj{s} = \{ q
+\subseteq s \mid 2 |q| > |s| \}$ be the set of all majority subsets of $s$.
+Then $\maj{s_3}$ and $\maj{s_4}$ satisfy the consecutive epoch intersection
+property, as do $\maj{s_4}$ and $\maj{s_5}$, but $\maj{s_3}$ and $\maj{s_5}$ do
+not because $\{a_1, a_2\} \in \maj{s_3}$ and $\{a_3, a_4, a_5\} \in \maj{s_5}$
+do not intersect.
 
-The second type of membership change is where either $Q_{e-1} = \varnothing$ or
-$Q_e = \varnothing$. Clearly if there is an instance $i$ such that $Q_{e(i)} =
-\varnothing$ then no value can ever be chosen for $i$, but epochs may be
-skipped by letting $e(i) = e(i-1) + 2$. If $Q_{e(i)-1} = \varnothing$ then the
-consecutive epoch intersection property is trivial and $Q_{e(i-1)}$ and
-$Q_{e(i)}$ need not be related. Note that if an epoch is to be skipped like
-this then phase I must be re-run for a new proposal $p'$ having $e(p') \ge
-e(i)$, since if phase I is complete at proposal $p$ then $e(p) \le e(i-1) <
-e(i) - 1$ and hence $\neg\chosen{i}{p}$. Thus an empty membership and an epoch
-skip can be used to recover the ability to perform arbitrary membership changes
-as in Dynamic Paxos, but this requires a phase I to be performed on the
-critical path which risks jitter if it is not completed quickly enough.
 
 
 \subsection{Weight-based memberships}
