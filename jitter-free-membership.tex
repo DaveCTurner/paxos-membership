@@ -874,9 +874,10 @@ w_e&1&0&1&1\\
 w_{e+2}&0&1&1&1\\
 \end{array}\]
 In fact, if $w_{e+1}$ is weightless then the consecutive epoch intersection
-property holds even if $w_e$ and $w_{e+2}$ are completely unrelated. The
-problem with skipping epochs like this is jitter\footnote{TODO Relate this to
-the section on memberships, already discussed}.
+property holds even if $w_e$ and $w_{e+2}$ are completely unrelated. As shown
+in section \ref{types-of-membership-change} above, the problem with skipping
+epochs like this is that it risks causing jitter, whereas if consecutive epochs
+are used then jitter can be avoided.
 
 Assuming that node failures are independent, the probability of a cluster-wide
 failure can appear to be extremely small. However, in a real-world system node
