@@ -51,7 +51,7 @@
 
 
 \documentclass[journal]{IEEEtran}
-\usepackage[paperwidth=310mm,paperheight=200mm]{geometry} % TODO just for on-screen
+%\usepackage[paperwidth=310mm,paperheight=200mm]{geometry} % TODO just for on-screen
 %
 % If IEEEtran.cls has not been installed into the LaTeX system files,
 % manually specify the path to it like:
@@ -516,11 +516,11 @@ caused by a pipeline stall.
 
 It also does not need to fix exactly what the membership change will be and
 works as long as the change is sufficiently small, in a sense which is made
-precise below. Larger changes can often be performed as a sequence of these
-small, jitter-free changes, although this technique also subsumes the ability
-to perform arbitrary membership changes in a single step just as in Dynamic
-Paxos; changes that are not sufficiently small continue to carry the risk of
-jitter.
+precise in section \ref{types-of-membership-change} below. Larger changes can
+often be performed as a sequence of these small, jitter-free changes, although
+this technique also subsumes the ability to perform arbitrary membership
+changes in a single step just as in Dynamic Paxos; changes that are not
+sufficiently small continue to carry the risk of jitter.
 
 Finally, a simple characterisation of a useful set of sufficiently small
 membership changes is given, along with examples showing how sequences of these
@@ -715,30 +715,67 @@ emphasising the subtle point that the membership $Q_{e(p)}$ corresponding to
 the proposal $p$ is used for phase I, but the membership $Q_{e(i)}$ for the
 instance $i$ is used for phase II.
 
-TODO show that this allows for membership change without rerunning phase I.
+To see that this allows for membership changes without requiring a new phase I
+to run, let $i_0$ be a fixed instance and suppose that the node $\owner{p}$ has
+received a quorum of promises $q^\textrm{I} \in Q_{e(p)}$ for proposal $p$ for
+all instances $i \ge i_0$ and suppose that $e(i_0) = e(p)$. The node can
+therefore send $\prop{i}{p}$ for any $i \ge i_0$ and will consider phase II to
+be complete at instance $i$ when it receives acceptances from a quorum
+$q^\textrm{II} \in Q_{e(i)}$ as long as $e(i) \le e(p) + 1$. Thus it can
+complete phase II for all instances in the same epoch as $i_0$ and also for all
+instances in the next epoch too.  However it cannot complete phase II for any
+further epochs, so once it has entered the epoch $e(i_0) + 1$ it should prepare
+for the next membership change by running a new phase I for a new proposal $p'$
+having $e(p') = e(i_0) + 1$. Importantly, at this point this new phase I is not
+on the critical path of the phase II of any future instances, so cannot cause
+jitter if it is delayed. Typically, as with Cheap Paxos, this new phase I is
+run on a subset of all the nodes while the remaining nodes continue to run
+phase II on proposal $p$.
 
-\subsection{Types of membership change}
+\subsection{Types of membership change}\label{types-of-membership-change}
 
 \def\maj#1{\mathbf{maj}(#1)}
 
 There are two qualitatively different types of membership change that satisfy
 the consecutive epoch intersection property. Firstly, if $Q_{e-1}$ and $Q_e$
 are both nonempty then they can satisfy the property by being sufficiently
-similar. For example, if the nodes are numbered $a_1, a_2, \ldots$ then let
-$s_n = \{a_1, \ldots, a_n\}$ and let $\maj{s} = \{ q \subseteq s \mid 2 |q| >
-|s| \}$ be the set of all majority subsets of $s$. Then $\maj{s_3}$ and
-$\maj{s_4}$ are sufficiently similar, in the sense that they are nonempty and
-satisfy the consecutive epoch intersection property. On the other hand,
-$\maj{s_5}$ is not sufficiently similar to $\maj{s_3}$ because $\{a_1, a_2\}
-\in \maj{s_3}$ and $\{a_3, a_4, a_5\} \in \maj{s_5}$ do not intersect.
+similar. For example, if $\mathbb A = \{ a_1, a_2, \ldots \}$ then let $s_n =
+\{a_1, \ldots, a_n\}$ and let $\maj{s} = \{ q \subseteq s \mid 2 |q| > |s| \}$
+be the set of all majority subsets of $s$. Then $\maj{s_3}$ and $\maj{s_4}$ are
+sufficiently similar, in the sense that they are nonempty and satisfy the
+consecutive epoch intersection property. On the other hand, $\maj{s_5}$ is not
+sufficiently similar to $\maj{s_3}$ because $\{a_1, a_2\} \in \maj{s_3}$ and
+$\{a_3, a_4, a_5\} \in \maj{s_5}$ do not intersect.
 
 The second type of membership change is where either $Q_{e-1} = \varnothing$ or
-$Q_e = \varnothing$.
+$Q_e = \varnothing$. Clearly if there is an instance $i$ such that $Q_{e(i)} =
+\varnothing$ then no value can ever be chosen for $i$, but empty memberships
+can be skipped by letting $e(i) = e(i-1) + 2$. If $Q_{e(i)-1} = \varnothing$
+then the consecutive epoch intersection property is trivial and $Q_{e(i-1)}$
+and $Q_{e(i)}$ can be unrelated. Note that if an epoch is to be skipped like
+this then phase I must be re-run for a new proposal $p'$ having $e(p') \ge
+e(i)$, since if phase I is complete at proposal $p$ then $e(p) \le e(i-1) <
+e(i) - 1$ and hence $\neg\chosen{i}{p}$. Thus an empty membership and an epoch
+skip can be used to recover the ability to perform arbitrary membership changes
+as in Dynamic Paxos, but this requires a phase I to be performed on the
+critical path which risks jitter if it is not completed quickly enough.
 
 \subsection{Defining new memberships and epochs}
 
 As in Dynamic Paxos, the memberships $Q_0, Q_1, \ldots$ and epoch numbers
-$e(i)$ are themselves chosen by Paxos.
+$e(i)$ are themselves chosen by Paxos. In more detail, the sequence of
+memberships is tracked by a state machine whose state is an initial segment of
+the sequence, $Q_0, \ldots, Q_{e_\mathrm{max}}$, and whose transitions append
+one or more memberships to this sequence. Similarly, the epoch numbers are
+defined by a state machine whose state is the sequence of values $e(0), \ldots,
+e(i_\mathrm{max})$ and whose transitions append one or more values to this
+sequence. The values are chosen so that at instance $i$ the epoch-number state
+machine satisfies $i_\mathrm{max} > i$, and similarly $e_\mathrm{max} \ge
+e(i_\mathrm{max})$ in the membership-sequence state machine.  Wherever the
+epoch number $e(i)$ is required for an instance $i > i_\mathrm{max}$ it is safe
+to use the lower bound $e(i_\mathrm{max}) \le e(i)$ since $e$ is an increasing
+function.
+
 
 \subsection{Weight-based memberships}
 \label{weight-based-memberships}
