@@ -799,14 +799,15 @@ A sequence $w_0, w_1, \ldots$ of weight functions can be used to define the
 sequence of memberships used by a cluster.  Recall that this sequence of
 memberships must satisfy the consecutive epoch intersection property: if
 $q^\textrm{I} \in M(w_e) \cup M(w_{e-1})$ and $q^\textrm{II} \in M(w_e)$ then
-it is necessary that $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$. There
-are three simple ways to ensure this:
+it is necessary that $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$.
+Corollary \ref{weights-equal} shows that if $q^\textrm{I} \in M(w_e)$ then
+$q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$, so it remains to show the
+property where $q^\textrm{I} \in M(w_{e-1})$. There are three simple ways to
+ensure this:
 
 \begin{enumerate}
 
-\item If either $w_{e-1}$ or $w_e$ is weightless then the property holds: it is
-vacuous if $w_e$ is weightless and corollary \ref{weights-equal} shows it to be
-true if $w_{e-1}$ is weightless.
+\item If $w_{e-1}$ is weightless then the property holds vacuously.
 
 \item If $w_{e-1}$ and $w_e$ differ by a constant factor, in the sense that
 there are positive integers $m$ and $n$ such that $m w_{e-1}(a) = n w_e(a)$ for
