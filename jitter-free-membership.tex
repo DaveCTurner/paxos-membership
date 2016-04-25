@@ -1034,97 +1034,83 @@ with the lexicographic order.
 \section{Invariants preserved by the Synod algorithm}
 \label{synod-safety}
 
-The safety property of the Synod algorithm is derived from the following
+The consistency property of the Synod algorithm is derived from the following
 invariants.
 
 \begin{enumerate}
 
 \item \label{synod-quorums} For every proposal identifier $p \in \mathbb P$
 there are sets of quorums $Q^\textrm{I}(p), Q^\textrm{II}(p) \subseteq \mathcal
-P \mathbb A$ such that $q_1 \cap q_2 \ne \varnothing$ for all $q_1 \in
-Q^\textrm{I}(p)$ and $q_2 \in Q^\textrm{II}(p)$.
+P \mathbb A$ such that $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$ for
+all $q^\textrm{I} \in Q^\textrm{I}(p)$ and $q^\textrm{II} \in
+Q^\textrm{II}(p)$.
 
-\item \label{synod-fprom} A node $a$ may send a $\fprom{}{a}{p}$ message only if
-$\neg\acc{}{a}{p'}$ for all $p' \prec p$.
+\item \label{synod-fprom} $\fprom{}{a}{p}$ only if $\neg\acc{}{a}{p'}$ for all
+$p' \prec p$.
 
-\item \label{synod-bprom} A node $a$ may send a $\bprom{}{a}{p}{p'}$ message only
-if
+\item \label{synod-bprom} $\bprom{}{a}{p}{p'}$ only if
 \begin{itemize}
 \item $p' \prec p$,
 \item $\acc{}{a}{p'}$, and
-\item $p'$ is the greatest such proposal, in the sense that $\neg\acc{}{a}{p''}$
-for all $p''$ such that $p' \prec p'' \prec p$.
+\item $p'$ is the greatest such proposal, in the sense that
+$\neg\acc{}{a}{p''}$ for all $p''$ having $p' \prec p'' \prec p$.
 \end{itemize}
 
-\item \label{synod-prop} A node $a$ may send a $\prop{}{p}$ message whenever
-$\owner{p} = a$ and there is a quorum $q \in Q^\textrm{I}(p)$ such that
+\item \label{synod-prop} $\prop{}{p}$ only if there is a quorum $q^\textrm{I}
+\in Q^\textrm{I}(p)$ such that
 \begin{itemize}
-\item for every $a' \in q$ either $\fprom{}{a'}{p}$ or $\exists p'.
+\item for every $a' \in q^\textrm{I}$ either $\fprom{}{a'}{p}$ or $\exists p'.
 \bprom{}{a'}{p}{p'}$, and
-\item if $P = \{ p' \mid \exists a' \in q. \bprom{}{a'}{p}{p'} \} \ne \varnothing$
-then $v(p) = v(\mathrm{max}(P))$.
+\item if $P = \{ p' \mid \exists a' \in q^\textrm{I}. \bprom{}{a'}{p}{p'} \}
+\ne \varnothing$ then $v(p) = v(\mathrm{max}(P))$.
 \end{itemize}
 
-\item \label{synod-acc} A node $a$ may send an $\acc{}{a}{p}$ message as long as
-
+\item \label{synod-acc} $\acc{}{a}{p}$ only if
 \begin{itemize}
 \item $\prop{}{p}$,
 \item $\neg\fprom{}{a}{p'}$ for all $p' \succ p$, and
 \item $\neg\bprom{}{a}{p'}{p''}$ for all $p' \succ p$ and any $p''$.
 \end{itemize}
 
-\item \label{synod-chosen} A node may send a $\chosen{}{p}$ message whenever
-there is a quorum $q \in Q^\textrm{II}(p)$ such that for every $a \in q$ it has
-received an $\acc{}{a}{p}$ message.
+\item \label{synod-chosen} $\chosen{}{p}$ only if there is a quorum
+$q^\textrm{II} \in Q^\textrm{II}(p)$ such that $\acc{}{a}{p}$ for every $a \in
+q^\textrm{II}$.
 
 \end{enumerate}
-
-\begin{lemma}\label{synod-acc-fprom}If $\acc{}{a}{p_2}$ and $p_2 \prec p_1$ then
-it cannot be the case that $\fprom{}{a}{p_1}$.\end{lemma}
-
-\begin{proof}At the point in time that node $a$ sent $\acc{}{a}{p_2}$, by
-invariant \ref{synod-acc} it had not previously sent $\fprom{}{a}{p_1}$. However
-by invariant \ref{synod-fprom} having sent $\acc{}{a}{p_2}$ it may not
-subsequently send $\fprom{}{a}{p_1}$ either, as required.\end{proof}
 
 \begin{lemma}\label{synod-acc-bprom}If $\acc{}{a}{p_2}$, $\bprom{}{a}{p_1}{p_3}$
 and $p_2 \prec p_1$ then $p_2 \preceq p_3$.\end{lemma}
 
-\begin{proof}At the point in time that node $a$ sent $\acc{}{a}{p_2}$, because
-$p_2 \prec p_1$ and by invariant \ref{synod-acc} it must have not already sent
-$\bprom{}{a}{p_1}{p_3}$, so it must have sent this message later. By invariant
-\ref{synod-bprom} it must also be the case that $\acc{}{a}{p_3}$, and $p_3$ is
-the highest-numbered proposal $a$ has accepted when it sent this message, so
-$p_2 \preceq p_3$ as required. \end{proof}
+\begin{proof}Since $\bprom{}{a}{p_1}{p_3}$ from invariant \ref{synod-bprom} it
+follows that $p_3 \prec p_1$, $\acc{}{a}{p_3}$ and $p_3$ is the largest such
+proposal. Therefore either $p_2 \preceq p_3$ or $p_1 \preceq p_2$.  But $p_2
+\prec p_1$ so it must be that $p_2 \preceq p_3$ as required.  \end{proof}
 
 \begin{lemma}\label{synod-lemma} If $\chosen{}{p_2}$, $\prop{}{p_1}$ and $p_2 \prec
 p_1$ then $v(p_1) = v(p_2)$. \end{lemma}
 
 \begin{proof}Suppose for a contradiction the result is false, and since $\prec$
 is wellfounded suppose without loss of generality that $p_1$ is the
-smallest-numbered proposal at which it is false.
-
-Since $\chosen{}{p_2}$, by invariant \ref{synod-chosen} there is a quorum $q_2
-\in Q^\textrm{II}(p_2)$ such that $\acc{}{a}{p_2}$ for every $a \in q_2$. By
-lemma \ref{synod-acc-fprom} it cannot be that $\fprom{}{a}{p_1}$ for any $a \in
-q_2$.
-
-Also, since $\prop{}{p_1}$, by invariant \ref{synod-prop} there is a quorum $q_1
-\in Q^\textrm{I}(p_1)$ such that either $\fprom{}{a}{p_1}$ or $\exists p'.
-\bprom{}{a}{p_1}{p'}$ for all $a \in q_1$.
-
-Let $P = \{ p' \mid \exists a \in q_1.  \bprom{}{a}{p_1}{p'} \}$ be the set of
-proposals referenced by forced promises. By invariant \ref{synod-quorums}, $q_1
-\cap q_2 \ne \varnothing$ so it follows that $P \ne \varnothing$, which means
-that $v(p_1) = v(\mathrm{max}(P))$ by invariant \ref{synod-prop}. Let
-$a_{\mathrm{max}} \in q_1$ be such that
-$\bprom{}{a_{\mathrm{max}}}{p_1}{\mathrm{max}(P)}$. By invariant
-\ref{synod-bprom} it follows that $\mathrm{max}(P) \prec p_1$ and also that
-$\acc{}{a_{\mathrm{max}}}{\mathrm{max}(P)}$ and hence $\prop{}{\mathrm{max}(P)}$ by
-invariant \ref{synod-acc}. Furthermore by lemma \ref{synod-acc-bprom} it
-follows that $p_2 \preceq \mathrm{max}(P)$ and since $p_1$ was assumed to be
-the smallest counterexample it must be that $v(\mathrm{max}(P)) = v(p_2)$.
-Hence $v(p_1) = v(p_2)$ which is a contradiction as required.  \end{proof}
+smallest-numbered proposal at which it is false.  Since $\chosen{}{p_2}$, by
+invariant \ref{synod-chosen} there is a quorum $q^\textrm{II} \in
+Q^\textrm{II}(p_2)$ such that $\acc{}{a}{p_2}$ for every $a \in q^\textrm{II}$.
+By invariant \ref{synod-fprom} it cannot be that $\fprom{}{a}{p_1}$ for any $a
+\in q^\textrm{II}$.  Also, since $\prop{}{p_1}$, by invariant \ref{synod-prop}
+there is a quorum $q^\textrm{I} \in Q^\textrm{I}(p_1)$ such that either
+$\fprom{}{a}{p_1}$ or $\exists p'.  \bprom{}{a}{p_1}{p'}$ for all $a \in
+q^\textrm{I}$.  Let $P = \{ p' \mid \exists a \in q^\textrm{I}.
+\bprom{}{a}{p_1}{p'} \}$ be the set of proposals referenced by forced promises.
+By invariant \ref{synod-quorums}, $q^\textrm{I} \cap q^\textrm{II} \ne
+\varnothing$ so it follows that $P \ne \varnothing$, which means that $v(p_1) =
+v(\mathrm{max}(P))$ by invariant \ref{synod-prop}. Let $a_{\mathrm{max}} \in
+q^\textrm{I}$ be such that $\bprom{}{a_{\mathrm{max}}}{p_1}{\mathrm{max}(P)}$.
+By invariant \ref{synod-bprom} it follows that $\mathrm{max}(P) \prec p_1$ and
+also that $\acc{}{a_{\mathrm{max}}}{\mathrm{max}(P)}$ and hence
+$\prop{}{\mathrm{max}(P)}$ by invariant \ref{synod-acc}. Furthermore by lemma
+\ref{synod-acc-bprom} it follows that $p_2 \preceq \mathrm{max}(P)$ and since
+$p_1$ was assumed to be the smallest counterexample it must be that
+$v(\mathrm{max}(P)) = v(p_2)$.  Hence $v(p_1) = v(p_2)$ which is a
+contradiction as required.  \end{proof}
 
 \begin{theorem}\label{synod-safety-theorem} If $\chosen{}{p_1}$ and
 $\chosen{}{p_2}$ then $v(p_1) = v(p_2)$.  \end{theorem}
@@ -1181,7 +1167,7 @@ so that $\sum_{a \in q'} w'(a) = \sum_{a \in q} w(a) + d_{q'}$.
 Then
 \begin{gather*}
 %
-\sum_{a \in \mathbb A} w(a) + \sum_{a \in \mathbb A} w(a) + d_{\mathbb A} + 2 \\
+\sum_{a \in \mathbb A} 2w(a) + d_{\mathbb A} + 2 \\
 %
 \begin{aligned}
 %
