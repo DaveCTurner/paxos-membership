@@ -51,7 +51,7 @@
 
 
 \documentclass[journal]{IEEEtran}
-\usepackage[paperwidth=210mm,paperheight=150mm]{geometry} % TODO just for on-screen
+\usepackage[paperwidth=310mm,paperheight=200mm]{geometry} % TODO just for on-screen
 %
 % If IEEEtran.cls has not been installed into the LaTeX system files,
 % manually specify the path to it like:
@@ -462,34 +462,35 @@ The abstract goes here. %TODO
 
 \IEEEPARstart{P}{axos} is an algorithm for achieving consensus on (or
 \textit{choosing}) a sequence $v_0, v_1, \ldots$ of values in a distributed,
-fault-tolerant fashion. It typically runs on a cluster of $2f+1$ nodes, where
-$f$ is the number of faulty nodes that should be tolerated, and consensus is
-achieved on a value $v_i \in \mathbb V$ when $\ge f+1$ (i.e.  a majority) of
-the nodes agree.  More generally, if $\mathbb A$ is the set of all nodes then
-there is a set $Q \subseteq \mathcal P \mathbb A$ of \textit{quorums}, and a
-value is chosen when all nodes $a \in q$ agree for some quorum $q \in Q$. The
-set of quorums is called the \textit{membership} of the cluster.
+fault-tolerant fashion. It guarantees system-wide \textit{consistency}, in the
+sense that the values chosen are guaranteed to be equal across the whole system
+even in the presence of failures. It typically runs on a cluster of $2f+1$
+nodes, where $f$ is the number of faulty nodes that should be tolerated, and
+consensus is achieved on a value $v_i \in \mathbb V$ when $\ge f+1$ (i.e.  a
+majority) of the nodes agree.  More generally, if $\mathbb A$ is the set of all
+nodes then there is a set $Q \subseteq \mathcal P \mathbb A$ of
+\textit{quorums}, and a value is chosen when all nodes $a \in q$ agree for some
+quorum $q \in Q$. The set of quorums is called the \textit{membership} of the
+cluster.
 
 It is normally necessary to be able to add or remove nodes from the cluster,
 which amounts to the ability to change the membership while the cluster is
-running. Since it is crucial that all participating nodes agree on what
-constitutes a majority at all times, the membership of the cluster is normally
-represented as a state machine whose transitions occur when particular values
-in the sequence are chosen.
+running. It is crucial that all participating nodes agree on the cluster
+membership at all times, and Dynamic Paxos\footnote{TODO cite} achieves this by
+tracking the cluster membership with a state machine whose transitions occur
+when particular values in the sequence are chosen.
 
 Each value $v_i \in \mathbb V$ is chosen using a separate instance $i$ of a
 two-phase consensus protocol known as \textit{Synod}. The full Paxos algorithm
-optimises this approach by using the observation that there is a $N$ such that
-all Synod instances $i > N$ are in the same state at any one time and this set
-of instances can therefore be manipulated as a single entity. It starts by
-running phase I of all instances at once and then runs phase II of each
+essentially runs an infinite sequence of Synod protocols in parallel: it starts
+by running phase I of all instances at once and then runs phase II of each
 instance in turn to yield the desired sequence of chosen values. It normally
-remains in phase II for an extended period, but will return to phase I if
+remains in phase II for extended periods of time, but will return to phase I if
 certain nodes become faulty, or if messages between certain pairs of nodes
 cease to be delivered reliably for a period, or if the membership changes.
 
-The algorithm allows for \textit{pipelining} in phase II: later instances can
-be started before earlier ones have been chosen, which means that the rate of
+Paxos allows for \textit{pipelining} in phase II: later instances can be
+started before earlier ones have been chosen, which means that the rate of
 choosing values is not limited by network latency. The pipeline runs smoothly
 as long as phase I does not need to run again, but may stall if phase I is
 re-run. A pipeline stall can be observed as jitter in the rate at which values
@@ -504,36 +505,40 @@ $\alpha > 0$. If $\alpha$ is large enough, there is time to run the new phase I
 before the pipeline stalls.  On the other hand, if $\alpha$ is too large then
 the membership change can take an unreasonably long time to take effect.
 
-The value of the delay parameter $\alpha$ may vary while the system is running,
-so it is certainly possible to design a mechanism for choosing a reasonably
-suitable value and adapting it to changing system conditions. The approach
-described here shows an alternative technique which runs the new phase I
-without needing to fix the instance at which the membership change takes
-effect. As this technique imposes no limit on how soon the new phase I must be
-completed, it entirely avoids the possibility of jitter caused by a pipeline
-stall.
+The value of the delay parameter $\alpha$ may be allowed to vary while the
+system is running, so it is certainly possible to design a mechanism for
+choosing a reasonably suitable value and adapting it to changing system
+conditions. The approach described here shows an alternative technique which
+runs the new phase I without needing to fix the instance at which the
+membership change takes effect. As this technique imposes no limit on how soon
+the new phase I must be completed, it eliminates the possibility of jitter
+caused by a pipeline stall.
 
 It also does not need to fix exactly what the membership change will be and
 works as long as the change is sufficiently small, in a sense which is made
-precise below.  Larger changes can often be performed as a sequence of these
-small, jitter-free changes but it is also shown that this technique generalises
-that of Dynamic Paxos so 
+precise below. Larger changes can often be performed as a sequence of these
+small, jitter-free changes, although this technique also subsumes the ability
+to perform arbitrary membership changes in a single step just as in Dynamic
+Paxos; changes that are not sufficiently small continue to carry the risk of
+jitter.
 
-
-
-Finally, a simple characterisation of a useful set of ``sufficiently small''
+Finally, a simple characterisation of a useful set of sufficiently small
 membership changes is given, along with examples showing how sequences of these
 small changes can be used to achieve common administrative tasks.
 
+\section{A Review of Paxos}
 
-
+The Paxos algorithm was introduced in TODO. It is briefly reviewed here for the
+sake of consistency of notation and to introduce some slight generalisations
+which are discussed in more detail in section \ref{deviations-from-classic}.
 
 \subsection{The Synod algorithm}
 
 Synod is an algorithm for achieving consensus on a single value in a
 distributed system comprising a set of nodes which can communicate by sending
-messages to each other. Communication is asynchronous, in the sense that each
-messages may be delayed, reordered, duplicated or dropped.
+messages to each other. Communication is asynchronous but not Byzantine, in the
+sense that each messages may be delayed, reordered, duplicated and dropped but
+not corrupted.
 
 Let $\mathbb P$ be a set of \textit{proposal identifiers} with a wellfounded
 total order $\prec$. Let $\mathbb A$ be a set of \textit{node identifiers} and
@@ -555,70 +560,68 @@ may respond with a \textit{promise} message, either a \textit{free promise}
 written $\fprom{}{a}{p}$ or a \textit{forced promise} written
 $\bprom{}{a}{p}{p'}$.  Phase II starts with the broadcast of a
 \textit{proposal} message $\prop{}{p}$ to which each node $a$ may respond with
-an \textit{acceptance} message $\acc{}{a}{p}$. It is convenient to add another
-kind of message $\chosen{}{p}$ which can be thought of as being sent by any
-node when a proposal has been chosen.
+an \textit{acceptance} message $\acc{}{a}{p}$.
 
-It is also convenient to treat these as predicates indicating that the
+It is convenient to treat these symbols as predicates indicating whether the
 corresponding messages have been sent. For instance, the predicate
 $\acc{}{a}{p}$ indicates that the message $\acc{}{a}{p}$ has been sent and
 $\neg \prop{}{p}$ indicates that the message $\prop{}{p}$ has not been sent.
 Because messages may be delayed or dropped, a node can only know a message has
 not been sent if it can prove, based solely on the messages it alone has sent
-and received, that no other node has sent it. This is possible because the
-messages $\fprom{}{a}{p}$, $\bprom{}{a}{p}{p'}$ and $\acc{}{a}{p}$ may only
-originate from the node $a$, and there is a function $\mathrm{owner} : \mathbb
-P \to \mathbb A$ assigning an owner to each proposal such that the message
-$\prop{}{p}$ may only originate from node $\mathrm{owner}(p)$.
+and received, that no other node has sent it. This is not possible in general
+but works in practice because the messages $\fprom{}{a}{p}$,
+$\bprom{}{a}{p}{p'}$ and $\acc{}{a}{p}$ may only originate from the node $a$,
+and there is a function $\mathrm{owner} : \mathbb P \to \mathbb A$ assigning an
+owner to each proposal such that the message $\prop{}{p}$ may only originate
+from node $\owner{p}$.
 
-There is also a function $v : \mathbb P \to \mathbb V$ assigning a value to
-each proposal, and theorem \ref{synod-safety-theorem} shows the safety property
-of the Synod algorithm: whenever $\chosen{}{p}$ and $\chosen{}{p'}$ then $v(p)
-= v(p')$. The full details of the conditions under which nodes can send these
-messages is included in appendix \ref{synod-safety}.
+It is convenient to add another predicate $\chosen{}{p}$ which indicates that
+some node has chosen a proposal $p$. There is also a function $v : \mathbb P
+\to \mathbb V$ assigning a value to each proposal, and the system satisfies a
+set of invariants as described in appendix \ref{synod-safety} from which can be
+shown the key consistency property of the Synod algorithm: \[\textrm{if }
+\chosen{}{p} \textrm{ and } \chosen{}{p'} \textrm { then } v(p) = v(p').\]
 
 Each node operates as a state machine whose transitions are caused by the
 receipts of messages. A node may consider phase I to be complete at proposal
 $p$ when promise messages for $p$ have been received from a quorum of nodes,
 and similarly considers phase II to be complete at $p$, and hence
 $\chosen{}{p}$, when a quorum of acceptances of $p$ has been received. The
-choice of quorums themselves can depend on the proposal number $p$, but for any
-$p$ it must be the case that there is at least one node that is in both
-quorums. More formally, if $p \in \mathbb P$ then write $Q^\textrm{I}(p)$ and
-$Q^\textrm{II}(p) \subseteq \mathcal P \mathbb A$ for the sets of phase I and
-phase II quorums for proposal $p$ respectively, then the crucial property is
-that for each $q_1 \in Q^\textrm{I}(p)$ and $q_2 \in Q^\textrm{II}(p)$ it must
-be the case that $q_1 \cap q_2 \ne \varnothing$.
-
-It is usual to have $Q^\textrm{I}(p) = Q^\textrm{II}(p)$ and the original
-presentation of the Synod algorithm did not allow for them to be unequal. The
-proof of theorem \ref{synod-safety-theorem} in appendix \ref{synod-safety} is a
-minor generalisation of the original one to demonstrate that safety is
-preserved even when $Q^\textrm{I}(p) \ne Q^\textrm{II}(p)$ for some $p$.
+quorums themselves can depend on the proposal number $p$ and the phase, but for
+any $p$ it must be the case that there is at least one node that is in a quorum
+of each phase.  More formally, if $p \in \mathbb P$ then write
+$Q^\textrm{I}(p)$ and $Q^\textrm{II}(p) \subseteq \mathcal P \mathbb A$ for the
+sets of phase I and phase II quorums for proposal $p$ respectively, and then
+for each $q_1 \in Q^\textrm{I}(p)$ and $q_2 \in Q^\textrm{II}(p)$ it must be
+the case that $q_1 \cap q_2 \ne \varnothing$.
 
 \subsection{The Paxos algorithm}
 
 Conceptually, Paxos is a sequence of distinct instances of the Synod algorithm
 all running simultaneously. To achieve this, the messages of the Synod
 algorithm above are indexed with the instance number $i \in \mathbb N$:
-$\fprom{i}{a}{p}$, $\bprom{i}{a}{p}{p'}$, $\prop{i}{p}$, $\acc{i}{a}{p}$ and
-$\chosen{i}{p}$. There is another kind of message known as a
-\textit{multi-promise}, written $\mprom{i}{a}{p}$, which can be thought of as
-standing for the infinite set of free promises $\{ \fprom{j}{a}{p}. j \ge i
-\}$. In this presentation, prepare messages $\prep{p}$ apply to all instances
-so do not need to be indexed.
+$\fprom{i}{a}{p}$, $\bprom{i}{a}{p}{p'}$, $\prop{i}{p}$ and $\acc{i}{a}{p}$.
+There is another kind of message known as a \textit{multi-promise}, written
+$\mprom{i}{a}{p}$, which can be thought of as standing for the infinite set of
+free promises $\{ \fprom{j}{a}{p} \mid j \ge i \}$. The predicate
+$\chosen{i}{p}$ is also indexed by the instance number $i$, but in this
+presentation prepare messages $\prep{p}$ apply to all instances so do not need
+to be indexed.
 
 Recall that in each Synod instance each node is a state machine whose
 transitions are caused by the receipt of messages. In Paxos, let $S_i$ be the
-state machine for instance $i$. Because each node has only ever received
-finitely many messages, there must be an instance number $i_\infty$ such that
-all instances $i \ge i_\infty$ are in the same state. A Paxos node therefore
-needs to have a separate state machine $S_i$ for each instance $i < i_\infty$
-but then just a single state machine $S_\infty$ that represents all instances
-$i \ge i_\infty$. When a message mentioning an instance $i \ge i_\infty$ is
-received, the node must increase $i_\infty$ to $i'_\infty > i$ and create (or
-\textit{spawn}) state machines $S_j$ for $i_\infty \le j < i'_\infty$, all of
-which start in the same state as $S_\infty$.
+state machine for instance $i$. Because at any time each node has only ever
+received finitely many messages, there must be an instance number $i_\infty$
+such that all instances $i \ge i_\infty$ are in the same state. A Paxos node
+therefore needs to have a separate state machine $S_i$ for each instance $i <
+i_\infty$ but then just a single state machine $S_\infty$ that represents all
+instances $i \ge i_\infty$. When a message mentioning an instance $i \ge
+i_\infty$ is received, the node must increase $i_\infty$ to $i'_\infty > i$ and
+create (or \textit{spawn}) state machines $S_j$ for $i_\infty \le j <
+i'_\infty$, all of which start in the same state as $S_\infty$. Typically, when
+all the instances up to $i$ are chosen at a node then this node ignores any
+further messages about these instances and discards the corresponding state
+machines.
 
 As in the Synod algorithm, phase I starts with a broadcast of $\prep{p}$ for
 some $p$ to which each node $a$ may respond with a set of promises
@@ -628,16 +631,63 @@ a quorum of nodes then its state machine $S_\infty$ has completed phase I at
 $p$, and therefore any state machines that are subsequently spawned will also
 have completed phase I at $p$. Each phase II instance $i$ operates just as in
 the Synod algorithm, starting with a broadcast of $\prop{i}{p}$ to which each
-node $a$ may respond with an acceptance $\acc{i}{a}{p}$ and once acceptances
-have been received from a quorum of nodes then the instance is chosen and
-$\chosen{i}{p}$ may be emitted.
+node $a$ may respond with an acceptance $\acc{i}{a}{p}$ and finally
+$\chosen{i}{p}$ holds once acceptances have been received from a quorum of
+nodes.
 
 There is a function $v_i : \mathbb P \to \mathbb V$ for each instance $i$
 defining the value for each proposal, and theorem \ref{paxos-safety-theorem}
 shows that whenever $\chosen{i}{p}$ and $\chosen{i}{p'}$ it follows that
 $v_i(p) = v_i(p')$.
 
-\subsubsection{Membership changes}
+\section{Differences from classic Paxos} \label{deviations-from-classic}
+
+\subsection{Value function}
+
+In the classic presentation of Paxos, the values of proposals are carried along
+with their identifiers in the messages $\bprom{}{a}{p}{ p',v(p') }$, $\prop{}{
+p,v(p)}$ and $\acc{}{a}{ p,v(p) }$. Observation O4 in TODO\footnote{Cheap
+Paxos} observes that these values can be replaced in some cases by hashes,
+which is useful if the values themselves are expensive to transmit between
+nodes. The presentation here goes one step further and shows that the values
+can be completely elided from the messages that take part in Paxos, allowing
+considerably more freedom in the implementation of the function $v$ without
+sacrificing consistency.  This works because if the invariants of appendix
+\ref{synod-safety} are satisfied with a value function $v$ then they are
+satisfied for any value function $v'$ having $\prop{}{p} \implies v(p) =
+v'(p)$.  Furthermore only $\owner{p}$ may propose $p$, so if it has not yet
+proposed a value for $p$ it can, in effect, freely modify $v(p)$ as desired.
+
+To ensure the system satisfies the desired liveness properties, the
+implementation of $v$ must be resilient to the same failure modes as the rest
+of the system. In these terms the classic presentation ensures this resilience
+by including pertinent values of $v$ in all relevant messages, but since the
+value of each proposal $p$ has at most one writer, $\owner{p}$, more efficient
+mechanisms are available. For instance, the values of proposed proposals may be
+represented as an insert-only set of pairs $\{ \langle p, v(p) \rangle \mid
+\prop{}{p} \}$, which can be implemented as a simple conflict-free replicated
+data type or CRDT\footnote{TODO cite}.
+
+Alternatively, $\mathbb V$ may comprise sequences of database commands, and $v$
+may be implemented by speculatively running these commands within a transaction
+even before a proposal is chosen and then only committing the transaction once
+the proposal is chosen; the transaction is aborted if a different proposal is
+chosen. Resilience can be ensured by running the same commands against multiple
+independent databases, and consistency is still preserved even though the
+commands themselves are not shared in Paxos messages.
+
+\subsection{Per-phase quorums}
+
+In the classic presentation of Paxos the set of quorums did not depend on the
+phase: $Q^\textrm{I}(p) = Q^\textrm{II}(p)$. The ability to vary the quorums
+between the two phases is the key ingredient in being able to perform
+jitter-free membership changes. The proof of theorem \ref{synod-safety-theorem}
+in appendix \ref{synod-safety} is a minor generalisation of the original one to
+demonstrate that safety is preserved even when $Q^\textrm{I}(p) \ne
+Q^\textrm{II}(p)$, as long as $q_1 \cap q_2 \ne \varnothing$ for all $q_1 \in
+Q^\textrm{I}(p)$ and $q_2 \in Q^\textrm{II}(p)$.
+
+\subsection{Membership changes}
 
 Changes\footnote{ TODO - describe the distributed state machine approach
 earlier?? Allow for multiple state machines running in parallel.} in the
@@ -674,7 +724,7 @@ membership to each proposal.
 
 Let a \textit{weight} function be a function $w : \mathbb A \to \mathbb N$ that
 only takes finitely many nonzero values. This can be used to define a
-membership $M(w)$ by \textit{majority}: \[M(w) = \left\{ q. \sum_{a \in q} 2
+membership $M(w)$ by \textit{majority}: \[M(w) = \left\{ q \;\middle|\; \sum_{a \in q} 2
 w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] If $w(a) = 0$ for all $a$ then
 $w$ is said to be \textit{weightless} and $M(w) = \varnothing$.
 
@@ -1020,7 +1070,7 @@ $\owner{p} = a$ and there is a quorum $q \in Q^\textrm{I}(p)$ such that
 \begin{itemize}
 \item for every $a' \in q$ either $\fprom{}{a'}{p}$ or $\exists p'.
 \bprom{}{a'}{p}{p'}$, and
-\item if $P = \{ p'. \exists a' \in q. \bprom{}{a'}{p}{p'} \} \ne \varnothing$
+\item if $P = \{ p' \mid \exists a' \in q. \bprom{}{a'}{p}{p'} \} \ne \varnothing$
 then $v(p) = v(\mathrm{max}(P))$.
 \end{itemize}
 
@@ -1072,7 +1122,7 @@ Also, since $\prop{}{p_1}$, by invariant \ref{synod-prop} there is a quorum $q_1
 \in Q^\textrm{I}(p_1)$ such that either $\fprom{}{a}{p_1}$ or $\exists p'.
 \bprom{}{a}{p_1}{p'}$ for all $a \in q_1$.
 
-Let $P = \{ p'. \exists a \in q_1.  \bprom{}{a}{p_1}{p'} \}$ be the set of
+Let $P = \{ p' \mid \exists a \in q_1.  \bprom{}{a}{p_1}{p'} \}$ be the set of
 proposals referenced by forced promises. By invariant \ref{synod-quorums}, $q_1
 \cap q_2 \ne \varnothing$ so it follows that $P \ne \varnothing$, which means
 that $v(p_1) = v(\mathrm{max}(P))$ by invariant \ref{synod-prop}. Let
