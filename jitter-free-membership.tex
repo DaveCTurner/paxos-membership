@@ -508,24 +508,24 @@ the membership change can take an unreasonably long time to take effect.
 The value of the delay parameter $\alpha$ may be allowed to vary while the
 system is running, so it is certainly possible to design a mechanism for
 choosing a reasonably suitable value and adapting it to changing system
-conditions. The approach described here shows an alternative
-technique\footnote{TODO this is not quite aligned with the description in
-\ref{membership-changes}} which runs the new phase I without needing to fix the
-instance at which the membership change takes effect. As this technique imposes
-no limit on how soon the new phase I must be completed, it eliminates the
-possibility of jitter caused by a pipeline stall.
+conditions. The approach described here shows an alternative technique which
+allows phase II to start using a new membership without re-running phase I
+first; this is shown to preserve consistency as long as the membership change
+is sufficiently small (in a sense which is made precise in section
+\ref{types-of-membership-change} below.) By removing phase I from the critical
+path of a membership change this technique eliminates the possibility of jitter
+caused by a pipeline stall.
 
-It also does not need to fix exactly what the membership change will be and
-works as long as the change is sufficiently small, in a sense which is made
-precise in section \ref{types-of-membership-change} below. Larger changes can
-often be performed as a sequence of these small, jitter-free changes, although
-this technique also subsumes the ability to perform arbitrary membership
-changes in a single step just as in Dynamic Paxos; changes that are not
-sufficiently small continue to carry the risk of jitter.
+The technique shown here also supports arbitrary membership changes happening
+in a single step just as in Dynamic Paxos, but any changes that are not
+sufficiently small continue to carry the risk of jitter. In reality, arbitrary
+changes would normally be performed as a sequence of these small, jitter-free
+changes.
 
-Finally, a simple characterisation of a useful set of sufficiently small
-membership changes is given, along with examples showing how sequences of these
-small changes can be used to achieve common administrative tasks.
+This presentation concludes with a simple characterisation of a useful set of
+sufficiently small membership changes, along with examples showing how
+sequences of these small changes can be used to achieve common administrative
+tasks.
 
 \section{A Review of Paxos}
 
