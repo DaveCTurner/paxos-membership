@@ -687,19 +687,19 @@ together, these conditions mean that $Q_{e-1} \cup Q_e \smile Q_e$ which means
 that $Q_{e-1} \cup Q_e$ and $Q_e$ can be respectively used for the phase-I and
 phase-II memberships of each Paxos instance by the observation of
 \ref{per-phase-quorums} above.  There are also two nondecreasing functions,
-both written $e(\cdot)$, which respectively assign an epoch number $e(i)$ to each
-instance $i$, and an epoch number $e(p)$ to each proposal $p$. A node considers
-phase I to be complete at instance $i$ and proposal $p$ if $e(p) \le e(i)$ and
-it has received promises for proposal $p$ in instance $i$ from a quorum
-$q^\textrm{I} \in Q_{e(p)}$. A node considers phase II to be complete at
-instance $i$ and proposal $p$ if $e(i) \le e(p)+1$ and it has received
-$\acc{i}{a}{p}$ from a quorum $q^\textrm{II} \in Q_{e(i)}$.  Thus if
-$\chosen{i}{p}$ then $e(p) \in \{ e(i)-1, e(i) \}$ and hence $q^\textrm{I} \in
-Q_{e(p)} \subseteq Q_{e(i)-1} \cup Q_{e(i)} \smile Q_{e(i)} \ni q^\textrm{II}$
-so that $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$ as required. It is
-worth emphasising the subtle point that phase I uses the membership $Q_{e(p)}$
-corresponding to the proposal $p$ whereas phase II uses the membership
-$Q_{e(i)}$ for the instance $i$.
+both written $e(\cdot)$, which respectively assign an epoch number $e(i)$ to
+each instance $i$, and an epoch number $e(p)$ to each proposal $p$. A node
+considers phase I to be complete\footnote{TODO prefer just 'may emit...'} at
+instance $i$ and proposal $p$ if $e(p) \le e(i)$ and it has received promises
+for proposal $p$ in instance $i$ from a quorum $q^\textrm{I} \in Q_{e(p)}$. A
+node considers phase II to be complete at instance $i$ and proposal $p$ if
+$e(i) \le e(p)+1$ and it has received $\acc{i}{a}{p}$ from a quorum
+$q^\textrm{II} \in Q_{e(i)}$.  Thus if $\chosen{i}{p}$ then $e(p) \in \{
+e(i)-1, e(i) \}$ and hence $q^\textrm{I} \in Q_{e(p)} \subseteq Q_{e(i)-1} \cup
+Q_{e(i)} \smile Q_{e(i)} \ni q^\textrm{II}$ so that $q^\textrm{I} \cap
+q^\textrm{II} \ne \varnothing$ as required. It is worth emphasising the subtle
+point that phase I uses the membership $Q_{e(p)}$ corresponding to the proposal
+$p$ whereas phase II uses the membership $Q_{e(i)}$ for the instance $i$.
 
 \subsection{Dynamic membership changes}
 
@@ -1081,18 +1081,13 @@ $\neg\acc{}{a}{p''}$ for all $p''$ having $p' \prec p'' \prec p$.
 \item \label{synod-prop} $\prop{}{p}$ only if there is a quorum $q^\textrm{I}
 \in Q^\textrm{I}(p)$ such that
 \begin{itemize}
-\item for every $a' \in q^\textrm{I}$ either $\fprom{}{a'}{p}$ or $\exists p'.
-\bprom{}{a'}{p}{p'}$, and
-\item if $P = \{ p' \mid \exists a' \in q^\textrm{I}. \bprom{}{a'}{p}{p'} \}
+\item for every $a \in q^\textrm{I}$ either $\fprom{}{a}{p}$ or $\exists p'.
+\bprom{}{a}{p}{p'}$, and
+\item if $P = \{ p' \mid \exists a \in q^\textrm{I}. \bprom{}{a}{p}{p'} \}
 \ne \varnothing$ then $v(p) = v(\mathrm{max}(P))$.
 \end{itemize}
 
-\item \label{synod-acc} $\acc{}{a}{p}$ only if
-\begin{itemize}
-\item $\prop{}{p}$,
-\item $\neg\fprom{}{a}{p'}$ for all $p' \succ p$, and
-\item $\neg\bprom{}{a}{p'}{p''}$ for all $p' \succ p$ and any $p''$.
-\end{itemize}
+\item \label{synod-acc} $\acc{}{a}{p}$ only if $\prop{}{p}$.
 
 \item \label{synod-chosen} $\chosen{}{p}$ only if there is a quorum
 $q^\textrm{II} \in Q^\textrm{II}(p)$ such that $\acc{}{a}{p}$ for every $a \in
@@ -1108,8 +1103,8 @@ follows that $p_3 \prec p_1$, $\acc{}{a}{p_3}$ and $p_3$ is the largest such
 proposal. Therefore either $p_2 \preceq p_3$ or $p_1 \preceq p_2$.  But $p_2
 \prec p_1$ so it must be that $p_2 \preceq p_3$ as required.  \end{proof}
 
-\begin{lemma}\label{synod-lemma} If $\chosen{}{p_2}$, $\prop{}{p_1}$ and $p_2 \prec
-p_1$ then $v(p_1) = v(p_2)$. \end{lemma}
+\begin{lemma}\label{synod-lemma} If $\chosen{}{p_2}$, $\prop{}{p_1}$ and $p_2
+\prec p_1$ then $v(p_1) = v(p_2)$. \end{lemma}
 
 \begin{proof}Suppose for a contradiction the result is false, and since $\prec$
 is wellfounded suppose without loss of generality that $p_1$ is the
@@ -1151,6 +1146,54 @@ required.  \end{proof}
 % you can choose not to have a title for an appendix
 % if you want by leaving the argument blank
 \section{Consistency of the Paxos algorithm}
+
+The consistency property of the Paxos algorithm is derived from the following
+invariants.
+
+\begin{enumerate}
+
+\item\label{paxos-quorums} There is a sequence of quorums $Q_0, Q_1, \ldots$
+where $Q_e \smile Q_e \smile Q_{e+1}$ for all $e$.
+
+\item\label{paxos-mprom} $\mprom{i}{a}{p}$ only if $\neg\acc{i'}{a}{p'}$ for all
+$i' \ge i$ and $p' \prec p$.
+
+\item\label{paxos-fprom} $\fprom{i}{a}{p}$ only if $\neg\acc{i}{a}{p'}$ for all
+$p' \prec p$.
+
+\item\label{paxos-bprom} $\bprom{i}{a}{p}{p'}$ only if \begin{itemize} \item
+$p' \prec p$ \item $\acc{i}{a}{p'}$, and \item $p'$ is the greatest such
+proposal, in the sense that $\neg \acc{i}{a}{p''}$ for all $p''$ having $p'
+\prec p'' \prec p$. \end{itemize}
+
+\item\label{paxos-prop} $\prop{i}{p}$ only if $e(p) \le e(i)$ and there is a
+quorum $q \in Q_{e(p)}$ such that
+\begin{itemize}
+\item for every $a \in q$ one of the following holds:
+%
+\begin{itemize}
+\item $\mprom{i'}{a}{p}$ for some $i' \le i$, or
+\item $\fprom{i}{a}{p}$, or
+\item $\bprom{i}{a}{p}{p'}$ for some $p'$, and
+\end{itemize}
+
+\item if $P = \{ p' \mid \exists a \in q. \bprom{i}{a}{p}{p'} \}
+\ne \varnothing$ then $v_i(p) = v_i(\mathrm{max}(P))$.
+\end{itemize}
+
+\item \label{paxos-acc} $\acc{i}{a}{p}$ only if $\prop{i}{p}$.
+
+\item \label{paxos-chosen} $\chosen{i}{p}$ only if
+\begin{itemize}
+\item $e(i) \le e(p) + 1$,
+\item if $i > 0$ then $\chosen{i-1}{p'}$ for some $p'$, and
+\item there is a quorum $q \in
+Q_{e(i)}$ such that $\acc{i}{a}{p}$ for every $a \in q$.
+\end{itemize}
+
+\end{enumerate}
+
+
 
 \begin{theorem}\label{paxos-safety-theorem} If $\chosen{i}{p_1}$ and
 $\chosen{i}{p_2}$ then $v_i(p_1) = v_i(p_2)$.  \end{theorem}
