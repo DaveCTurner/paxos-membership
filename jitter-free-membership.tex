@@ -709,9 +709,14 @@ by a state machine whose state is the finite sequence $Q_0, \ldots,
 Q_{e_\mathrm{max}}$ and the epoch numbers of instances are tracked by a state
 machine whose state is the finite sequence $e(0), \ldots, e(i_\mathrm{max})$.
 Their transitions append one or more elements to these sequences, but do not
-change any existing elements. At instance $i$ the epoch-number state machine
-satisfies $i_\mathrm{max} > i$, and similarly $e_\mathrm{max} \ge
-e(i_\mathrm{max})$ in the membership-sequence state machine.  Wherever the
+change any existing elements, and the tracked sequences are always long enough
+to make progress: if $\chosen{i}{p}$ then the epoch-number state machine
+satisfies $i_\mathrm{max} > i+1$ and $e_\mathrm{max} \ge
+e(i_\mathrm{max})$ in the membership-sequence state machine.
+
+
+
+Wherever the
 epoch number $e(i)$ is required for an instance $i > i_\mathrm{max}$ it is safe
 to use the lower bound $e(i_\mathrm{max}) \le e(i)$ since $e$ is an increasing
 function.
