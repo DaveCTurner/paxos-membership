@@ -587,13 +587,6 @@ of $p$ has been received. The quorums themselves can depend on the proposal
 number $p$ and the phase, but for any $p$ it must be the case that there is at
 least one node that is in a quorum of each phase.
 
-More formally, if $Q_1$ and $Q_2$ are sets of sets of nodes then write $Q_1
-\smile Q_2$ if every $q_1 \in Q_1$ and $q_2 \in Q_2$ have $q_1 \cap q_2 \ne
-\varnothing$.  If $p \in \mathbb P$ and $Q^\textrm{I}(p)$ and
-$Q^\textrm{II}(p)$ are the sets of phase I and phase II quorums for proposal
-$p$ respectively, then the consistency property requires that $Q^\textrm{I}(p)
-\smile Q^\textrm{II}(p)$.
-
 \subsection{The Paxos algorithm}
 
 Conceptually, Paxos is a sequence of distinct instances of the Synod algorithm
@@ -602,7 +595,7 @@ algorithm above are indexed with the instance number $i \in \mathbb N$:
 $\fprom{i}{a}{p}$, $\bprom{i}{a}{p}{p'}$, $\prop{i}{p}$ and $\acc{i}{a}{p}$.
 There is another kind of message known as a \textit{multi-promise}, written
 $\mprom{i}{a}{p}$, which can be thought of as standing for the infinite set of
-free promises $\{ \fprom{j}{a}{p} \mid j \ge i \}$. The predicate
+free promises ${\{ \fprom{j}{a}{p} \mid j \ge i \}}$. The predicate
 $\chosen{i}{p}$ is also indexed by the instance number $i$, but in this
 presentation prepare messages $\prep{p}$ apply to all instances so do not need
 to be indexed.
@@ -670,13 +663,27 @@ data type or CRDT\footnote{TODO cite}.
 
 \subsection{Per-phase quorums}\label{per-phase-quorums}
 
-In the classic presentation of the Synod algorithm the set of quorums did not
-depend on the phase. The ability to vary the quorums between the two phases is
-the key ingredient in being able to perform jitter-free membership changes. The
-proof of theorem \ref{synod-safety-theorem} in appendix \ref{synod-safety} is a
-minor generalisation of the original one to demonstrate that consistency is
-preserved even when $Q^\textrm{I}(p) \ne Q^\textrm{II}(p)$ as long as
-$Q^\textrm{I}(p) \smile Q^\textrm{II}(p)$.
+The heart of the consistency property of the Synod algorithm is that the set of
+nodes involved in completing phase I must always intersect the set of nodes
+involved in completing phase II, so that there is at least one node to carry
+information between the two phases. Write $Q_1 \smile Q_2$ to indicate that
+every element of $Q_1$ intersects every member of $Q_2$: more formally $Q_1
+\smile Q_2$ if every $q_1 \in Q_1$ and $q_2 \in Q_2$ have ${q_1 \cap q_2 \ne
+\varnothing}$.
+
+In the original presentation of the Synod algorithm any (weighted) majority of
+the nodes could be used as a quorum: roughly speaking, $Q^\textrm{I}(p) =
+Q^\textrm{II}(p) = Q_\mathrm{maj}$ was a constant, and any two majorities
+must intersect: $Q_\mathrm{maj} \smile
+Q_\mathrm{maj}$.
+
+The ability to vary the set of quorums by proposal and by phase is the key
+ingredient in being able to perform jitter-free membership changes. The proof
+of theorem \ref{synod-safety-theorem} in appendix \ref{synod-safety} is a
+generalisation of the original one to demonstrate that consistency is preserved
+even when $Q^\textrm{I}(p_1) \ne Q^\textrm{II}(p_2)$ as long as
+$Q^\textrm{I}(p_1) \smile Q^\textrm{II}(p_2)$ for all proposals $p_1 \succ p_2$
+having $\prop{}{p_1}$ and $\chosen{}{p_2}$.
 
 \section{Membership changes}\label{membership-changes}
 
@@ -688,18 +695,17 @@ that $Q_{e-1} \cup Q_e$ and $Q_e$ can be respectively used for the phase-I and
 phase-II memberships of each Paxos instance by the observation of
 \ref{per-phase-quorums} above.  There are also two nondecreasing functions,
 both written $e(\cdot)$, which respectively assign an epoch number $e(i)$ to
-each instance $i$, and an epoch number $e(p)$ to each proposal $p$. A node
-considers phase I to be complete\footnote{TODO prefer just 'may emit...'} at
-instance $i$ and proposal $p$ if $e(p) \le e(i)$ and it has received promises
-for proposal $p$ in instance $i$ from a quorum $q^\textrm{I} \in Q_{e(p)}$. A
-node considers phase II to be complete at instance $i$ and proposal $p$ if
-$e(i) \le e(p)+1$ and it has received $\acc{i}{a}{p}$ from a quorum
-$q^\textrm{II} \in Q_{e(i)}$.  Thus if $\chosen{i}{p}$ then $e(p) \in \{
-e(i)-1, e(i) \}$ and hence $q^\textrm{I} \in Q_{e(p)} \subseteq Q_{e(i)-1} \cup
-Q_{e(i)} \smile Q_{e(i)} \ni q^\textrm{II}$ so that $q^\textrm{I} \cap
-q^\textrm{II} \ne \varnothing$ as required. It is worth emphasising the subtle
-point that phase I uses the membership $Q_{e(p)}$ corresponding to the proposal
-$p$ whereas phase II uses the membership $Q_{e(i)}$ for the instance $i$.
+each instance $i$, and an epoch number $e(p)$ to each proposal $p$. A node may
+emit $\prop{i}{p}$ if $e(p) \le e(i)$ and it has received promises for proposal
+$p$ in instance $i$ from a quorum $q^\textrm{I} \in Q_{e(p)}$. A node considers
+phase II to be complete at instance $i$ and proposal $p$ if ${e(i) \le e(p)+1}$
+and it has received $\acc{i}{a}{p}$ from a quorum ${q^\textrm{II} \in
+Q_{e(i)}}$.  Thus if $\chosen{i}{p}$ then ${e(p) \in \{ e(i)-1, e(i) \}}$ and
+hence \[q^\textrm{I} \in Q_{e(p)} \subseteq Q_{e(i)-1} \cup Q_{e(i)} \smile
+Q_{e(i)} \ni q^\textrm{II}\] so that $q^\textrm{I} \cap q^\textrm{II} \ne
+\varnothing$ as required. It is worth emphasising the subtle point that phase I
+uses the membership $Q_{e(p)}$ corresponding to the proposal $p$ whereas phase
+II uses the membership $Q_{e(i)}$ for the instance $i$.
 
 \subsection{Dynamic membership changes}
 
@@ -728,8 +734,8 @@ Similarly, in order to check whether phase II is complete for a proposal $p$ at
 an instance $i$ a node must check whether it has received acceptances from a
 quorum of nodes $q \in Q_{e(i)}$ and must therefore know the value of
 $Q_{e(i)}$. This will be known if the node has chosen the previous instance,
-because if $\chosen{i-1}{p'}$ then $i < i_\mathrm{max}$ and hence $e(i) \le
-e(i_\mathrm{max}) \le e_\mathrm{max}$ as required.
+because if $\chosen{i-1}{p'}$ then $i < i_\mathrm{max}$ and hence ${e(i) \le
+e(i_\mathrm{max}) \le e_\mathrm{max}}$ as required.
 
 \subsection{Allowing for membership changes...}
 
@@ -766,12 +772,12 @@ to epoch $e$.  For instance, if $Q_{e-1} \smile Q_{e-1}$ then the trivial
 membership change, having $Q_e = Q_{e-1}$, certainly satisfies $Q_e \smile
 Q_{e-1}$ and $Q_e \smile Q_e$.
 
-For a less trivial example, let $\maj{s} = \{ q \subseteq s \mid 2 |q| > |s|
-\}$ be the set of all majority subsets of a finite set $s \subseteq \mathbb A$,
-and note that $\maj{s} \smile \maj{s}$ for all such $s$.  If $\mathbb A = \{
-a_1, a_2, \ldots \}$ then let $s_n = \{a_1, \ldots, a_n\}$ and observe that
-$\maj{s_3} \smile \maj{s_4}$ and $\maj{s_4} \smile \maj{s_5}$ but $\maj{s_3}
-\not\smile \maj{s_5}$ because $\{a_1, a_2\} \in \maj{s_3}$ and $\{a_3, a_4,
+For a less trivial example, let \[\maj{s} = \{ q \subseteq s \mid 2 |q| > |s|
+\}\] be the set of all majority subsets of a finite set $s \subseteq \mathbb
+A$, and note that $\maj{s} \smile \maj{s}$ for all such $s$.  If $\mathbb A =
+\{ a_1, a_2, \ldots \}$ then let $s_n = \{a_1, \ldots, a_n\}$ and observe that
+${\maj{s_3} \smile \maj{s_4}}$ and ${\maj{s_4} \smile \maj{s_5}}$ but ${\maj{s_3}
+\not\smile \maj{s_5}}$ because $\{a_1, a_2\} \in \maj{s_3}$ and $\{a_3, a_4,
 a_5\} \in \maj{s_5}$ do not intersect. Thus the majority subsets of $s_3$ and
 $s_4$ are sufficiently similar to be consecutive memberships, but those of
 $s_3$ and $s_5$ are not.
@@ -811,7 +817,7 @@ sequence of memberships used by a cluster, which must satisfy $M(w_{e-1})
 
 \item If $w_{e-1}$ and $w_e$ differ by a constant factor, in the sense that
 there are positive integers $m$ and $n$ such that $m w_{e-1}(a) = n w_e(a)$
-for all $a$, then $M(w_{e-1}) = M(w_e)$ and hence the property holds.
+for all $a$, then ${M(w_{e-1}) = M(w_e)}$ and hence the property holds.
 
 \item By theorem \ref{weights-nearly-equal} if $w_{e-1}$ and $w_e$
 differ by at most $1$ at at most one node then the property holds.
@@ -1063,12 +1069,13 @@ invariants.
 
 \begin{enumerate}
 
-\item \label{synod-quorums} For every proposal identifier $p \in \mathbb P$
-there are sets of quorums $Q^\textrm{I}(p), Q^\textrm{II}(p) \subseteq
-\mathcal P \mathbb A$ such that $Q^\textrm{I}(p) \smile Q^\textrm{II}(p)$.
+\item \label{synod-quorums} For proposal identifiers $p_2 \prec p_1 \in \mathbb
+P$ there are sets of quorums $Q^\textrm{I}(p_1)$ and
+$Q^\textrm{II}(p_2) \subseteq \mathcal P \mathbb A$ such that if $\prop{}{p_1}$
+and $\chosen{}{p_2}$ then ${Q^\textrm{I}(p_1) \smile Q^\textrm{II}(p_2)}$.
 
 \item \label{synod-fprom} $\fprom{}{a}{p}$ only if $\neg\acc{}{a}{p'}$ for all
-$p' \prec p$.
+${p' \prec p}$.
 
 \item \label{synod-bprom} $\bprom{}{a}{p}{p'}$ only if
 \begin{itemize}
@@ -1117,7 +1124,8 @@ there is a quorum $q^\textrm{I} \in Q^\textrm{I}(p_1)$ such that either
 $\fprom{}{a}{p_1}$ or $\exists p'.  \bprom{}{a}{p_1}{p'}$ for all $a \in
 q^\textrm{I}$.  Let $P = \{ p' \mid \exists a \in q^\textrm{I}.
 \bprom{}{a}{p_1}{p'} \}$ be the set of proposals referenced by forced promises.
-By invariant \ref{synod-quorums}, $q^\textrm{I} \cap q^\textrm{II} \ne
+By invariant \ref{synod-quorums}, ${Q^\textrm{I}(p_1) \smile
+Q^\textrm{II}(p_2)}$ and hence $q^\textrm{I} \cap q^\textrm{II} \ne
 \varnothing$ so it follows that $P \ne \varnothing$, which means that $v(p_1) =
 v(\mathrm{max}(P))$ by invariant \ref{synod-prop}. Let $a_{\mathrm{max}} \in
 q^\textrm{I}$ be such that $\bprom{}{a_{\mathrm{max}}}{p_1}{\mathrm{max}(P)}$.
@@ -1133,7 +1141,7 @@ contradiction as required.  \end{proof}
 $\chosen{}{p_2}$ then $v(p_1) = v(p_2)$.  \end{theorem}
 
 \begin{proof} If $p_1 = p_2$ then the result is clear, so assume that $p_1 \ne
-p_2$ and therefore without loss of generality that $p_2 \prec p_1$. By
+p_2$ and therefore without loss of generality that ${p_2 \prec p_1}$. By
 invariant \ref{synod-chosen} there is a quorum $q \in Q^\textrm{II}(p_1)$ such
 that $\acc{}{a}{p_1}$ for every node $a \in q$. Since $q$ is nonempty, by
 invariant \ref{synod-acc} it must be that $\prop{}{p_1}$ was previously sent.
@@ -1153,7 +1161,7 @@ invariants.
 \begin{enumerate}
 
 \item\label{paxos-quorums} There is a sequence of quorums $Q_0, Q_1, \ldots$
-where $Q_e \smile Q_e \smile Q_{e+1}$ for all $e$.
+where ${Q_e \smile Q_e \smile Q_{e+1}}$ for all $e$.
 
 \item\label{paxos-mprom} $\mprom{i}{a}{p}$ only if $\neg\acc{i'}{a}{p'}$ for all
 $i' \ge i$ and $p' \prec p$.
@@ -1193,12 +1201,75 @@ Q_{e(i)}$ such that $\acc{i}{a}{p}$ for every $a \in q$.
 
 \end{enumerate}
 
-
-
 \begin{theorem}\label{paxos-safety-theorem} If $\chosen{i}{p_1}$ and
-$\chosen{i}{p_2}$ then $v_i(p_1) = v_i(p_2)$.  \end{theorem}
+$\chosen{i}{p_2}$ then ${v_i(p_1) = v_i(p_2)}$.  \end{theorem}
 
-\begin{proof}TODO\end{proof}
+\begin{proof}
+If $\chosen{i}{p_1}$ then the Paxos invariants imply the Synod invariants for
+instance $i$.  In more detail, let
+\[\begin{array}{rl}
+Q^\textrm{I}(p) &= \begin{cases}
+Q_{e(p)} & e(p) \le e(i) \\
+\varnothing & \textrm{otherwise,} \end{cases} \\
+v(p) &= v_i(p)\\
+Q^\textrm{II}(p) &= Q_{e(i)}, \\
+\fprom{}{a}{p} &= \fprom{i}{a}{p} \\
+& \ {}\vee \exists i' \le i. \mprom{i'}{a}{p}, \\
+\bprom{}{a}{p}{p'} &= \bprom{i}{a}{p}{p'}, \\
+\prop{}{p} &= \prop{i}{p}, \\
+\acc{}{a}{p} &= \acc{i}{a}{p} \textrm{ and} \\
+\chosen{}{p} &= \chosen{i}{p}. \\
+\end{array}
+\]
+
+To show Synod invariant \ref{synod-quorums}, let $p'_2 \prec p'_1$ where
+$\prop{i}{p'_1}$ and $\chosen{i}{p'_2}$. Certainly $\varnothing \smile
+Q_{e(i)}$, so it remains to show that $Q_{e(p'_1)} \smile Q_{e(i)}$ if $e(p'_1)
+\le e(i)$.  But since $\chosen{i}{p'_1}$ it follows that $e(i) \le e(p'_1) + 1$
+and hence $e(p'_1) \in \{e(i) - 1, e(i)\}$ and the result follows since ${Q_e
+\smile Q_e \smile Q_{e+1}}$ for all $e$. The remaining invariants are simple to
+show and hence $v_i(p_1) = v_i(p_2)$ by theorem \ref{synod-safety-theorem}.
+\end{proof}
+
+\section{Preserving the Paxos invariants}
+
+If no messages have been sent then the invariants shown above certainly hold,
+so as long as each message that each node sends preserves the invariants then
+consistency is maintained.
+
+The interplay between promises and acceptances is reasonably straightforward:
+the node $a$ may emit promises $\fprom{i}{a}{p}$ etc. and acceptances
+$\acc{i}{a}{p}$ where they do not conflict with previously-sent messages. In
+more detail, it may emit $\mprom{i}{a}{p}$ if it has previously sent no
+$\acc{i'}{a}{p'}$ for any $p'$ and any $i' \le i$.  It may emit
+$\fprom{i}{a}{p}$ if it has previously sent no $\acc{i}{a}{p'}$ for any $p'$.
+It may emit $\bprom{i}{a}{p}{p'}$ if $p' \prec p$, $\acc{i}{a}{p'}$ and $p'$ is
+the greatest such proposal. It may emit $\acc{i}{a}{p}$ as long as
+$\prop{i}{p}$ and it does not violate any previously-made promises, in the
+sense that whenever \begin{itemize} \item $\mprom{i'}{a}{p'}$ for any $i' \le
+i$, or \item $\fprom{i}{a}{p'}$, or \item $\bprom{i}{a}{p'}{p''}$\end{itemize}
+it is the case that $p' \preceq p$.
+
+The node $\owner{p}$ may change the value $v_i(p)$ as long as it has not
+already emitted $\prop{p}{i}$, and may consider phase I to be complete for
+proposal $p$ at instance $i$, and may therefore emit $\prop{p}{i}$, there is an
+earlier instance ${i' < i}$ and proposal $p'$ such that $\chosen{i'}{p'}$ and
+$e(p) \le e(i')$, and there is a quorum $q \in Q_{e(p)}$ such that for every $a
+\in q$ it has previously received a promise from node $a$ for proposal $p$ in
+instance $i$. If it has not already emitted $\prop{p}{i}$, and any of the
+promises from nodes in $q$ are of the form $\bprom{i}{a}{p}{p'}$ then it must
+first set \[v_i(p) = v_i\bigl(\mathrm{max} \{p' \mid \bprom{i}{a}{p}{p'}
+\textrm{ received}, a \in q \}\bigr).\]
+
+Finally any node may consider phase II to be complete for proposal $p$ at instance
+$i$, and therefore $\chosen{p}{i}$, if
+\begin{itemize}
+\item $e(i) \le e(p) + 1$,
+\item if $i > 0$ then $\chosen{i-1}{p'}$ for some $p'$, and
+\item there is a quorum $q \in
+Q_{e(i)}$ such that $\acc{i}{a}{p}$ has been received from every $a \in q$.
+\end{itemize}
+
 
 \section{Consecutive epochs using weight-based membership}
 
