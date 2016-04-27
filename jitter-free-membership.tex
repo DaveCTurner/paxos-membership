@@ -522,11 +522,6 @@ sufficiently small continue to carry the risk of jitter. In reality, arbitrary
 changes would normally be performed as a sequence of these small, jitter-free
 changes.
 
-This presentation concludes with a simple characterisation of a useful set of
-sufficiently small membership changes, along with examples showing how
-sequences of these small changes can be used to achieve common administrative
-tasks.
-
 \section{A Review of Paxos}
 
 The Paxos algorithm was introduced in TODO. It is briefly reviewed here for the
@@ -669,14 +664,6 @@ mechanisms are available. For instance, the values of proposed proposals may be
 represented as an insert-only set of pairs $\{ \langle p, v(p) \rangle \mid
 \prop{}{p} \}$ which can be implemented as a simple conflict-free replicated
 data type or CRDT\footnote{TODO cite}.
-
-Alternatively, $\mathbb V$ may contain sequences of database commands, and $v$
-may be implemented by speculatively running these commands within a transaction
-even before a proposal is chosen and then only committing the transaction once
-the proposal is chosen; the transaction is aborted if a different proposal is
-chosen. Resilience can be ensured by running the same commands against multiple
-independent databases, and consistency is still preserved even though the
-commands themselves are not shared in Synod messages.
 
 \subsection{Per-phase quorums}\label{per-phase-quorums}
 
@@ -857,27 +844,14 @@ since each step changes the weight of a single node by $1$.
 In many situations it is feasible simply to replace a node $a_{\textrm{old}}$
 with a new node $a_{\textrm{new}}$ rather than to upgrade it in-situ. If
 $a_{\textrm{new}}$ is brought online before $a_{\textrm{old}}$ is taken offline
-then the system is not put at risk.  This still requires four nodes to perform
-maintenance but only three in normal operation:
+then the system is not put at risk, requiring four nodes to perform maintenance
+but only three in normal operation:
 \[\begin{array}{rcccc}
 \textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
 w_e&1&0&1&1\\
 w_{e+1}&1&1&1&1\\
 w_{e+2}&0&1&1&1\\
 \end{array}\]
-
-Since it is allowable to have no instances in an epoch, it is possible to skip
-epoch $e+1$ and jump straight from $e$ to $e+2$ as follows.
-\[\begin{array}{rcccc}
-\textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
-w_e&1&0&1&1\\
-w_{e+2}&0&1&1&1\\
-\end{array}\]
-In fact, if $w_{e+1}$ is weightless then the consecutive epoch intersection
-property holds even if $w_e$ and $w_{e+2}$ are completely unrelated. As shown
-in section \ref{types-of-membership-change} above, the problem with skipping
-epochs like this is that it risks causing jitter, whereas if no epochs are
-skipped then jitter can be avoided.
 
 Assuming that node failures are independent, the probability of a cluster-wide
 failure can appear to be extremely small. However, in a real-world system node
