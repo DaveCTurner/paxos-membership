@@ -863,9 +863,18 @@ To control this sitation, the cluster may be divided into \textit{zones}, where
 the nodes within a single zone may share infrastructure but failures in
 different zones can be considered to be independent.  The four-node approach
 described above is only safe if each node is in a different zone: if any two of
-them share infrastructure then the system is at risk of a zone-wide failure in
-epoch $w_{e+1}$. On the other hand, arranging for four zones is likely to be
-much harder than arranging for three\footnote{For instance, at time of writing,
+them are in the same zone $z$ then system will fail if $z$ fails in epoch
+$w_{e+1}$.
+
+In many operating environments it may be expensive or complicated to arrange
+for four independent zones\footnote{For instance, at time of writing, only one
+Amazon Web Services region (\texttt{us-east-1}) has four independent zones,
+whereas four of them have three: \texttt{ap-southeast-2}, \texttt{eu-west-1},
+\texttt{sa-east-1} and \texttt{us-west-2}.}, particularly if the fourth zone is
+only required to ensure consistency in relatively rare periods of maintenance.
+
+
+\footnote{For instance, at time of writing,
   only one Amazon Web Services region (\texttt{us-east-1}) has four independent
 zones, whereas four of them have three: \texttt{ap-southeast-2},
 \texttt{eu-west-1}, \texttt{sa-east-1} and \texttt{us-west-2}.}.  Fortunately,
