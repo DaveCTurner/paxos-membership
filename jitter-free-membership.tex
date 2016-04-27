@@ -585,11 +585,14 @@ promise messages for $p$ have been received from a quorum of nodes, and
 similarly considers phase II to be complete at $p$ when a quorum of acceptances
 of $p$ has been received. The quorums themselves can depend on the proposal
 number $p$ and the phase, but for any $p$ it must be the case that there is at
-least one node that is in a quorum of each phase.  More formally, if $p \in
-\mathbb P$ then write $Q^\textrm{I}(p)$ and $Q^\textrm{II}(p) \subseteq
-\mathcal P \mathbb A$ for the sets of phase I and phase II quorums for proposal
-$p$ respectively, and then for each $q_1 \in Q^\textrm{I}(p)$ and $q_2 \in
-Q^\textrm{II}(p)$ it must be the case that $q_1 \cap q_2 \ne \varnothing$.
+least one node that is in a quorum of each phase.
+
+More formally, if $Q_1$ and $Q_2$ are sets of sets of nodes then write $Q_1
+\smile Q_2$ if every $q_1 \in Q_1$ and $q_2 \in Q_2$ have $q_1 \cap q_2 \ne
+\varnothing$.  If $p \in \mathbb P$ and $Q^\textrm{I}(p)$ and
+$Q^\textrm{II}(p)$ are the sets of phase I and phase II quorums for proposal
+$p$ respectively, then the consistency property requires that $Q^\textrm{I}(p)
+\smile Q^\textrm{II}(p)$.
 
 \subsection{The Paxos algorithm}
 
@@ -673,49 +676,45 @@ the key ingredient in being able to perform jitter-free membership changes. The
 proof of theorem \ref{synod-safety-theorem} in appendix \ref{synod-safety} is a
 minor generalisation of the original one to demonstrate that consistency is
 preserved even when $Q^\textrm{I}(p) \ne Q^\textrm{II}(p)$ as long as
-$q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$ for all $q^\textrm{I} \in
-Q^\textrm{I}(p)$ and $q^\textrm{II} \in Q^\textrm{II}(p)$.
+$Q^\textrm{I}(p) \smile Q^\textrm{II}(p)$.
 
 \section{Membership changes}\label{membership-changes}
 
 Changes in the cluster membership are handled with a sequence of numbered
-\textit{epochs} $1, 2, \ldots$ and memberships $Q_0, Q_1, Q_2, \ldots$ that
-satisfy the \textit{consecutive epoch intersection} property: for every epoch
-$e$, every $q^\textrm{I} \in Q_{e} \cup Q_{e-1}$ and every $q^\textrm{II} \in
-Q_{e}$ it must be that $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$.
-There is also a nondecreasing function that assigns an epoch number $e(i)$ to
-each instance $i$.  The consecutive epoch intersection property along with the
-observation of section \ref{per-phase-quorums} above means that phase I of
-instance $i$ can use $Q_{e(i)-1} \cup Q_{e(i)}$ for its set of quorums and
-phase II can use $Q_{e(i)}$.
-
-There is also a nondecreasing function which assigns an epoch number $e(p)$ to
-each proposal $p$. A node considers phase I to be complete at instance $i$ and
-proposal $p$ if $e(p) \le e(i)$ and it has received promises for proposal $p$
-in instance $i$ from a quorum $q^\textrm{I} \in Q_{e(p)}$. A node considers
-phase II to be complete at instance $i$ and proposal $p$ if $e(i) \le e(p)+1$
-and it has received $\acc{i}{a}{p}$ from a quorum $q^\textrm{II} \in Q_{e(i)}$.
-Thus if $\chosen{i}{p}$ then $e(p) \in \{ e(i)-1, e(i) \}$ and hence
-$q^\textrm{I} \in Q_{e(p)} \subseteq Q_{e(i)-1} \cup Q_{e(i)}$ so that
-$q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$ as required. It is worth
-emphasising the subtle point that phase I uses the membership $Q_{e(p)}$
+\textit{epochs} $1, 2, \ldots$ and memberships $Q_0, Q_1, Q_2, \ldots$
+satisfying $Q_e \smile Q_e$ and $Q_e \smile Q_{e-1}$ for all epochs $e$.  Taken
+together, these conditions mean that $Q_{e-1} \cup Q_e \smile Q_e$ which means
+that $Q_{e-1} \cup Q_e$ and $Q_e$ can be respectively used for the phase-I and
+phase-II memberships of each Paxos instance by the observation of
+\ref{per-phase-quorums} above.  There are also two nondecreasing functions,
+both written $e(\cdot)$, which respectively assign an epoch number $e(i)$ to each
+instance $i$, and an epoch number $e(p)$ to each proposal $p$. A node considers
+phase I to be complete at instance $i$ and proposal $p$ if $e(p) \le e(i)$ and
+it has received promises for proposal $p$ in instance $i$ from a quorum
+$q^\textrm{I} \in Q_{e(p)}$. A node considers phase II to be complete at
+instance $i$ and proposal $p$ if $e(i) \le e(p)+1$ and it has received
+$\acc{i}{a}{p}$ from a quorum $q^\textrm{II} \in Q_{e(i)}$.  Thus if
+$\chosen{i}{p}$ then $e(p) \in \{ e(i)-1, e(i) \}$ and hence $q^\textrm{I} \in
+Q_{e(p)} \subseteq Q_{e(i)-1} \cup Q_{e(i)} \smile Q_{e(i)} \ni q^\textrm{II}$
+so that $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$ as required. It is
+worth emphasising the subtle point that phase I uses the membership $Q_{e(p)}$
 corresponding to the proposal $p$ whereas phase II uses the membership
 $Q_{e(i)}$ for the instance $i$.
 
 \subsection{Defining new memberships and epochs}
 
 As in Dynamic Paxos, the memberships $Q_0, Q_1, \ldots$ and epoch numbers
-$e(i)$ are themselves chosen by Paxos. In more detail, the sequence of
-memberships is tracked by a state machine whose state is an initial segment of
-the sequence, $Q_0, \ldots, Q_{e_\mathrm{max}}$, and the epoch numbers are
-defined by a state machine whose state is the sequence of values $e(0), \ldots,
-e(i_\mathrm{max})$. The transitions of these state machines append one or more
-elements to these sequences, but do not change any existing elements.  At
-instance $i$ the epoch-number state machine satisfies $i_\mathrm{max} > i$, and
-similarly $e_\mathrm{max} \ge e(i_\mathrm{max})$ in the membership-sequence
-state machine.  Wherever the epoch number $e(i)$ is required for an instance $i
-> i_\mathrm{max}$ it is safe to use the lower bound $e(i_\mathrm{max}) \le
-e(i)$ since $e$ is an increasing function.
+$e(i)$ are themselves chosen by Paxos. In more detail, memberships are tracked
+by a state machine whose state is the finite sequence $Q_0, \ldots,
+Q_{e_\mathrm{max}}$ and the epoch numbers of instances are tracked by a state
+machine whose state is the finite sequence $e(0), \ldots, e(i_\mathrm{max})$.
+Their transitions append one or more elements to these sequences, but do not
+change any existing elements. At instance $i$ the epoch-number state machine
+satisfies $i_\mathrm{max} > i$, and similarly $e_\mathrm{max} \ge
+e(i_\mathrm{max})$ in the membership-sequence state machine.  Wherever the
+epoch number $e(i)$ is required for an instance $i > i_\mathrm{max}$ it is safe
+to use the lower bound $e(i_\mathrm{max}) \le e(i)$ since $e$ is an increasing
+function.
 
 \subsection{Allowing for membership changes...}
 
@@ -737,71 +736,69 @@ run on a subset of all the nodes while the remaining nodes continue to run
 phase II on proposal $p$.
 
 
-\subsection{Types of membership change}\label{types-of-membership-change}
-
-Clearly each membership $Q_e$ in the sequence must satisfy that every $q, q'
-\in Q_e$ have nonempty intersection in order to satisfy the consecutive epoch
-intersection property. In addition, every $q^\textrm{I} \in Q_{e-1}$ and
-$q^\textrm{II} \in Q_e$ must have nonempty intersection. There are two useful
-ways that this can be achieved.
-
-Firstly, note that this property holds (vacuously) if either $Q_{e-1} =
-\varnothing$ or $Q_e = \varnothing$. Clearly if there is an instance $i$ such
-that $Q_{e(i)} = \varnothing$ then no value can ever be chosen for $i$, but
-epochs may be skipped by letting $e(i) = e(i-1) + 2$ at some instance $i$. By
-doing so, and having the skipped membership $Q_{e(i)-1} = \varnothing$ then the
-consecutive epoch intersection property holds for any memberships $Q_{e(i-1)}$
-and $Q_{e(i)}$.  Note that if an epoch is to be skipped like this then phase I
-must be re-run for a new proposal $p'$ having $e(p') \ge e(i)$, since if phase
-I is complete at proposal $p$ then $e(p) \le e(i-1) < e(i) - 1$ and hence
-$\neg\chosen{i}{p}$. Thus an empty membership and an epoch skip can be used to
-perform arbitrary membership changes as in Dynamic Paxos, but this requires a
-phase I to be performed on the critical path which risks jitter if it is not
-completed quickly enough.
+\subsection{Examples of membership changes}\label{types-of-membership-change}
 
 \def\maj#1{\mathbf{maj}(#1)}
 
-Secondly, if $Q_{e-1}$ and $Q_e$ are sufficiently similar then they may satisfy
-the consecutive epoch intersection property.  Certainly if $Q_{e-1} = Q_e$ then
-the property holds. For a less trivial example, suppose $\mathbb A = \{ a_1,
-a_2, \ldots \}$, let $s_n = \{a_1, \ldots, a_n\}$ and let $\maj{s} = \{ q
-\subseteq s \mid 2 |q| > |s| \}$ be the set of all majority subsets of $s$.
-Then $\maj{s_3}$ and $\maj{s_4}$ satisfy the consecutive epoch intersection
-property, as do $\maj{s_4}$ and $\maj{s_5}$, but $\maj{s_3}$ and $\maj{s_5}$ do
-not because $\{a_1, a_2\} \in \maj{s_3}$ and $\{a_3, a_4, a_5\} \in \maj{s_5}$
-do not intersect.
+Implementations can ensure $Q_e \smile Q_e$ by, for instance, arranging for
+each quorum in $Q_e$ to comprise a majority subset of some finite set of nodes.
+Intuitively, the condition that $Q_{e-1} \smile Q_e$ ensures that the
+membership change from $Q_{e-1}$ to $Q_e$ is sufficiently small that phase I
+need not re-run when moving from epoch $e-1$ to epoch $e$.  For instance, if
+$Q_{e-1} \smile Q_{e-1}$ then the trivial membership change, having $Q_e =
+Q_{e-1}$, certainly satisfies $Q_e \smile Q_{e-1}$ and $Q_e \smile Q_e$.
 
+For a less trivial example, let $\maj{s} = \{ q \subseteq s \mid 2 |q| > |s|
+\}$ be the set of all majority subsets of a finite set $s \subseteq \mathbb A$,
+and note that $\maj{s} \smile \maj{s}$ for all such $s$.  If $\mathbb A = \{
+a_1, a_2, \ldots \}$ then let $s_n = \{a_1, \ldots, a_n\}$ and observe that
+$\maj{s_3} \smile \maj{s_4}$ and $\maj{s_4} \smile \maj{s_5}$ but $\maj{s_3}
+\not\smile \maj{s_5}$ because $\{a_1, a_2\} \in \maj{s_3}$ and $\{a_3, a_4,
+a_5\} \in \maj{s_5}$ do not intersect. Thus the majority subsets of $s_3$ and
+$s_4$ are sufficiently similar to be consecutive memberships, but those of
+$s_3$ and $s_5$ are not.
 
+The intuition that $Q_{e-1} \smile Q_e$ means that $Q_{e-1}$ and $Q_e$ are
+similar is useful but not wholly accurate because $\varnothing \smile Q$
+vacuously for all memberships $Q$. Clearly if there is an instance $i$ such
+that $Q_{e(i)} = \varnothing$ then no value can ever be chosen for $i$, but
+epochs may be skipped by letting $e(i) = e(i-1) + 2$ at some instance $i$.
+This recovers the ability to perform arbitrary membership changes as in Dynamic
+Paxos: if the system is currently using membership $Q_{e(i)}$ and an operator
+wishes to change to an unrelated membership $Q'$ (where necessarily $Q' \smile
+Q'$) then they can set $Q_{e(i)+1} = \varnothing$ and $Q_{e(i)+2} = Q'$, which
+satisfies that \[Q_{e(i)} \smile Q_{e(i) + 1} \smile Q_{e(i)+1} \smile Q_{e(i)
++ 2} \smile Q_{e(i) + 2}\] as desired. However in this situation phase I must
+re-run before the new membership can be used because an epoch is skipped, which
+reintroduces the risk of jitter. As in Dynamic Paxos, to mitigate this risk the
+operator chooses an $\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and $e(j) =
+e(i)$ for $i < j \le i + \alpha$.
 
 \subsection{Weight-based memberships}
 \label{weight-based-memberships}
 
 Let a \textit{weight} function be a function $w : \mathbb A \to \mathbb N$ that
 only takes finitely many nonzero values. This can be used to define a
-membership $M(w)$ by \textit{majority}: \[M(w) = \left\{ q \;\middle|\; \sum_{a \in q} 2
-w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] If $w(a) = 0$ for all $a$ then
-$w$ is said to be \textit{weightless} and $M(w) = \varnothing$.
+membership $M(w)$ by \textit{majority}: \[M(w) = \left\{ q \;\middle|\; \sum_{a
+\in q} 2 w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] If $w(a) = 0$ for all
+$a$ then $w$ is said to be \textit{weightless} and $M(w) = \varnothing$.
+Corollary \ref{weights-equal} shows that if $M(w) \smile M(w)$ for any weight
+function $w$.
 
 A sequence $w_0, w_1, \ldots$ of weight functions can be used to define the
-sequence of memberships used by a cluster.  Recall that this sequence of
-memberships must satisfy the consecutive epoch intersection property: if
-$q^\textrm{I} \in M(w_e) \cup M(w_{e-1})$ and $q^\textrm{II} \in M(w_e)$ then
-it is necessary that $q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$.
-Corollary \ref{weights-equal} shows that if $q^\textrm{I} \in M(w_e)$ then
-$q^\textrm{I} \cap q^\textrm{II} \ne \varnothing$, so it remains to show the
-property where $q^\textrm{I} \in M(w_{e-1})$. There are three simple ways to
-ensure this:
+sequence of memberships used by a cluster, which must satisfy $M(w_{e-1})
+\smile M(w_e)$ for all $e$.  There are three simple ways to ensure this:
 
 \begin{enumerate}
 
-\item If $w_{e-1}$ is weightless then the property holds vacuously.
-
 \item If $w_{e-1}$ and $w_e$ differ by a constant factor, in the sense that
-there are positive integers $m$ and $n$ such that $m w_{e-1}(a) = n w_e(a)$ for
-all $a$, then $M(w_{e-1}) = M(w_e)$ and hence the property holds.
+there are positive integers $m$ and $n$ such that $m w_{e-1}(a) = n w_e(a)$
+for all $a$, then $M(w_{e-1}) = M(w_e)$ and hence the property holds.
 
-\item Finally, by theorem \ref{weights-nearly-equal} if $w_{e-1}$ and $w_e$
+\item By theorem \ref{weights-nearly-equal} if $w_{e-1}$ and $w_e$
 differ by at most $1$ at at most one node then the property holds.
+
+\item Finally, if $w_{e-1}$ is weightless then the property holds vacuously.
 
 \end{enumerate}
 
