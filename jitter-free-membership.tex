@@ -742,11 +742,12 @@ phase II on proposal $p$.
 
 Implementations can ensure $Q_e \smile Q_e$ by, for instance, arranging for
 each quorum in $Q_e$ to comprise a majority subset of some finite set of nodes.
-Intuitively, the condition that $Q_{e-1} \smile Q_e$ ensures that the
-membership change from $Q_{e-1}$ to $Q_e$ is sufficiently small that phase I
-need not re-run when moving from epoch $e-1$ to epoch $e$.  For instance, if
-$Q_{e-1} \smile Q_{e-1}$ then the trivial membership change, having $Q_e =
-Q_{e-1}$, certainly satisfies $Q_e \smile Q_{e-1}$ and $Q_e \smile Q_e$.
+If $Q_{e-1}$ and $Q_e$ are nonempty then intuitively the condition that
+$Q_{e-1} \smile Q_e$ ensures that the membership change from $Q_{e-1}$ to $Q_e$
+is sufficiently small that phase I need not re-run when moving from epoch $e-1$
+to epoch $e$.  For instance, if $Q_{e-1} \smile Q_{e-1}$ then the trivial
+membership change, having $Q_e = Q_{e-1}$, certainly satisfies $Q_e \smile
+Q_{e-1}$ and $Q_e \smile Q_e$.
 
 For a less trivial example, let $\maj{s} = \{ q \subseteq s \mid 2 |q| > |s|
 \}$ be the set of all majority subsets of a finite set $s \subseteq \mathbb A$,
@@ -759,8 +760,8 @@ $s_4$ are sufficiently similar to be consecutive memberships, but those of
 $s_3$ and $s_5$ are not.
 
 The intuition that $Q_{e-1} \smile Q_e$ means that $Q_{e-1}$ and $Q_e$ are
-similar is useful but not wholly accurate because $\varnothing \smile Q$
-vacuously for all memberships $Q$. Clearly if there is an instance $i$ such
+similar breaks down if either membership is empty, because $\varnothing \smile
+Q$ vacuously for all memberships $Q$. Clearly if there is an instance $i$ such
 that $Q_{e(i)} = \varnothing$ then no value can ever be chosen for $i$, but
 epochs may be skipped by letting $e(i) = e(i-1) + 2$ at some instance $i$.
 This recovers the ability to perform arbitrary membership changes as in Dynamic
@@ -772,7 +773,7 @@ satisfies that \[Q_{e(i)} \smile Q_{e(i) + 1} \smile Q_{e(i)+1} \smile Q_{e(i)
 re-run before the new membership can be used because an epoch is skipped, which
 reintroduces the risk of jitter. As in Dynamic Paxos, to mitigate this risk the
 operator chooses an $\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and $e(j) =
-e(i)$ for $i < j \le i + \alpha$.
+e(i)$ for $i < j \le i + \alpha$, effectively delaying the membership change.
 
 \subsection{Weight-based memberships}
 \label{weight-based-memberships}
@@ -1136,11 +1137,11 @@ $\chosen{i}{p_2}$ then $v_i(p_1) = v_i(p_2)$.  \end{theorem}
 
 \begin{theorem} \label{weights-nearly-equal} Let $w, w' : \mathbb A \to \mathbb
 N$ be weight functions and let $a_0 \in \mathbb A$ be such that $|w(a_0) -
-w'(a_0)| \le 1$ and $w(a) = w'(a)$ for all $a \ne a_0$.  Let $q \in M(w)$ and
-$q' \in M(w')$. Then $q \cap q' \ne \varnothing$.  \end{theorem}
+w'(a_0)| \le 1$ and $w(a) = w'(a)$ for all $a \ne a_0$. Then $M(w) \smile
+M(w')$.  \end{theorem}
 
-\begin{proof} By the definition of $M$, and since $w$ and $w'$ take only
-integer values,
+\begin{proof} Let $q \in M(w)$ and $q' \in M(w')$. By the
+  definition of $M$, and since $w$ and $w'$ take only integer values,
 %
 $\sum_{a \in q} 2 w(a) \ge \sum_{a \in \mathbb A} w(a) + 1$
 %
@@ -1187,9 +1188,8 @@ Then
 A} + 2 - 2d_{q'} = 2 \pm d_\mathbb A \ge 1$ and hence $q \cap q' \ne \varnothing$ as desired.
 \end{proof}
 
-\begin{corollary} \label{weights-equal} Let $w : \mathbb A \to \mathbb N$ be a
-weight function and let $q, q' \in M(w)$. Then $q \cap q' \ne \varnothing$.
-\end{corollary}
+\begin{corollary} \label{weights-equal} If $w : \mathbb A \to \mathbb N$ is a
+weight function then \[M(w) \smile M(w).\]  \end{corollary}
 
 \begin{proof}
 This is a special case of theorem \ref{weights-nearly-equal}, where $w' = w$.
