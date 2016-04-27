@@ -508,24 +508,24 @@ the membership change can take an unreasonably long time to take effect.
 The value of the delay parameter $\alpha$ may be allowed to vary while the
 system is running, so it is certainly possible to design a mechanism for
 choosing a reasonably suitable value and adapting it to changing system
-conditions. The approach described here shows an alternative
-technique\footnote{TODO this is not quite aligned with the description in
-\ref{membership-changes}} which runs the new phase I without needing to fix the
-instance at which the membership change takes effect. As this technique imposes
-no limit on how soon the new phase I must be completed, it eliminates the
-possibility of jitter caused by a pipeline stall.
+conditions. The approach described here shows an alternative technique which
+allows phase II to start using a new membership without re-running phase I
+first; this is shown to preserve consistency as long as the membership change
+is sufficiently small (in a sense which is made precise in section
+\ref{types-of-membership-change} below.) By removing phase I from the critical
+path of a membership change this technique eliminates the possibility of jitter
+caused by a pipeline stall.
 
-It also does not need to fix exactly what the membership change will be and
-works as long as the change is sufficiently small, in a sense which is made
-precise in section \ref{types-of-membership-change} below. Larger changes can
-often be performed as a sequence of these small, jitter-free changes, although
-this technique also subsumes the ability to perform arbitrary membership
-changes in a single step just as in Dynamic Paxos; changes that are not
-sufficiently small continue to carry the risk of jitter.
+The technique shown here also supports arbitrary membership changes happening
+in a single step just as in Dynamic Paxos, but any changes that are not
+sufficiently small continue to carry the risk of jitter. In reality, arbitrary
+changes would normally be performed as a sequence of these small, jitter-free
+changes.
 
-Finally, a simple characterisation of a useful set of sufficiently small
-membership changes is given, along with examples showing how sequences of these
-small changes can be used to achieve common administrative tasks.
+This presentation concludes with a simple characterisation of a useful set of
+sufficiently small membership changes, along with examples showing how
+sequences of these small changes can be used to achieve common administrative
+tasks.
 
 \section{A Review of Paxos}
 
@@ -876,8 +876,8 @@ w_{e+2}&0&1&1&1\\
 In fact, if $w_{e+1}$ is weightless then the consecutive epoch intersection
 property holds even if $w_e$ and $w_{e+2}$ are completely unrelated. As shown
 in section \ref{types-of-membership-change} above, the problem with skipping
-epochs like this is that it risks causing jitter, whereas if consecutive epochs
-are used then jitter can be avoided.
+epochs like this is that it risks causing jitter, whereas if no epochs are
+skipped then jitter can be avoided.
 
 Assuming that node failures are independent, the probability of a cluster-wide
 failure can appear to be extremely small. However, in a real-world system node
@@ -889,14 +889,15 @@ To control this sitation, the cluster may be divided into \textit{zones}, where
 the nodes within a single zone may share infrastructure but failures in
 different zones can be considered to be independent.  The four-node approach
 described above is only safe if each node is in a different zone: if any two of
-them share infrastructure then the system is at risk in epoch $w_{e+1}$. On the
-other hand, arranging for four zones is likely to be much harder than arranging
-for three\footnote{For instance, at time of writing, only one Amazon Web
-Services region (\texttt{us-east-1}) has four independent zones, whereas four
-of them have three: \texttt{ap-southeast-2}, \texttt{eu-west-1},
-\texttt{sa-east-1} and \texttt{us-west-2}.}.  Fortunately, it is possible to
-safely replace a node within a single zone $z_{\textrm{maint}}$ using only
-three zones and the following sequence of operations.
+them share infrastructure then the system is at risk of a zone-wide failure in
+epoch $w_{e+1}$. On the other hand, arranging for four zones is likely to be
+much harder than arranging for three\footnote{For instance, at time of writing,
+  only one Amazon Web Services region (\texttt{us-east-1}) has four independent
+zones, whereas four of them have three: \texttt{ap-southeast-2},
+\texttt{eu-west-1}, \texttt{sa-east-1} and \texttt{us-west-2}.}.  Fortunately,
+it is possible to safely replace a node within a single zone
+$z_{\textrm{maint}}$ using only three zones and the following sequence of
+operations.
 \[\begin{array}{rcccc}
 \textrm{zone}&z_{\textrm{maint}}&z_{\textrm{maint}}&z_1&z_2\\
 \textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2\\
