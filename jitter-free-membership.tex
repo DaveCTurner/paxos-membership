@@ -807,6 +807,22 @@ differ by at most $1$ at at most one node then the property holds.
 
 \section{Discussion}
 
+Paxos supports both the crash-stop and crash-recover failure modes.
+
+To do crash-recovery, there must be a write to stable storage between
+receiving a $\prop{i}{p}$ message and replying with $\acc{i}{a}{p}$.
+
+Raises the question of what to do if storage itself is lost? What does
+``stable'' mean?
+
+In a realistic system, all nodes will eventually fail unrecoverably.
+
+
+
+
+
+\subsection{TODO merge with the above}
+
 Typically the nodes in a system must be taken offline for maintenance from time
 to time. Since Paxos is designed to be resilient to failures of nodes, a simple
 approach is to treat offline nodes just as if they have failed. By taking each
