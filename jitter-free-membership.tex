@@ -701,7 +701,7 @@ worth emphasising the subtle point that phase I uses the membership $Q_{e(p)}$
 corresponding to the proposal $p$ whereas phase II uses the membership
 $Q_{e(i)}$ for the instance $i$.
 
-\subsection{Defining new memberships and epochs}
+\subsection{Dynamic membership changes}
 
 As in Dynamic Paxos, the memberships $Q_0, Q_1, \ldots$ and epoch numbers
 $e(i)$ are themselves chosen by Paxos. In more detail, memberships are tracked
@@ -711,17 +711,29 @@ machine whose state is the finite sequence $e(0), \ldots, e(i_\mathrm{max})$.
 Their transitions append one or more elements to these sequences, but do not
 change any existing elements, and the tracked sequences are always long enough
 to make progress: if $\chosen{i}{p}$ then the epoch-number state machine
-satisfies $i_\mathrm{max} > i+1$ and $e_\mathrm{max} \ge
-e(i_\mathrm{max})$ in the membership-sequence state machine.
+satisfies $i_\mathrm{max} > i+1$ and $e_\mathrm{max} \ge e(i_\mathrm{max})$ in
+the membership-sequence state machine. Epoch numbers $e(p)$ for proposals $p$
+are fixed in advance and not chosen by Paxos.
 
+Note that in order to check whether phase I is complete for a proposal $p$ at
+an instance $i$ a node must check whether it has received promises from a
+quorum of nodes $q \in Q_{e(p)}$, for which it needs to know $Q_{e(p)}$.  Nodes
+should therefore not emit $\prep{p}$ messages for proposals for which
+$Q_{e(p)}$ is not known. The node must also check that $e(p) \le e(i)$; if
+$e(i)$ is not known then $i_\mathrm{max} < i$, but $e$ is an increasing
+function so $e(i_\mathrm{max}) \le e(i)$ and it is therefore sufficient to
+check that $e(p) \le e(i_\mathrm{max})$.
 
-
-Wherever the
-epoch number $e(i)$ is required for an instance $i > i_\mathrm{max}$ it is safe
-to use the lower bound $e(i_\mathrm{max}) \le e(i)$ since $e$ is an increasing
-function.
+Similarly, in order to check whether phase II is complete for a proposal $p$ at
+an instance $i$ a node must check whether it has received acceptances from a
+quorum of nodes $q \in Q_{e(i)}$ and must therefore know the value of
+$Q_{e(i)}$. This will be known if the node has chosen the previous instance,
+because if $\chosen{i-1}{p'}$ then $i < i_\mathrm{max}$ and hence $e(i) \le
+e(i_\mathrm{max}) \le e_\mathrm{max}$ as required.
 
 \subsection{Allowing for membership changes...}
+
+TODO do this the same, but better
 
 To see that this allows for membership changes without requiring a new phase I
 to run, let $i_0$ be a fixed instance and suppose that the node $\owner{p}$ has
