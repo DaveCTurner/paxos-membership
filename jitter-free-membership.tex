@@ -858,29 +858,20 @@ failure can appear to be extremely small. However, in a real-world system node
 failures are not always independent: certain sets of nodes may share critical
 infrastructure such as power or network connectivity, and a failure of this
 infrastructure would cause a simultaneous failure of all the dependent nodes.
-
 To control this sitation, the cluster may be divided into \textit{zones}, where
 the nodes within a single zone may share infrastructure but failures in
 different zones can be considered to be independent.  The four-node approach
 described above is only safe if each node is in a different zone: if any two of
-them are in the same zone $z$ then system will fail if $z$ fails in epoch
-$w_{e+1}$.
-
-In many operating environments it may be expensive or complicated to arrange
-for four independent zones\footnote{For instance, at time of writing, only one
-Amazon Web Services region (\texttt{us-east-1}) has four independent zones,
-whereas four of them have three: \texttt{ap-southeast-2}, \texttt{eu-west-1},
-\texttt{sa-east-1} and \texttt{us-west-2}.}, particularly if the fourth zone is
-only required to ensure consistency in relatively rare periods of maintenance.
-
-
-\footnote{For instance, at time of writing,
-  only one Amazon Web Services region (\texttt{us-east-1}) has four independent
-zones, whereas four of them have three: \texttt{ap-southeast-2},
-\texttt{eu-west-1}, \texttt{sa-east-1} and \texttt{us-west-2}.}.  Fortunately,
-it is possible to safely replace a node within a single zone
-$z_{\textrm{maint}}$ using only three zones and the following sequence of
-operations.
+them are in the same zone then system will fail if there is a zone-wide failure
+in epoch $w_{e+1}$.  In many operating environments it may be expensive or
+complicated to arrange for four independent zones\footnote{For instance, at
+time of writing, only one Amazon Web Services region (\texttt{us-east-1}) has
+four independent zones, whereas four of them have three:
+\texttt{ap-southeast-2}, \texttt{eu-west-1}, \texttt{sa-east-1} and
+\texttt{us-west-2}.}, particularly if the fourth zone is only required to
+ensure consistency in relatively rare periods of maintenance.  Fortunately, it
+is possible to safely replace a node within a single zone $z_{\textrm{maint}}$
+using only three zones and the following sequence of operations.
 \[\begin{array}{rcccc}
 \textrm{zone}&z_{\textrm{maint}}&z_{\textrm{maint}}&z_1&z_2\\
 \textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2\\
