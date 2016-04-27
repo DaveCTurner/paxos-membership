@@ -672,10 +672,9 @@ every element of $Q_1$ intersects every member of $Q_2$: more formally $Q_1
 \varnothing}$.
 
 In the original presentation of the Synod algorithm any (weighted) majority of
-the nodes could be used as a quorum: roughly speaking, $Q^\textrm{I}(p) =
-Q^\textrm{II}(p) = Q_\mathrm{maj}$ was a constant, and any two majorities
-must intersect: $Q_\mathrm{maj} \smile
-Q_\mathrm{maj}$.
+the nodes could be used as a quorum: roughly speaking, \[Q^\textrm{I}(p_1) =
+Q^\textrm{II}(p_2) = \{ q \mid q \text{ is a majority }\}\] was a constant, and
+any two majorities must intersect: $Q_\mathrm{maj} \smile Q_\mathrm{maj}$.
 
 The ability to vary the set of quorums by proposal and by phase is the key
 ingredient in being able to perform jitter-free membership changes. The proof
