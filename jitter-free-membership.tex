@@ -89,7 +89,7 @@
 
 % *** CITATION PACKAGES ***
 %
-%\usepackage{cite}
+\usepackage{cite}
 % cite.sty was written by Donald Arseneau
 % V1.6 and later of IEEEtran pre-defines the format of the cite.sty package
 % \cite{} output to follow that of the IEEE. Loading the cite package will
@@ -462,21 +462,21 @@ The abstract goes here. %TODO
 
 \IEEEPARstart{P}{axos} is an algorithm for achieving consensus on (or
 \textit{choosing}) a sequence $v_0, v_1, \ldots$ of values in a distributed,
-fault-tolerant fashion. It guarantees system-wide \textit{consistency}, in the
-sense that the values chosen are guaranteed to be equal across the whole system
-even in the presence of failures. It typically runs on a cluster of $2f+1$
-nodes, where $f$ is the number of faulty nodes that should be tolerated, and
-consensus is achieved on a value $v_i \in \mathbb V$ when $\ge f+1$ (i.e.  a
-majority) of the nodes agree.  More generally, if $\mathbb A$ is the set of all
-nodes then there is a set $Q \subseteq \mathcal P \mathbb A$ of
-\textit{quorums}, and a value is chosen when all nodes $a \in q$ agree for some
-quorum $q \in Q$. The set of quorums is called the \textit{membership} of the
-cluster.
+fault-tolerant fashion~\cite{part-time-parliament}. It guarantees system-wide
+\textit{consistency}, in the sense that the values chosen are guaranteed to be
+equal across the whole system even in the presence of failures. It typically
+runs on a cluster of $2f+1$ nodes, where $f$ is the number of faulty nodes that
+should be tolerated, and consensus is achieved on a value $v_i \in \mathbb V$
+when $\ge f+1$ (i.e.  a majority) of the nodes agree.  More generally, if
+$\mathbb A$ is the set of all nodes then there is a set $Q \subseteq \mathcal P
+\mathbb A$ of \textit{quorums}, and a value is chosen when all nodes $a \in q$
+agree for some quorum $q \in Q$. The set of quorums is called the
+\textit{membership} of the cluster.
 
 It is normally necessary to be able to add or remove nodes from the cluster,
 which amounts to the ability to change the membership while the cluster is
 running. It is crucial that all participating nodes agree on the cluster
-membership at all times, and Dynamic Paxos\footnote{TODO cite} achieves this by
+membership at all times, and Dynamic Paxos~\cite{cheap-paxos} achieves this by
 tracking the cluster membership with a state machine whose transitions occur
 when particular values in the sequence are chosen.
 
@@ -498,12 +498,12 @@ are chosen.
 
 It is unavoidable that a faulty node or disrupted communications may have an
 impact on the system's performance, but changing its membership is a routine
-task which should have no such effect. Dynamic Paxos\footnote{TODO cite} avoids
-a pipeline stall when a cluster membership change is chosen at instance $i$ by
-postponing the effects of the change until instance $i + \alpha$ for some
-$\alpha > 0$. If $\alpha$ is large enough, there is time to run the new phase I
-before the pipeline stalls.  On the other hand, if $\alpha$ is too large then
-the membership change can take an unreasonably long time to take effect.
+task which should have no such effect. Dynamic Paxos avoids a pipeline stall
+when a cluster membership change is chosen at instance $i$ by postponing the
+effects of the change until instance $i + \alpha$ for some $\alpha > 0$. If
+$\alpha$ is large enough, there is time to run the new phase I before the
+pipeline stalls.  On the other hand, if $\alpha$ is too large then the
+membership change can take an unreasonably long time to take effect.
 
 The value of the delay parameter $\alpha$ may be allowed to vary while the
 system is running, so it is certainly possible to design a mechanism for
@@ -524,9 +524,10 @@ changes.
 
 \section{A Review of Paxos}
 
-The Paxos algorithm was introduced in TODO. It is briefly reviewed here for the
-sake of consistency of notation and to introduce some generalisations which are
-discussed in more detail in section \ref{deviations-from-classic}.
+The Paxos algorithm was introduced in \cite{part-time-parliament}. It is
+briefly reviewed here for the sake of consistency of notation and to introduce
+some generalisations which are discussed in more detail in section
+\ref{deviations-from-classic}.
 
 \subsection{The Synod algorithm}
 
@@ -639,12 +640,12 @@ $v_i(p) = v_i(p')$.
 In the classic presentation of the Synod algorithm, the values of proposals are
 carried along with their identifiers in the messages $\bprom{}{a}{p}{ p',v(p')
 }$, $\prop{}{ p,v(p)}$ and $\acc{}{a}{ p,v(p) }$. Observation O4 in
-TODO\footnote{Cheap Paxos} notes that these values can be replaced in some
-cases by hashes, which is useful if the values themselves are expensive to
-transmit between nodes. The presentation here goes one step further and shows
-that the values can be completely elided from the messages that take part in
-the Synod protocol, allowing considerably more freedom in the implementation of
-the function $v$ without sacrificing consistency.  This works because if the
+\cite{cheap-paxos} notes that these values can be replaced in some cases by
+hashes, which is useful if the values themselves are expensive to transmit
+between nodes. The presentation here goes one step further and shows that the
+values can be completely elided from the messages that take part in the Synod
+protocol, allowing considerably more freedom in the implementation of the
+function $v$ without sacrificing consistency.  This works because if the
 invariants of appendix \ref{synod-safety} are satisfied with a value function
 $v$ then they are satisfied for any value function $v'$ that agrees with $v$ on
 sent proposals, i.e. having $v(p) = v'(p)$ whenever $\prop{}{p}$.  Furthermore
@@ -659,7 +660,7 @@ value of each proposal $p$ has at most one writer, $\owner{p}$, more efficient
 mechanisms are available. For instance, the values of proposed proposals may be
 represented as an insert-only set of pairs $\{ \langle p, v(p) \rangle \mid
 \prop{}{p} \}$ which can be implemented as a simple conflict-free replicated
-data type or CRDT\footnote{TODO cite}.
+data type or CRDT~\cite{crdts}.
 
 \subsection{Per-phase quorums}\label{per-phase-quorums}
 
@@ -1362,20 +1363,13 @@ The authors would like to thank...
 % http://mirror.ctan.org/biblio/bibtex/contrib/doc/
 % The IEEEtran BibTeX style support page is at:
 % http://www.michaelshell.org/tex/ieeetran/bibtex/
-%\bibliographystyle{IEEEtran}
+\bibliographystyle{IEEEtran}
 % argument is your BibTeX string definitions and bibliography database(s)
-%\bibliography{IEEEabrv,../bib/paper}
+\bibliography{jitter-free-membership}
 %
 % <OR> manually copy in the resultant .bbl file
 % set second argument of \begin to the number of references
 % (used to reserve space for the reference number labels box)
-\begin{thebibliography}{1}
-
-\bibitem{IEEEhowto:kopka}
-H.~Kopka and P.~W. Daly, \emph{A Guide to \LaTeX}, 3rd~ed.\hskip 1em plus
-  0.5em minus 0.4em\relax Harlow, England: Addison-Wesley, 1999.
-
-\end{thebibliography}
 
 % biography section
 % 
