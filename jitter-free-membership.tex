@@ -906,8 +906,9 @@ and which is therefore responsible for the value $v_i(p)$ for each $i$.
 \subsubsection{Choosing values} Any node may consider phase II to be complete
 for proposal $p$ at instance $i$, and therefore $\chosen{p}{i}$, if
 \begin{itemize} \item $e(i) \le e(p) + 1$, \item if $i > 0$ then
-$\chosen{i-1}{p'}$ for some $p'$, and \item there is a quorum $q \in Q_{e(i)}$
-such that $\acc{i}{a}{p}$ has been received for every $a \in q$.  \end{itemize}
+$\chosen{i-1}{p'}$ for some $p'$, so that $i < i_\mathrm{max}$, and \item there
+is a quorum $q \in Q_{e(i)}$ such that $\acc{i}{a}{p}$ has been received for
+every $a \in q$.  \end{itemize}
 
 
 
