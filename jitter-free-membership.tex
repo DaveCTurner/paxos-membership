@@ -792,7 +792,7 @@ that has a casting vote. If $\owner{p} \ne \owner{p'}$ then this process is
 known as an \textit{abdication}: the original leader $\owner{p}$ hands over the
 leadership of the cluster to $\owner{p'}$ at instance $i_c$.  As the current
 leader is responsible for proposing values, the system may need to take action
-to reconfigure its clients.
+to redirect its clients to the new leader in order to fully avoid jitter.
 
 \subsection{Examples}\label{types-of-membership-change}
 
