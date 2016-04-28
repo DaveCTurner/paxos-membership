@@ -753,10 +753,12 @@ instances in the next epoch too.  However it cannot complete phase II for any
 further epochs, so once it has entered the epoch $e(i_0) + 1$ it should prepare
 for the next membership change by running a new phase I for a new proposal $p'$
 having $e(p') = e(i_0) + 1$. Importantly, at this point this new phase I is not
-on the critical path of the phase II of any future instances, so cannot cause
-jitter if it is delayed. Typically, as with Cheap Paxos, this new phase I is
-run on a subset of all the nodes while the remaining nodes continue to run
-phase II on proposal $p$.
+on the critical path of the phase II of any future instances as long as no
+further membership change is yet proposed, so cannot cause jitter if it is
+delayed. Once the new phase I is complete, another membership change may be
+performed in the same way. Typically, as with Cheap Paxos\cite{cheap-paxos}
+this new phase I is run on a subset of all the nodes while the remaining nodes
+continue to run phase II on proposal $p$.
 
 \subsection{Examples}\label{types-of-membership-change}
 
@@ -769,7 +771,7 @@ the condition that $Q_{e-1} \frown Q_e$ ensures that the membership change from
 $Q_{e-1}$ to $Q_e$ is sufficiently small that phase I need not re-run when
 moving from epoch $e-1$ to epoch $e$.  For instance, if $Q_{e-1} \frown
 Q_{e-1}$ then the trivial membership change, having $Q_e = Q_{e-1}$, certainly
-satisfies $Q_e \frown Q_{e-1}$ and $Q_e \frown Q_e$.
+satisfies $Q_{e-1} \frown Q_e \frown Q_e$.
 
 For a less trivial example, let \[\maj{s} = \{ q \subseteq s \mid 2 |q| > |s|
 \}\] be the set of all majority subsets of a finite set $s \subseteq \mathbb
