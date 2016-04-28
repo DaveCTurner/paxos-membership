@@ -723,12 +723,12 @@ are fixed in advance and not chosen by Paxos.
 
 Note that in order to check whether phase I is complete for a proposal $p$ at
 an instance $i$ a node must check whether it has received promises from a
-quorum of nodes $q \in Q_{e(p)}$, for which it needs to know $Q_{e(p)}$.  Nodes
-should therefore not emit $\prep{p}$ messages for proposals for which
-$Q_{e(p)}$ is not known. The node must also check that $e(p) \le e(i)$; if
-$e(i)$ is not known then $i_\mathrm{max} < i$, but $e$ is an increasing
-function so $e(i_\mathrm{max}) \le e(i)$ and it is therefore sufficient to
-check that $e(p) \le e(i_\mathrm{max})$.
+quorum of nodes $q \in Q_{e(p)}$, for which it needs to know $Q_{e(p)}$. This
+can be achieved by ensuring that nodes do not emit $\prep{p}$ messages for
+proposals for which $Q_{e(p)}$ is not known. The node must also check that
+$e(p) \le e(i)$; if $e(i)$ is not known then $i_\mathrm{max} < i$, but $e$ is a
+nondecreasing function so $e(i_\mathrm{max}) \le e(i)$ and it is therefore
+sufficient to check that $e(p) \le e(i_\mathrm{max})$.
 
 Similarly, in order to check whether phase II is complete for a proposal $p$ at
 an instance $i$ a node must check whether it has received acceptances from a
