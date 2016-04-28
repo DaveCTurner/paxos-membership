@@ -869,26 +869,47 @@ holds.
 Theorem \ref{weights-nearly-equal} is reminiscent of the \textit{amoeba}
 analogy described in \cite{cheap-paxos}.
 
-\subsection{Preserving the Paxos invariants}
+\subsection{Preserving invariants}
 
-If no messages have been sent then the invariants shown above certainly hold,
-so as long as each message that each node sends preserves the invariants then
-consistency is maintained.
+In order to ensure consistency, a running Paxos cluster must satisfy all the
+invariants listed in appendix \ref{paxos-invariants} at all times. If no
+messages have been sent then the invariants all certainly hold, so as long as
+each message that each node sends preserves them then they will always hold by
+induction. Notice that all the invariants limit which messages may be sent but
+do not insist that any messages are sent at all: this section ignores liveness
+and focuses only on safety.
 
-Any node may emit $\prep{p}$.
+\subsubsection{Prepare messages} Since $\prep{p}$ is not mentioned in appendix \ref{paxos-invariants} any node
+may send a $\prep{p}$ message without affecting consistency.
 
-The interplay between promises and acceptances is reasonably straightforward:
-the node $a$ may emit promises $\fprom{i}{a}{p}$ etc. and acceptances
-$\acc{i}{a}{p}$ where they do not conflict with previously-sent messages. In
-more detail, it may emit $\mprom{i}{a}{p}$ if it has previously sent no
-$\acc{i'}{a}{p'}$ for any $p'$ and any $i' \le i$.  It may emit
-$\fprom{i}{a}{p}$ if it has previously sent no $\acc{i}{a}{p'}$ for any $p'$.
-It may emit $\bprom{i}{a}{p}{p'}$ if $p' \prec p$, $\acc{i}{a}{p'}$ and $p'$ is
-the greatest such proposal. It may emit $\acc{i}{a}{p}$ as long as
-$\prop{i}{p}$ and it does not violate any previously-made promises, in the
-sense that whenever \begin{itemize} \item $\mprom{i'}{a}{p'}$ for any $i' \le
-i$, or \item $\fprom{i}{a}{p'}$, or \item $\bprom{i}{a}{p'}{p''}$\end{itemize}
-it is the case that $p' \preceq p$.
+\subsubsection{Promises and acceptances} The interplay
+between promises and acceptances is reasonably straightforward: the node $a$
+may emit promises $\fprom{i}{a}{p}$ etc. and acceptances $\acc{i}{a}{p}$ where
+they do not conflict with previously-sent messages. In more detail, it may emit
+$\mprom{i}{a}{p}$ if it has previously sent no $\acc{i'}{a}{p'}$ for any $p'$
+and any $i' \le i$.  It may emit $\fprom{i}{a}{p}$ if it has previously sent no
+$\acc{i}{a}{p'}$ for any $p'$.  It may emit $\bprom{i}{a}{p}{p'}$ if $p' \prec
+p$, $\acc{i}{a}{p'}$ and $p'$ is the greatest such proposal. It may emit
+$\acc{i}{a}{p}$ as long as $\prop{i}{p}$ and it does not violate any
+previously-made promises, in the sense that whenever \begin{itemize} \item
+$\mprom{i'}{a}{p'}$ for any $i' \le i$, or \item $\fprom{i}{a}{p'}$, or \item
+$\bprom{i}{a}{p'}{p''}$\end{itemize} it is the case that $p' \preceq p$.
+
+\subsubsection{Choosing values} Any node may consider phase II to be complete
+for proposal $p$ at instance $i$, and therefore $\chosen{p}{i}$, if
+\begin{itemize} \item $e(i) \le e(p) + 1$, \item if $i > 0$ then
+$\chosen{i-1}{p'}$ for some $p'$, and \item there is a quorum $q \in Q_{e(i)}$
+such that $\acc{i}{a}{p}$ has been received for every $a \in q$.  \end{itemize}
+
+\subsubsection{Proposing values}
+It remains to when nodes may send $\prop{p}{i}$ messages. From the
+discussion in \ref{value-function} above the value $v_i(p)$ of proposal $p$ in
+instance $i$ may be changed without affecting any invariants as long as
+$\neg\prop{p}{i}$. So as to ensure this, each proposal $p$ has a unique node
+$\owner{p}$ that may send out $\prop{p}{i}$ and which is therefore responsible
+for the value $v_i(p)$ for each $i$.
+
+
 
 TODO expand this next bit, it's very complicated!
 
@@ -902,15 +923,6 @@ proposal $p$ in instance $i$. If it has not already emitted $\prop{p}{i}$ and
 any of the promises from nodes in $q$ are of the form $\bprom{i}{a}{p}{p'}$
 then it must first set \[v_i(p) = v_i\bigl(\mathrm{max} \{p' \mid
 \bprom{i}{a}{p}{p'} \textrm{ received}, a \in q \}\bigr).\]
-
-Finally any node may consider phase II to be complete for proposal $p$ at instance
-$i$, and therefore $\chosen{p}{i}$, if
-\begin{itemize}
-\item $e(i) \le e(p) + 1$,
-\item if $i > 0$ then $\chosen{i-1}{p'}$ for some $p'$, and
-\item there is a quorum $q \in
-Q_{e(i)}$ such that $\acc{i}{a}{p}$ has been received from every $a \in q$.
-\end{itemize}
 
 
 \section{Discussion}\label{discussion}
@@ -1237,7 +1249,7 @@ Therefore by lemma \ref{synod-lemma} it follows that $v(p_1) = v(p_2)$ as
 required.  \end{proof}
 
 
-\section{Consistency of the Paxos algorithm}
+\section{Consistency of the Paxos algorithm}\label{paxos-invariants}
 
 The consistency property of the Paxos algorithm is derived from the following
 invariants.
