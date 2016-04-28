@@ -559,11 +559,10 @@ $\neg \prop{}{p}$ indicates that the message $\prop{}{p}$ has not been sent.
 Because messages may be delayed, reordered or dropped, a node can only know a
 message has not been sent if it can prove, based solely on the messages it
 alone has sent and received, that no other node has sent it. This works in
-practice because\footnote{TODO nonsequitur} the messages $\fprom{}{a}{p}$,
-$\bprom{}{a}{p}{p'}$ and $\acc{}{a}{p}$ may only originate from the node $a$,
-and there is a function $\mathrm{owner} : \mathbb P \to \mathbb A$ assigning an
-owner to each proposal such that the message $\prop{}{p}$ may only originate
-from node $\owner{p}$.
+practice because the messages $\fprom{}{a}{p}$, $\bprom{}{a}{p}{p'}$ and
+$\acc{}{a}{p}$ may only originate from the node $a$, and there is a function
+$\mathrm{owner} : \mathbb P \to \mathbb A$ assigning an owner to each proposal
+such that the message $\prop{}{p}$ may only originate from node $\owner{p}$.
 
 It is convenient to add another predicate $\chosen{}{p}$ which indicates that
 the proposal $p$ has been chosen and hence phase II is complete. There is also
@@ -593,12 +592,12 @@ hashes, which is useful if the values themselves are expensive to transmit
 between nodes. This can be taken one step further and the values can be
 completely elided from the messages that take part in the Synod protocol,
 allowing considerably more freedom in the implementation of the function $v$
-without sacrificing consistency.  This works because if the invariants of
-appendix \ref{synod-safety} are satisfied with a value function $v$ then they
-are satisfied for any value function $v'$ that agrees with $v$ on sent
-proposals, i.e. having $v(p) = v'(p)$ whenever $\prop{}{p}$.  Furthermore only
-$\owner{p}$ may propose $p$, so if it has not yet proposed a value for $p$ it
-can, in effect, freely modify $v(p)$ as desired.
+without sacrificing consistency.  This works because\footnote{TODO nonsequitur}
+if the invariants of appendix \ref{synod-safety} are satisfied with a value
+function $v$ then they are satisfied for any value function $v'$ that agrees
+with $v$ on sent proposals, i.e. having $v(p) = v'(p)$ whenever $\prop{}{p}$.
+Furthermore only $\owner{p}$ may propose $p$, so if it has not yet proposed a
+value for $p$ it can, in effect, freely modify $v(p)$ as desired.
 
 To ensure the system satisfies the desired liveness properties, the
 implementation of $v$ must be resilient to the same failure modes as the rest
