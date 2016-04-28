@@ -879,21 +879,29 @@ induction. Notice that all the invariants limit which messages may be sent but
 do not insist that any messages are sent at all: this section ignores liveness
 and focuses only on safety.
 
-\subsubsection{Prepare messages} Since $\prep{p}$ is not mentioned in appendix \ref{paxos-invariants} any node
-may send a $\prep{p}$ message without affecting consistency.
+\subsubsection{Prepare messages} Since $\prep{p}$ is not mentioned in appendix
+\ref{paxos-invariants} any node may send a $\prep{p}$ message without affecting
+consistency.
 
-\subsubsection{Promises and acceptances} The interplay
-between promises and acceptances is reasonably straightforward: the node $a$
-may emit promises $\fprom{i}{a}{p}$ etc. and acceptances $\acc{i}{a}{p}$ where
-they do not conflict with previously-sent messages. In more detail, it may emit
-$\mprom{i}{a}{p}$ if it has previously sent no $\acc{i'}{a}{p'}$ for any $p'$
-and any $i' \le i$.  It may emit $\fprom{i}{a}{p}$ if it has previously sent no
-$\acc{i}{a}{p'}$ for any $p'$.  It may emit $\bprom{i}{a}{p}{p'}$ if $p' \prec
-p$, $\acc{i}{a}{p'}$ and $p'$ is the greatest such proposal. It may emit
-$\acc{i}{a}{p}$ as long as $\prop{i}{p}$ and it does not violate any
-previously-made promises, in the sense that whenever \begin{itemize} \item
-$\mprom{i'}{a}{p'}$ for any $i' \le i$, or \item $\fprom{i}{a}{p'}$, or \item
-$\bprom{i}{a}{p'}{p''}$\end{itemize} it is the case that $p' \preceq p$.
+\subsubsection{Promises and acceptances} The node $a$ may emit promises
+$\fprom{i}{a}{p}$ etc. and acceptances $\acc{i}{a}{p}$ where they do not
+conflict with previously-sent messages. In more detail: \begin{itemize} \item
+It may emit $\mprom{i}{a}{p}$ if it has previously sent no $\acc{i'}{a}{p'}$
+for any $p'$ and any $i' \le i$. \item It may emit $\fprom{i}{a}{p}$ if it has
+previously sent no $\acc{i}{a}{p'}$ for any $p'$. \item It may emit
+$\bprom{i}{a}{p}{p'}$ if $\acc{i}{a}{p'}$, $p' \prec p$ and $p'$ is the
+greatest such proposal. \item It may emit $\acc{i}{a}{p}$ as long as
+$\prop{i}{p}$ and it does not violate any previously-made promises, in the
+sense that whenever \begin{itemize} \item $\mprom{i'}{a}{p'}$ for any $i' \le
+i$, or \item $\fprom{i}{a}{p'}$, or \item $\bprom{i}{a}{p'}{p''}$\end{itemize}
+it is the case that $p' \preceq p$. \end{itemize}
+
+\subsubsection{Proposing values} From the discussion in \ref{value-function}
+above the value $v_i(p)$ of proposal $p$ in instance $i$ may be changed without
+affecting any invariants as long as $\neg\prop{p}{i}$. So as to ensure this,
+each proposal $p$ has a unique node $\owner{p}$ that may send out $\prop{p}{i}$
+and which is therefore responsible for the value $v_i(p)$ for each $i$.
+
 
 \subsubsection{Choosing values} Any node may consider phase II to be complete
 for proposal $p$ at instance $i$, and therefore $\chosen{p}{i}$, if
@@ -901,13 +909,6 @@ for proposal $p$ at instance $i$, and therefore $\chosen{p}{i}$, if
 $\chosen{i-1}{p'}$ for some $p'$, and \item there is a quorum $q \in Q_{e(i)}$
 such that $\acc{i}{a}{p}$ has been received for every $a \in q$.  \end{itemize}
 
-\subsubsection{Proposing values}
-It remains to when nodes may send $\prop{p}{i}$ messages. From the
-discussion in \ref{value-function} above the value $v_i(p)$ of proposal $p$ in
-instance $i$ may be changed without affecting any invariants as long as
-$\neg\prop{p}{i}$. So as to ensure this, each proposal $p$ has a unique node
-$\owner{p}$ that may send out $\prop{p}{i}$ and which is therefore responsible
-for the value $v_i(p)$ for each $i$.
 
 
 
