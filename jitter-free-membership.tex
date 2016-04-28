@@ -945,6 +945,45 @@ of every node by a constant factor, and every other step changes the weight of
 a single node by one, so this satisfies $M(w_{e+k}) \frown M(w_{e+k+1})$ for $0
 \le k \le 6$ and hence can be performed without jitter.
 
+\section{Preserving the Paxos invariants}
+
+If no messages have been sent then the invariants shown above certainly hold,
+so as long as each message that each node sends preserves the invariants then
+consistency is maintained.
+
+The interplay between promises and acceptances is reasonably straightforward:
+the node $a$ may emit promises $\fprom{i}{a}{p}$ etc. and acceptances
+$\acc{i}{a}{p}$ where they do not conflict with previously-sent messages. In
+more detail, it may emit $\mprom{i}{a}{p}$ if it has previously sent no
+$\acc{i'}{a}{p'}$ for any $p'$ and any $i' \le i$.  It may emit
+$\fprom{i}{a}{p}$ if it has previously sent no $\acc{i}{a}{p'}$ for any $p'$.
+It may emit $\bprom{i}{a}{p}{p'}$ if $p' \prec p$, $\acc{i}{a}{p'}$ and $p'$ is
+the greatest such proposal. It may emit $\acc{i}{a}{p}$ as long as
+$\prop{i}{p}$ and it does not violate any previously-made promises, in the
+sense that whenever \begin{itemize} \item $\mprom{i'}{a}{p'}$ for any $i' \le
+i$, or \item $\fprom{i}{a}{p'}$, or \item $\bprom{i}{a}{p'}{p''}$\end{itemize}
+it is the case that $p' \preceq p$.
+
+The node $\owner{p}$ may change the value $v_i(p)$ as long as it has not
+already emitted $\prop{p}{i}$, and may consider phase I to be complete for
+proposal $p$ at instance $i$, and may therefore emit $\prop{p}{i}$, there is an
+earlier instance ${i' < i}$ and proposal $p'$ such that $\chosen{i'}{p'}$ and
+$e(p) \le e(i')$, and there is a quorum $q \in Q_{e(p)}$ such that for every $a
+\in q$ it has previously received a promise from node $a$ for proposal $p$ in
+instance $i$. If it has not already emitted $\prop{p}{i}$, and any of the
+promises from nodes in $q$ are of the form $\bprom{i}{a}{p}{p'}$ then it must
+first set \[v_i(p) = v_i\bigl(\mathrm{max} \{p' \mid \bprom{i}{a}{p}{p'}
+\textrm{ received}, a \in q \}\bigr).\]
+
+Finally any node may consider phase II to be complete for proposal $p$ at instance
+$i$, and therefore $\chosen{p}{i}$, if
+\begin{itemize}
+\item $e(i) \le e(p) + 1$,
+\item if $i > 0$ then $\chosen{i-1}{p'}$ for some $p'$, and
+\item there is a quorum $q \in
+Q_{e(i)}$ such that $\acc{i}{a}{p}$ has been received from every $a \in q$.
+\end{itemize}
+
 
 
 % An example of a floating figure using the graphicx package.
@@ -1228,45 +1267,6 @@ Synod's invariant \ref{synod-quorums} follows from lemma
 Q_{e(i)}$ and the remaining invariants are simple to show so by theorem
 \ref{synod-safety-theorem} it follows that $v_i(p_1) = v_i(p_2)$ as required.
 \end{proof}
-
-\section{Preserving the Paxos invariants}
-
-If no messages have been sent then the invariants shown above certainly hold,
-so as long as each message that each node sends preserves the invariants then
-consistency is maintained.
-
-The interplay between promises and acceptances is reasonably straightforward:
-the node $a$ may emit promises $\fprom{i}{a}{p}$ etc. and acceptances
-$\acc{i}{a}{p}$ where they do not conflict with previously-sent messages. In
-more detail, it may emit $\mprom{i}{a}{p}$ if it has previously sent no
-$\acc{i'}{a}{p'}$ for any $p'$ and any $i' \le i$.  It may emit
-$\fprom{i}{a}{p}$ if it has previously sent no $\acc{i}{a}{p'}$ for any $p'$.
-It may emit $\bprom{i}{a}{p}{p'}$ if $p' \prec p$, $\acc{i}{a}{p'}$ and $p'$ is
-the greatest such proposal. It may emit $\acc{i}{a}{p}$ as long as
-$\prop{i}{p}$ and it does not violate any previously-made promises, in the
-sense that whenever \begin{itemize} \item $\mprom{i'}{a}{p'}$ for any $i' \le
-i$, or \item $\fprom{i}{a}{p'}$, or \item $\bprom{i}{a}{p'}{p''}$\end{itemize}
-it is the case that $p' \preceq p$.
-
-The node $\owner{p}$ may change the value $v_i(p)$ as long as it has not
-already emitted $\prop{p}{i}$, and may consider phase I to be complete for
-proposal $p$ at instance $i$, and may therefore emit $\prop{p}{i}$, there is an
-earlier instance ${i' < i}$ and proposal $p'$ such that $\chosen{i'}{p'}$ and
-$e(p) \le e(i')$, and there is a quorum $q \in Q_{e(p)}$ such that for every $a
-\in q$ it has previously received a promise from node $a$ for proposal $p$ in
-instance $i$. If it has not already emitted $\prop{p}{i}$, and any of the
-promises from nodes in $q$ are of the form $\bprom{i}{a}{p}{p'}$ then it must
-first set \[v_i(p) = v_i\bigl(\mathrm{max} \{p' \mid \bprom{i}{a}{p}{p'}
-\textrm{ received}, a \in q \}\bigr).\]
-
-Finally any node may consider phase II to be complete for proposal $p$ at instance
-$i$, and therefore $\chosen{p}{i}$, if
-\begin{itemize}
-\item $e(i) \le e(p) + 1$,
-\item if $i > 0$ then $\chosen{i-1}{p'}$ for some $p'$, and
-\item there is a quorum $q \in
-Q_{e(i)}$ such that $\acc{i}{a}{p}$ has been received from every $a \in q$.
-\end{itemize}
 
 
 \section{Consecutive epochs using weight-based membership}
