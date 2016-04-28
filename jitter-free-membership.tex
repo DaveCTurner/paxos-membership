@@ -741,7 +741,13 @@ $Q_{e(i)}$. This will be known if the node has chosen the previous instance,
 because if $\chosen{i-1}{p'}$ then $i < i_\mathrm{max}$ and hence ${e(i) \le
 e(i_\mathrm{max}) \le e_\mathrm{max}}$ as required.
 
-\subsection{Jitter-freedom}
+\subsection{Jitter-free membership changes}
+
+To see that in normal operation this allows for a membership change without
+jitter, let $i_0$ be a fixed instance and $p$ a proposal with $e(i_0) = e(p)$,
+and suppose that the node $\owner{p}$ has received a quorum of promises
+$q^\textrm{I} \in Q_{e(p)}$ for proposal $p$ for all instances $i \ge i_0$.
+
 
 TODO do this the same, but better
 
