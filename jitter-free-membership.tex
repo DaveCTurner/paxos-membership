@@ -743,32 +743,52 @@ e(i_\mathrm{max}) \le e_\mathrm{max}}$ as required.
 
 \subsection{Jitter-free membership changes}
 
-To see that in normal operation this allows for a membership change without
-jitter, let $i_0$ be a fixed instance and $p$ a proposal with $e(i_0) = e(p)$,
-and suppose that the node $\owner{p}$ has received a quorum of promises
-$q^\textrm{I} \in Q_{e(p)}$ for proposal $p$ for all instances $i \ge i_0$.
+In normal running messages between nodes are delivered reasonably reliably and
+there is an instance $i_0$ and a proposal $p$ with ${e(p) = e(i_0) =
+e(i_\mathrm{max}) = e_\mathrm{max}}$ and the node $\owner{p}$ has received a
+quorum of promises $q^\textrm{I} \in Q_{e(p)}$ for proposal $p$ for all
+instances $i \ge i_0$. In this state, $\owner{p}$ may emit $\prop{i}{p}$ for
+any $i \ge i_0$, since $e(p) = e(i_0) \le e(i)$ as $e$ is nondecreasing.
+Furthermore, if $e(i) \le e(p) + 1$, all instances below $i$ are chosen and
+acceptances $\acc{i}{a}{p}$ have been received from a quorum $q^\textrm{II} \in
+Q_{e(i)}$ then $\chosen{i}{p}$.
 
+When in this state, if an operator wishes to change the cluster membership to
+$Q'$ where $Q' \frown Q_{e(p)}$ they must first arrange to append $Q'$ to the
+sequence of memberships, setting $Q_{e(p)+1} = Q'$ and $e_\mathrm{max} = e(p) +
+1$, then pick a future instance $i_c > i_\mathrm{max}$ at which the change
+should take effect and append values to the sequence of epochs to set $e(i) =
+e(i_0)$ for $i_0 \le i < i_c$ and $e(i_c) = e(i_0) + 1$.  Since $e(i_c) =
+e(i_0) + 1 \le e(p) + 1$, instance $i_c$ and any other instances in the same
+epoch may be chosen even though phase I has not yet run for a proposal in this
+epoch. As long as $e(i_\mathrm{max})$ is not changed again, this means there is
+no limit on how many instances can be chosen without waiting for another phase
+I to run, which means the pipeline cannot stall.
 
-TODO do this the same, but better
+At this point, the system is no longer in normal running as defined above
+because $e(p) = e_\mathrm{max} - 1$. In order to get back into a normal state,
+a proposal $p'$ should be chosen with $e(p') = e(p) + 1$ and $\owner{p} =
+\owner{p'}$, and $\owner{p}$ should try and receive a quorum of promises for
+$p'$. It can do this by dividing the cluster into two quorums in such a way
+that it has a \textit{casting vote} between the two quorums: it finds $q \in
+Q_{e(p)}$ and $q' \in Q_{e(p)+1}$ having $q \cap q' = \{\owner{p}\}$ and
+broadcasts $\prep{p'}$ to all nodes in $q'$ except itself. While it is waiting
+for the promises to arrive in response to this broadcast it continues to make
+progress choosing instances using the quorum $q \in Q_{e(p)}$.  Eventually when
+promises have arrived from every node in $q'$ except itself, it may make a
+promise to itself, immediately complete phase I for proposal $p'$, and start
+broadcasting proposals $\prop{i}{p'}$. This restores the system to normal
+running.
 
-To see that this allows for membership changes without requiring a new phase I
-to run, let $i_0$ be a fixed instance and suppose that the node $\owner{p}$ has
-received a quorum of promises $q^\textrm{I} \in Q_{e(p)}$ for proposal $p$ for
-all instances $i \ge i_0$ and suppose that $e(i_0) = e(p)$. The node can
-therefore send $\prop{i}{p}$ for any $i \ge i_0$ and will consider phase II to
-be complete at instance $i$ when it receives acceptances from a quorum
-$q^\textrm{II} \in Q_{e(i)}$ as long as $e(i) \le e(p) + 1$. Thus it can
-complete phase II for all instances in the same epoch as $i_0$ and also for all
-instances in the next epoch too.  However it cannot complete phase II for any
-further epochs, so once it has entered the epoch $e(i_0) + 1$ it should prepare
-for the next membership change by running a new phase I for a new proposal $p'$
-having $e(p') = e(i_0) + 1$. Importantly, at this point this new phase I is not
-on the critical path of the phase II of any future instances as long as no
-further membership change is yet proposed, so cannot cause jitter if it is
-delayed. Once the new phase I is complete, another membership change may be
-performed in the same way. Typically, as with Cheap Paxos\cite{cheap-paxos}
-this new phase I is run on a subset of all the nodes while the remaining nodes
-continue to run phase II on proposal $p$.
+Notice that this process requires that $e(i_\mathrm{max})$ increases by at most
+$1$ before the new phase I has finished running. If $e(i_\mathrm{max})$ were
+increased by a larger amount then this would put aa limit on how many instances
+can run in the old epoch, and if the limit were reached then progress would
+have to stop until the corresponding phase I was completed.
+
+Notice also that this process requires $\owner{p}$ to be able to divide the
+cluster so that it has a casting vote. If this is not possible, it may be able
+to \textit{abdicate} to another node that does have a casting vote.
 
 \subsection{Examples}\label{types-of-membership-change}
 
