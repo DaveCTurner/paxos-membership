@@ -680,8 +680,7 @@ ingredient in being able to perform jitter-free membership changes. The proof
 of theorem \ref{synod-safety-theorem} in appendix \ref{synod-safety} is a
 generalisation of the original one to demonstrate that consistency is preserved
 in the Synod algorithm even under the weaker assumption that $Q^\textrm{I}(p_1)
-\frown Q^\textrm{II}(p_2)$ for all proposals $p_1 \succ p_2$ having
-$\prop{}{p_1}$ and $\chosen{}{p_2}$.
+\frown Q^\textrm{II}(p_2)$ only when $\chosen{}{p_2}$ and $p_1 \succ p_2$.
 
 \section{Membership changes}\label{membership-changes}
 
@@ -784,20 +783,23 @@ $s_4$ are sufficiently similar to be consecutive memberships, but those of
 $s_3$ and $s_5$ are not.
 
 The intuition that $Q_{e-1} \frown Q_e$ captures that $Q_{e-1}$ and $Q_e$ are
-similar breaks down if either is empty, because $\varnothing \frown Q$
-vacuously for all memberships $Q$. Clearly if there is an instance $i$ such
-that $Q_{e(i)} = \varnothing$ then no value can ever be chosen for $i$, but
-epochs may be skipped by letting $e(i) = e(i-1) + 2$ at some instance $i$.
-This recovers the ability to perform arbitrary membership changes as in Dynamic
-Paxos: if the system is currently using membership $Q_{e(i)}$ and an operator
-wishes to change to an unrelated membership $Q'$ (where necessarily $Q' \frown
-Q'$) then they can set $Q_{e(i)+1} = \varnothing$ and $Q_{e(i)+2} = Q'$, which
-satisfies that \[Q_{e(i)} \frown Q_{e(i) + 1} \frown Q_{e(i)+1} \frown Q_{e(i)
-+ 2} \frown Q_{e(i) + 2}\] as desired. However in this situation phase I must
-re-run before the new membership can be used because an epoch is skipped, which
-reintroduces the risk of jitter. As in Dynamic Paxos, to mitigate this risk the
-operator chooses an $\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and $e(j) =
-e(i)$ for $i < j \le i + \alpha$, effectively delaying the membership change.
+similar breaks down if either is empty because $\varnothing \frown Q$ vacuously
+for all memberships $Q$. Clearly if there is an instance $j$ such that
+$Q_{e(j)} = \varnothing$ then no value can ever be chosen for $j$, but an epoch
+may be skipped at instance $i$ by letting $e(i) = e(i-1) + 2$.  This recovers
+the ability to perform arbitrary membership changes in a single step as in
+Dynamic Paxos: if the system is currently using membership $Q_{e(i)}$ and an
+operator wishes to change to an unrelated membership $Q'$ (where necessarily
+$Q' \frown Q'$) then they can set $Q_{e(i)+1} = \varnothing$ and $Q_{e(i)+2} =
+Q'$, which satisfies that \[Q_{e(i)} \frown Q_{e(i) + 1} \frown Q_{e(i)+1}
+\frown Q_{e(i) + 2} \frown Q_{e(i) + 2}\] as desired. However, re-running phase
+I can only be avoided if the epoch increases by $1$ and in this situation the
+epoch increases by $2$, so the new phase I must be complete before any new
+phase II instances can be started which reintroduces the risk of jitter.  As in
+Dynamic Paxos, to mitigate this risk the operator chooses an $\alpha > 0$ and
+sets $e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i + \alpha$,
+effectively delaying the membership change for $\alpha$ instances, in the hope
+that this is long enough to have completed the new phase I.
 
 \subsection{Weight-based memberships}
 \label{weight-based-memberships}
@@ -811,17 +813,19 @@ Corollary \ref{weights-equal} shows that $M(w) \frown M(w)$ for any weight
 function $w$.
 
 A sequence $w_0, w_1, \ldots$ of weight functions can be used to define the
-sequence of memberships used by a cluster, which must satisfy $M(w_{e-1})
-\frown M(w_e)$ for all $e$.  There are three simple ways to ensure this:
+sequence of memberships $M(w_0), M(w_1), \ldots$ used by a cluster, which must
+satisfy $M(w_{e-1}) \frown M(w_e)$ for all $e$.  There are three simple ways to
+ensure this:
 
 \begin{enumerate}
 
 \item If $w_{e-1}$ and $w_e$ differ by a constant factor, in the sense that
-there are positive integers $m$ and $n$ such that $m w_{e-1}(a) = n w_e(a)$
-for all $a$, then ${M(w_{e-1}) = M(w_e)}$ and hence the property holds.
+there are positive integers $m$ and $n$ such that $m w_{e-1}(a) = n w_e(a)$ for
+all $a$, then clearly ${M(w_{e-1}) = M(w_e)}$ and hence the property holds.
 
-\item By theorem \ref{weights-nearly-equal} if $w_{e-1}$ and $w_e$
-differ by at most $1$ at at most one node then the property holds.
+\item By theorem \ref{weights-nearly-equal} if $w_{e-1}$ and $w_e$ are equal
+except perhaps at a single node at which they differ by $1$ then the property
+holds.
 
 \item Finally, if $w_{e-1}$ is weightless then the property holds vacuously.
 
@@ -876,8 +880,9 @@ w_e&1&1&1&1\\
 w_{e+1}&0&1&1&1\\
 w_{e+2}&1&1&1&1\\
 \end{array}\]
-Note that this sequence satisfies the consecutive epoch intersection property
-since each step changes the weight of a single node by $1$.
+Since each step changes the weight of a single node by $1$ this sequence
+satisfies $M(w_e) \frown M(w_{e+1}) \frown M(w_{e+2})$ and hence can be
+performed without jitter.
 
 In many situations it is feasible simply to replace a node $a_{\textrm{old}}$
 with a new node $a_{\textrm{new}}$ rather than to upgrade it in-situ. If
@@ -890,6 +895,8 @@ w_e&1&0&1&1\\
 w_{e+1}&1&1&1&1\\
 w_{e+2}&0&1&1&1\\
 \end{array}\]
+Again, each step changes the weight of a single node by $1$ so this sequence
+satisfies $M(w_e) \frown M(w_{e+1}) \frown M(w_{e+2})$.
 
 Assuming that node failures are independent, the probability of a cluster-wide
 failure can appear to be extremely small. However, in a real-world system node
@@ -912,14 +919,14 @@ in a different zone: if any two of them are in the same zone then system will
 fail if there is a zone-wide failure in epoch $w_{e+1}$.  In many operating
 environments it may be expensive or complicated to arrange for four independent
 zones\footnote{For instance, at time of writing, only one Amazon Web Services
-region (\texttt{us-east-1}) has four independent zones, whereas four of them
-have three: \texttt{ap-southeast-2}, \texttt{eu-west-1}, \texttt{sa-east-1} and
-\texttt{us-west-2}. Similarly, only one Google Cloud Platform region
+  region (\texttt{us-east-1}) has four independent zones, whereas four of them
+  have three: \texttt{ap-southeast-2}, \texttt{eu-west-1}, \texttt{sa-east-1}
+  and \texttt{us-west-2}. Similarly, only one Google Cloud Platform region
 (\texttt{us-central1}) has four zones and all the others have three zones.},
 particularly if the fourth zone is only required to ensure consistency in
 relatively rare periods of maintenance.  Fortunately, it is possible to safely
-replace a node within a single zone $z_{\textrm{maint}}$ using only three zones
-and the following sequence of operations.
+replace a node within a single zone $z_{\textrm{maint}}$ using four nodes but
+only three zones with the following sequence of operations.
 \[\begin{array}{rcccc}
 \textrm{zone}&z_{\textrm{maint}}&z_{\textrm{maint}}&z_1&z_2\\
 \textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2\\
@@ -932,11 +939,11 @@ w_{e+5}&0&2&2&2\\
 w_{e+6}&0&1&1&1\\
 \end{array}\]
 At every stage it is clear that every zone contains less than half of the total
-weight, so the system is never at risk. Note that the first and last steps rely
-on the ability to simultaneously change the weights of every node by a constant
-factor, and every other step changes the weight of a single node by one, so
-this satisfies the consecutive epoch intersection property and can be performed
-without jitter.
+weight, so the system is never at risk of a single-zone failure. Note that the
+first and last steps rely on the ability to simultaneously change the weights
+of every node by a constant factor, and every other step changes the weight of
+a single node by one, so this satisfies $M(w_{e+k}) \frown M(w_{e+k+1})$ for $0
+\le k \le 6$ and hence can be performed without jitter.
 
 
 
@@ -1038,27 +1045,16 @@ without jitter.
 
 
 \section{Conclusion}
-The conclusion goes here.
 
-TODO note that $\mathbb P = \mathbb N \times \mathbb N \times \mathbb A$
-with the lexicographic order.
+TODO note that $\mathbb P$ can be implemented as $\mathbb N \times \mathbb N
+\times \mathbb A$ with the lexicographic order where $e(\langle e, n, a
+\rangle) = e$ and $\owner{\langle e, n, a\rangle} = a$.
 
-
-
-
-% if have a single appendix:
-%\appendix[Proof of the Zonklar Equations]
-% or
-%\appendix  % for no appendix heading
-% do not use \section anymore after \appendix, only \section*
-% is possibly needed
-
-% use appendices with more than one appendix
-% then use \section to start each appendix
-% you must declare a \section before using any
-% \subsection or using \label (\appendices by itself
-% starts a section numbered zero.)
-%
+If using term-based leadership elections, it can be implemented as $\mathbb N
+\times \mathbb N \times \mathbb N \times \mathbb A$ with the lexicographic
+order where $e(\langle e, t, n, a \rangle) = e$ and $\owner{\langle e, t, n,
+a\rangle} = a$ and the term of $\langle e, t, n, a \rangle$ is the pair
+$\langle e, t \rangle$.
 
 
 \appendices
@@ -1070,10 +1066,10 @@ invariants.
 
 \begin{enumerate}
 
-\item \label{synod-quorums} For proposal identifiers $p_2 \prec p_1 \in \mathbb
-P$ there are sets of quorums $Q^\textrm{I}(p_1)$ and
-$Q^\textrm{II}(p_2) \subseteq \mathcal P \mathbb A$ such that if $\prop{}{p_1}$
-and $\chosen{}{p_2}$ then ${Q^\textrm{I}(p_1) \frown Q^\textrm{II}(p_2)}$.
+\item \label{synod-quorums} For proposal identifiers $p_1 \succ p_2 \in \mathbb
+P$ there are memberships $Q^\textrm{I}(p_1)$ and $Q^\textrm{II}(p_2) \subseteq
+\mathcal P \mathbb A$ such that if $\chosen{}{p_2}$ then ${Q^\textrm{I}(p_1)
+\frown Q^\textrm{II}(p_2)}$.
 
 \item \label{synod-fprom} $\fprom{}{a}{p}$ only if $\neg\acc{}{a}{p'}$ for all
 ${p' \prec p}$.
@@ -1107,20 +1103,20 @@ q^\textrm{II}$.
 and $p_2 \prec p_1$ then $p_2 \preceq p_3$.\end{lemma}
 
 \begin{proof}Since $\bprom{}{a}{p_1}{p_3}$ from invariant \ref{synod-bprom} it
-follows that $p_3 \prec p_1$, $\acc{}{a}{p_3}$ and $p_3$ is the largest such
-proposal. Therefore either $p_2 \preceq p_3$ or $p_1 \preceq p_2$.  But $p_2
-\prec p_1$ so it must be that $p_2 \preceq p_3$ as required.  \end{proof}
+follows that $p_3$ is the largest proposal such that $p_3 \prec p_1$ and
+$\acc{}{a}{p_3}$, but $p_2$ is also such a proposal and therefore $p_2
+\preceq p_3$ as required.  \end{proof}
 
 \begin{lemma}\label{synod-lemma} If $\chosen{}{p_2}$, $\prop{}{p_1}$ and $p_2
 \prec p_1$ then $v(p_1) = v(p_2)$. \end{lemma}
 
 \begin{proof}Suppose for a contradiction the result is false, and since $\prec$
-is wellfounded suppose without loss of generality that $p_1$ is the
-smallest-numbered proposal at which it is false.  Since $\chosen{}{p_2}$, by
-invariant \ref{synod-chosen} there is a quorum $q^\textrm{II} \in
-Q^\textrm{II}(p_2)$ such that $\acc{}{a}{p_2}$ for every $a \in q^\textrm{II}$.
-By invariant \ref{synod-fprom} it cannot be that $\fprom{}{a}{p_1}$ for any $a
-\in q^\textrm{II}$.  Also, since $\prop{}{p_1}$, by invariant \ref{synod-prop}
+is wellfounded suppose without loss of generality that $p_1$ is the minimal
+proposal at which it is false.  Since $\chosen{}{p_2}$, by invariant
+\ref{synod-chosen} there is a quorum $q^\textrm{II} \in Q^\textrm{II}(p_2)$
+such that $\acc{}{a}{p_2}$ for every $a \in q^\textrm{II}$.  By invariant
+\ref{synod-fprom} it cannot be that $\fprom{}{a}{p_1}$ for any $a \in
+q^\textrm{II}$.  Also, since $\prop{}{p_1}$, by invariant \ref{synod-prop}
 there is a quorum $q^\textrm{I} \in Q^\textrm{I}(p_1)$ such that either
 $\fprom{}{a}{p_1}$ or $\exists p'.  \bprom{}{a}{p_1}{p'}$ for all $a \in
 q^\textrm{I}$.  Let $P = \{ p' \mid \exists a \in q^\textrm{I}.
@@ -1142,18 +1138,14 @@ contradiction as required.  \end{proof}
 $\chosen{}{p_2}$ then $v(p_1) = v(p_2)$.  \end{theorem}
 
 \begin{proof} If $p_1 = p_2$ then the result is clear, so assume that $p_1 \ne
-p_2$ and therefore without loss of generality that ${p_2 \prec p_1}$. By
-invariant \ref{synod-chosen} there is a quorum $q \in Q^\textrm{II}(p_1)$ such
-that $\acc{}{a}{p_1}$ for every node $a \in q$. Since $q$ is nonempty, by
-invariant \ref{synod-acc} it must be that $\prop{}{p_1}$ was previously sent.
-Therefore by lemma \ref{synod-lemma} it follows that $v(p_1) = v(p_2)$ as
-required.  \end{proof}
+p_2$ and then without loss of generality that ${p_2 \prec p_1}$. By invariant
+\ref{synod-chosen} there is a quorum $q \in Q^\textrm{II}(p_1)$ such that
+$\acc{}{a}{p_1}$ for every node $a \in q$. Since $q$ is nonempty, by invariant
+\ref{synod-acc} it must be that $\prop{}{p_1}$ was previously sent.  Therefore
+by lemma \ref{synod-lemma} it follows that $v(p_1) = v(p_2)$ as required.
+\end{proof}
 
 
-
-
-% you can choose not to have a title for an appendix
-% if you want by leaving the argument blank
 \section{Consistency of the Paxos algorithm}
 
 The consistency property of the Paxos algorithm is derived from the following
@@ -1161,8 +1153,8 @@ invariants.
 
 \begin{enumerate}
 
-\item\label{paxos-quorums} There is a sequence of quorums $Q_0, Q_1, \ldots$
-where ${Q_e \frown Q_e \frown Q_{e+1}}$ for all $e$.
+\item\label{paxos-quorums} There is a sequence of memberships $Q_0, Q_1,
+\ldots$ where ${Q_e \frown Q_e \frown Q_{e+1}}$ for all $e$.
 
 \item\label{paxos-mprom} $\mprom{i}{a}{p}$ only if $\neg\acc{i'}{a}{p'}$ for all
 $i' \ge i$ and $p' \prec p$.
@@ -1202,6 +1194,15 @@ Q_{e(i)}$ such that $\acc{i}{a}{p}$ for every $a \in q$.
 
 \end{enumerate}
 
+\begin{lemma}\label{paxos-synod-quorum-invariant} For proposal identifiers $p_1
+\succ p_2 \in \mathbb P$ and instance $i$, if $\chosen{i}{p_2}$ and $e(p_1) \le
+e(i)$ then ${Q_{e(p_1)} \frown Q_{e(i)}}$.  \end{lemma}
+
+\begin{proof} Since $\chosen{i}{p_2}$ it follows that $e(i) \le e(p_2) + 1$,
+and since $e$ is nondecreasing $e(p_2) \le e(p_1)$. Therefore $e(p_1) \in \{
+e(i) - 1, e(i) \}$ and hence ${Q_{e(p_1)} \frown Q_{e(i)}}$ by invariant
+\ref{paxos-quorums}.  \end{proof}
+
 \begin{theorem}\label{paxos-safety-theorem} If $\chosen{i}{p_1}$ and
 $\chosen{i}{p_2}$ then ${v_i(p_1) = v_i(p_2)}$.  \end{theorem}
 
@@ -1212,7 +1213,6 @@ instance $i$.  In more detail, let
 Q^\textrm{I}(p) &= \begin{cases}
 Q_{e(p)} & e(p) \le e(i) \\
 \varnothing & \textrm{otherwise,} \end{cases} \\
-v(p) &= v_i(p)\\
 Q^\textrm{II}(p) &= Q_{e(i)}, \\
 \fprom{}{a}{p} &= \fprom{i}{a}{p} \\
 & \ {}\vee \exists i' \le i. \mprom{i'}{a}{p}, \\
@@ -1220,16 +1220,13 @@ Q^\textrm{II}(p) &= Q_{e(i)}, \\
 \prop{}{p} &= \prop{i}{p}, \\
 \acc{}{a}{p} &= \acc{i}{a}{p} \textrm{ and} \\
 \chosen{}{p} &= \chosen{i}{p}. \\
+v(p) &= v_i(p)\\
 \end{array}
 \]
-
-To show Synod invariant \ref{synod-quorums}, let $p'_2 \prec p'_1$ where
-$\prop{i}{p'_1}$ and $\chosen{i}{p'_2}$. Certainly $\varnothing \frown
-Q_{e(i)}$, so it remains to show that $Q_{e(p'_1)} \frown Q_{e(i)}$ if $e(p'_1)
-\le e(i)$.  But since $\chosen{i}{p'_1}$ it follows that $e(i) \le e(p'_1) + 1$
-and hence $e(p'_1) \in \{e(i) - 1, e(i)\}$ and the result follows since ${Q_e
-\frown Q_e \frown Q_{e+1}}$ for all $e$. The remaining invariants are simple to
-show and hence $v_i(p_1) = v_i(p_2)$ by theorem \ref{synod-safety-theorem}.
+Synod's invariant \ref{synod-quorums} follows from lemma
+\ref{paxos-synod-quorum-invariant} and the fact that $\varnothing \frown
+Q_{e(i)}$ and the remaining invariants are simple to show so by theorem
+\ref{synod-safety-theorem} it follows that $v_i(p_1) = v_i(p_2)$ as required.
 \end{proof}
 
 \section{Preserving the Paxos invariants}
