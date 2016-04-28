@@ -907,17 +907,28 @@ The required number of nodes can be reduced using a membership change as
 follows. A cluster of four equally-weighted nodes can only tolerate a single
 failure, but by reducing the weight of node $a_{\textrm{maint}}$ to zero before
 taking it offline, the remaining three nodes can tolerate the loss of another
-node. The sequence of weights used for this procedure is as follows, with
-maintenance on $a_{\textrm{maint}}$ occurring during while $w_{e+1}$ is in use.
+node. However, a cluster of four equally-weighted nodes has no nodes with a
+casting vote, so instead two of the nodes must have weight $1$ and the other
+two have weight $2$, and then the sequence of weights used for this maintenance
+procedure is as follows, with maintenance on $a_{\textrm{maint}}$ occurring
+during while $w_{e+1}$ is in use.
 \[\begin{array}{rcccc}
 \textrm{node}&a_{\textrm{maint}}&a_1&a_2&a_3 \\
-w_e&1&1&1&1\\
-w_{e+1}&0&1&1&1\\
-w_{e+2}&1&1&1&1\\
+w_e&1&1&2&2\\
+w_{e+1}&0&1&2&2\\
+w_{e+2}&1&1&2&2\\
 \end{array}\]
 Since each step changes the weight of a single node by $1$ this sequence
-satisfies $M(w_e) \frown M(w_{e+1}) \frown M(w_{e+2})$ and hence can be
-performed without jitter.
+satisfies $M(w_e) \frown M(w_{e+1}) \frown M(w_{e+2})$, and $a_3$ has a casting
+vote in each membership, so this sequence is jitter-free.  If $a_3$ required
+maintenance then its casting vote could be moved to $a_1$ first as follows:
+\[\begin{array}{rcccc}
+\textrm{node}&a_0&a_1&a_2&a_3 \\
+w_e&1&1&2&2\\
+w_{e+1}&1&2&2&2\\
+w_{e+2}&1&2&2&1\\
+\end{array}\]
+Here $a_2$ has a casting vote throughout so this is also jitter-free.
 
 In many situations it is feasible simply to replace a node $a_{\textrm{old}}$
 with a new node $a_{\textrm{new}}$ rather than to upgrade it in-situ. If
@@ -926,12 +937,29 @@ then the system is not put at risk, requiring four nodes to perform maintenance
 but only three in normal operation:
 \[\begin{array}{rcccc}
 \textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
-w_e&1&0&1&1\\
-w_{e+1}&1&1&1&1\\
-w_{e+2}&0&1&1&1\\
+w_e&1&0&2&2\\
+w_{e+1}&1&1&2&2\\
+w_{e+2}&0&1&2&2\\
 \end{array}\]
 Again, each step changes the weight of a single node by $1$ so this sequence
-satisfies $M(w_e) \frown M(w_{e+1}) \frown M(w_{e+2})$.
+satisfies $M(w_e) \frown M(w_{e+1}) \frown M(w_{e+2})$ and $a_2$ has a casting
+vote throughout so this sequence is jitter-free. As above, the casting vote can
+be moved from $a_2$ to $a_0$ using the following sequence:
+\[\begin{array}{rcccc}
+\textrm{node}&a_0&a_1&a_2 \\
+w_e&1&2&2\\
+w_{e+1}&2&2&2\\
+w_{e+2}&2&2&1\\
+\end{array}\]
+It may be more usual to run a cluster of three nodes with equal weights as in
+$w_{e+1}$ above. If the weights are all equal to $k \ne 2$, recall that
+changing the weights of all nodes by a constant factor does not change the
+cluster membership, so multiplying by $\frac{2}{k}$ has the desired effect:
+\[\begin{array}{rcccc}
+\textrm{node}&a_0&a_1&a_2 \\
+w_e&k&k&k\\
+w_{e+1}&2&2&2\\
+\end{array}\]
 
 Assuming that node failures are independent, the probability of a cluster-wide
 failure can appear to be extremely small. However, in a real-world system node
@@ -949,38 +977,23 @@ zones in this way.  For the system to be resilient to simultaneous zone-wide
 failures of $f_z > 0$ zones, it must have nodes running in at least $2f_z + 1
 \ge 3$ zones.
 
-The four-node maintenance process described above is only safe if each node is
-in a different zone: if any two of them are in the same zone then system will
-fail if there is a zone-wide failure in epoch $w_{e+1}$.  In many operating
-environments it may be expensive or complicated to arrange for four independent
-zones\footnote{For instance, at time of writing, only one Amazon Web Services
-region (\texttt{us-east-1}) has four independent zones, whereas four of them
-have three: \texttt{ap-southeast-2}, \texttt{eu-west-1}, \texttt{sa-east-1} and
-\texttt{us-west-2}. Similarly, only one Google Cloud Platform region
-(\texttt{us-central1}) has four zones and all the others have three zones.},
-particularly if the fourth zone is only required to ensure consistency in
-relatively rare periods of maintenance.  Fortunately, it is possible to safely
-replace a node within a single zone $z_{\textrm{maint}}$ using four nodes but
-only three zones with the following sequence of operations.
-\[\begin{array}{rcccc}
-\textrm{zone}&z_{\textrm{maint}}&z_{\textrm{maint}}&z_1&z_2\\
-\textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2\\
-w_e&1&0&1&1\\
-w_{e+1}&2&0&2&2\\
-w_{e+2}&1&0&2&2\\
-w_{e+3}&1&1&2&2\\
-w_{e+4}&0&1&2&2\\
-w_{e+5}&0&2&2&2\\
-w_{e+6}&0&1&1&1\\
-\end{array}\]
-At every stage it is clear that every zone contains less than half of the total
-weight, so the system is never at risk of a single-zone failure. Note that the
-first and last steps rely on the ability to simultaneously change the weights
-of every node by a constant factor, and every other step changes the weight of
-a single node by one, so this satisfies $M(w_{e+k}) \frown M(w_{e+k+1})$ for $0
-\le k \le 6$ and hence can be performed without jitter.
+The replacement process described above requires only three zones as it is safe
+to have $a_\mathrm{old}$ and $a_\mathrm{new}$ in the same zone. This is
+important as in many operating environments it may be expensive or complicated
+to arrange for four independent zones\footnote{For instance, at time of
+writing, only one Amazon Web Services region (\texttt{us-east-1}) has four
+independent zones, whereas four of them have three: \texttt{ap-southeast-2},
+\texttt{eu-west-1}, \texttt{sa-east-1} and \texttt{us-west-2}. Similarly, only
+one Google Cloud Platform region (\texttt{us-central1}) has four zones and all
+the others have three zones.}, particularly if the fourth zone is only required
+to ensure consistency in relatively rare periods of maintenance.
 
-Throughout this process, $a_1$ and $a_2$ both have casting votes TODO.
+It is straightforward to ensure that membership changes do not increase the
+exposure of the cluster to the risk of too many zone-wide failures, and do not
+result in a cluster with no nodes having a casting vote. A real implementation
+of the membership state machines could entirely prevent such changes to reduce
+the risk of operator error, or could at least require a \textit{safety catch}
+to be explicitly disabled before performing unsafe membership changes.
 
 \section{Preserving the Paxos invariants}
 
