@@ -521,19 +521,14 @@ sufficiently small continue to carry the risk of jitter. In reality, arbitrary
 changes would normally be performed as a sequence of these small, jitter-free
 changes as discussed in section \ref{discussion} below.
 
-\section{A Review of Paxos}
+\section{The Synod Algorithm}
 
-The Synod and Paxos algorithms are briefly reviewed here for the sake of
-consistency of notation and to introduce some generalisations which are
-discussed in more detail in section \ref{deviations-from-classic}.
-
-\subsection{The Synod algorithm}
-
-Synod is an algorithm for achieving consensus on a single value in a
-distributed system comprising a set of nodes which can communicate by sending
-messages to each other. Communication is asynchronous but not Byzantine, in the
-sense that each messages may be delayed, reordered, duplicated and dropped but
-not corrupted.
+Synod\cite{part-time-parliament} is an algorithm for achieving consensus on a
+single value in a distributed system comprising a set of nodes which can
+communicate by sending messages to each other. Communication is asynchronous
+but not Byzantine, in the sense that each messages may be delayed, reordered,
+duplicated and dropped but not corrupted. It is briefly reviewed here for the
+sake of consistency of notation and to introduce some generalisations.
 
 Let $\mathbb P$ be a set of \textit{proposal identifiers} with a wellfounded
 total order $\prec$. Let $\mathbb A$ be a set of \textit{node identifiers} and
@@ -564,18 +559,19 @@ $\neg \prop{}{p}$ indicates that the message $\prop{}{p}$ has not been sent.
 Because messages may be delayed, reordered or dropped, a node can only know a
 message has not been sent if it can prove, based solely on the messages it
 alone has sent and received, that no other node has sent it. This works in
-practice because the messages $\fprom{}{a}{p}$, $\bprom{}{a}{p}{p'}$ and
-$\acc{}{a}{p}$ may only originate from the node $a$, and there is a function
-$\mathrm{owner} : \mathbb P \to \mathbb A$ assigning an owner to each proposal
-such that the message $\prop{}{p}$ may only originate from node $\owner{p}$.
+practice because\footnote{TODO nonsequitur} the messages $\fprom{}{a}{p}$,
+$\bprom{}{a}{p}{p'}$ and $\acc{}{a}{p}$ may only originate from the node $a$,
+and there is a function $\mathrm{owner} : \mathbb P \to \mathbb A$ assigning an
+owner to each proposal such that the message $\prop{}{p}$ may only originate
+from node $\owner{p}$.
 
 It is convenient to add another predicate $\chosen{}{p}$ which indicates that
 the proposal $p$ has been chosen and hence phase II is complete. There is also
-a function $v : \mathbb P \to \mathbb V$ assigning a value to each proposal,
-and the system satisfies a set of invariants as described in appendix
-\ref{synod-safety} from which can be shown the key consistency property of the
-Synod algorithm: \[\textrm{if } \chosen{}{p} \textrm{ and } \chosen{}{p'}
-\textrm { then } v(p) = v(p').\]
+a function $v : \mathbb P \to \mathbb V$ assigning a value to each proposal, discussed
+in more detail in section \ref{value-function} below, and the system satisfies
+a set of invariants as described in appendix \ref{synod-safety} from which can
+be shown the key consistency property of the Synod algorithm: \[\textrm{if }
+\chosen{}{p} \textrm{ and } \chosen{}{p'} \textrm { then } v(p) = v(p').\]
 
 Each node operates as a state machine whose transitions are caused by the
 receipts of messages. A node may emit $\prop{}{p}$ when it considers phase I to
@@ -583,10 +579,61 @@ be complete at proposal $p$. A node considers phase I to be complete at
 proposal $p$ when promise messages for $p$ have been received from a quorum of
 nodes, and similarly considers phase II to be complete at $p$ when a quorum of
 acceptances of $p$ has been received. The quorums themselves can depend on the
-proposal number $p$ and the phase, but for any $p$ it must be the case that
-there is at least one node that is in a quorum of each phase.
+proposal number $p$ and the phase as discussed in section
+\ref{per-phase-quorums} below, but for any $p$ it must be the case that there
+is at least one node that is in a quorum of each phase.
 
-\subsection{The Paxos algorithm}
+\subsection{Implementing the value function}\label{value-function}
+
+In the original presentation of the Synod algorithm, the values of proposals
+are carried along with their identifiers in the messages $\bprom{}{a}{p}{
+p',v(p') }$, $\prop{}{ p,v(p)}$ and $\acc{}{a}{ p,v(p) }$. Observation O4 in
+\cite{cheap-paxos} notes that these values can be replaced in some cases by
+hashes, which is useful if the values themselves are expensive to transmit
+between nodes. This can be taken one step further and the values can be
+completely elided from the messages that take part in the Synod protocol,
+allowing considerably more freedom in the implementation of the function $v$
+without sacrificing consistency.  This works because if the invariants of
+appendix \ref{synod-safety} are satisfied with a value function $v$ then they
+are satisfied for any value function $v'$ that agrees with $v$ on sent
+proposals, i.e. having $v(p) = v'(p)$ whenever $\prop{}{p}$.  Furthermore only
+$\owner{p}$ may propose $p$, so if it has not yet proposed a value for $p$ it
+can, in effect, freely modify $v(p)$ as desired.
+
+To ensure the system satisfies the desired liveness properties, the
+implementation of $v$ must be resilient to the same failure modes as the rest
+of the system. In these terms the classic presentation ensures this resilience
+by including relevant values of $v$ in messages, but since the value of each
+proposal $p$ has at most one writer, $\owner{p}$, more efficient mechanisms are
+available. For instance, the Cheap Paxos algorithm implements $v$ using only
+the $f+1$ primary processors and none of the auxiliary processors, representing
+$v$ as an optimised version of a replicated insert-only set \cite{crdts} of
+pairs $\{ \langle p, v(p) \rangle \mid \prop{}{p} \}$.
+
+\subsection{Per-phase quorums}\label{per-phase-quorums}
+
+The heart of the consistency property of the Synod algorithm is that the set of
+nodes involved in completing phase I must always intersect the set of nodes
+involved in completing phase II, so that there is at least one node to carry
+information between the two phases. Write $Q_1 \frown Q_2$ to indicate that
+every element of $Q_1$ intersects every member of $Q_2$: more formally $Q_1
+\frown Q_2$ iff every $q_1 \in Q_1$ and $q_2 \in Q_2$ have ${q_1 \cap q_2 \ne
+\varnothing}$.
+
+In the original presentation of the Synod algorithm any (weighted) majority of
+the nodes could be used as a quorum: roughly speaking\footnote{TODO have not
+defined these yet}, \[Q^\textrm{I}(p_1) = Q^\textrm{II}(p_2) = \{ q \mid q
+\text{ is a majority}\}\] was a constant, and $Q^\textrm{I}(p_1) \frown
+Q^\textrm{II}(p_2)$ for all $p_1$ and $p_2$ since all majorities intersect.
+This intersection property is stronger than needed, and the ability to vary the
+set of quorums by proposal and by phase is the key ingredient in being able to
+perform jitter-free membership changes. The proof of theorem
+\ref{synod-safety-theorem} in appendix \ref{synod-safety} is a generalisation
+of the original one to demonstrate that consistency is preserved in the Synod
+algorithm even under the weaker assumption that $Q^\textrm{I}(p_1) \frown
+Q^\textrm{II}(p_2)$ only when $\chosen{}{p_2}$ and $p_1 \succ p_2$.
+
+\section{The Paxos algorithm}
 
 Conceptually, Paxos is a sequence of distinct instances of the Synod algorithm
 all running simultaneously. To achieve this, the messages of the Synod
@@ -631,80 +678,30 @@ giving a value to each proposal, and theorem \ref{paxos-safety-theorem} shows
 that whenever $\chosen{i}{p}$ and $\chosen{i}{p'}$ it follows that $v_i(p) =
 v_i(p')$.
 
-\section{Differences from classic Synod} \label{deviations-from-classic}
 
-\subsection{Value function}
-
-In the original presentation of the Synod algorithm, the values of proposals
-are carried along with their identifiers in the messages $\bprom{}{a}{p}{
-p',v(p') }$, $\prop{}{ p,v(p)}$ and $\acc{}{a}{ p,v(p) }$. Observation O4 in
-\cite{cheap-paxos} notes that these values can be replaced in some cases by
-hashes, which is useful if the values themselves are expensive to transmit
-between nodes. This can be taken one step further and the values can be
-completely elided from the messages that take part in the Synod protocol,
-allowing considerably more freedom in the implementation of the function $v$
-without sacrificing consistency.  This works because if the invariants of
-appendix \ref{synod-safety} are satisfied with a value function $v$ then they
-are satisfied for any value function $v'$ that agrees with $v$ on sent
-proposals, i.e. having $v(p) = v'(p)$ whenever $\prop{}{p}$.  Furthermore only
-$\owner{p}$ may propose $p$, so if it has not yet proposed a value for $p$ it
-can, in effect, freely modify $v(p)$ as desired.
-
-To ensure the system satisfies the desired liveness properties, the
-implementation of $v$ must be resilient to the same failure modes as the rest
-of the system. In these terms the classic presentation ensures this resilience
-by including relevant values of $v$ in messages, but since the value of each
-proposal $p$ has at most one writer, $\owner{p}$, more efficient mechanisms are
-available. For instance, the values of proposed proposals may be represented as
-an insert-only set of pairs $\{ \langle p, v(p) \rangle \mid \prop{}{p} \}$
-which can be implemented as a simple conflict-free replicated data type or
-CRDT~\cite{crdts}.
-
-\subsection{Per-phase quorums}\label{per-phase-quorums}
-
-The heart of the consistency property of the Synod algorithm is that the set of
-nodes involved in completing phase I must always intersect the set of nodes
-involved in completing phase II, so that there is at least one node to carry
-information between the two phases. Write $Q_1 \frown Q_2$ to indicate that
-every element of $Q_1$ intersects every member of $Q_2$: more formally $Q_1
-\frown Q_2$ iff every $q_1 \in Q_1$ and $q_2 \in Q_2$ have ${q_1 \cap q_2 \ne
-\varnothing}$.
-
-In the original presentation of the Synod algorithm any (weighted) majority of
-the nodes could be used as a quorum: roughly speaking, \[Q^\textrm{I}(p_1) =
-Q^\textrm{II}(p_2) = \{ q \mid q \text{ is a majority}\}\] was a constant, and
-$Q^\textrm{I}(p_1) \frown Q^\textrm{II}(p_2)$ for all $p_1$ and $p_2$ since all
-majorities intersect. This intersection property is stronger than needed, and
-the ability to vary the set of quorums by proposal and by phase is the key
-ingredient in being able to perform jitter-free membership changes. The proof
-of theorem \ref{synod-safety-theorem} in appendix \ref{synod-safety} is a
-generalisation of the original one to demonstrate that consistency is preserved
-in the Synod algorithm even under the weaker assumption that $Q^\textrm{I}(p_1)
-\frown Q^\textrm{II}(p_2)$ only when $\chosen{}{p_2}$ and $p_1 \succ p_2$.
-
-\section{Membership changes}\label{membership-changes}
+\subsection{Membership changes}\label{membership-changes}
 
 Changes in the cluster membership are handled with a sequence of numbered
 \textit{epochs} $1, 2, \ldots$ and memberships $Q_0, Q_1, Q_2, \ldots$
-satisfying $Q_{e-1} \frown Q_e$ and $Q_e \frown Q_e$ for all epochs $e$.  Taken
-together, these conditions mean that $Q_{e-1} \cup Q_e \frown Q_e$ which means
-that $Q_{e-1} \cup Q_e$ and $Q_e$ can be respectively used for the phase-I and
-phase-II memberships of each Paxos instance by the observation of
-\ref{per-phase-quorums} above.  There are also two nondecreasing functions,
-both written $e(\cdot)$, which respectively assign an epoch number $e(i)$ to
-each instance $i$, and an epoch number $e(p)$ to each proposal $p$. A node may
-emit $\prop{i}{p}$ if $e(p) \le e(i)$ and it has received promises for proposal
-$p$ in instance $i$ from a quorum $q^\textrm{I} \in Q_{e(p)}$. A node considers
-phase II to be complete at instance $i$ and proposal $p$ if ${e(i) \le e(p)+1}$
-and it has received $\acc{i}{a}{p}$ from a quorum ${q^\textrm{II} \in
-Q_{e(i)}}$.  Thus if $\chosen{i}{p}$ then ${e(p) \in \{ e(i)-1, e(i) \}}$ and
-hence \[q^\textrm{I} \in Q_{e(p)} \subseteq Q_{e(i)-1} \cup Q_{e(i)} \frown
-Q_{e(i)} \ni q^\textrm{II}\] so that $q^\textrm{I} \cap q^\textrm{II} \ne
-\varnothing$ as required. It is worth emphasising the subtle point that phase I
-uses the membership $Q_{e(p)}$ corresponding to the proposal $p$ whereas phase
-II uses the membership $Q_{e(i)}$ for the instance $i$, with extra conditions
-to ensure that $e(p) \le e(i) \le e(p) + 1$ and therefore that the epochs
-used in the two phases are close enough.
+satisfying $Q_{e-1} \frown Q_e$ and $Q_e \frown Q_e$ for all epochs $e$.  This
+means $Q_{e-1}$ and $Q_e$ can be used for the phase-I and phase-II memberships
+of a Paxos instance respectively by the observation of \ref{per-phase-quorums}
+above, or alternatively $Q_e$ can be used for both phases.
+
+There are also two nondecreasing functions, both written $e(\cdot)$, which
+respectively assign an epoch number $e(i)$ to each instance $i$, and an epoch
+number $e(p)$ to each proposal $p$. A node may emit $\prop{i}{p}$ if $e(p) \le
+e(i)$ and it has received promises for proposal $p$ in instance $i$ from a
+quorum $q^\textrm{I} \in Q_{e(p)}$. A node considers phase II to be complete at
+instance $i$ and proposal $p$ if ${e(i) \le e(p)+1}$ and it has received
+$\acc{i}{a}{p}$ from a quorum ${q^\textrm{II} \in Q_{e(i)}}$.  Thus if
+$\chosen{i}{p}$ then ${e(p) \in \{ e(i)-1, e(i) \}}$ and hence \[q^\textrm{I}
+\in Q_{e(p)} \frown Q_{e(i)} \ni q^\textrm{II}\] so that $q^\textrm{I} \cap
+q^\textrm{II} \ne \varnothing$ as required. It is worth emphasising the subtle
+point that phase I uses the membership $Q_{e(p)}$ corresponding to the proposal
+$p$ whereas phase II uses the membership $Q_{e(i)}$ for the instance $i$, with
+extra conditions to ensure that $e(p) \le e(i) \le e(p) + 1$ and therefore that
+the epochs used in the two phases are close enough.
 
 \subsection{Dynamic membership changes}
 
@@ -919,9 +916,9 @@ in a different zone: if any two of them are in the same zone then system will
 fail if there is a zone-wide failure in epoch $w_{e+1}$.  In many operating
 environments it may be expensive or complicated to arrange for four independent
 zones\footnote{For instance, at time of writing, only one Amazon Web Services
-  region (\texttt{us-east-1}) has four independent zones, whereas four of them
-  have three: \texttt{ap-southeast-2}, \texttt{eu-west-1}, \texttt{sa-east-1}
-  and \texttt{us-west-2}. Similarly, only one Google Cloud Platform region
+region (\texttt{us-east-1}) has four independent zones, whereas four of them
+have three: \texttt{ap-southeast-2}, \texttt{eu-west-1}, \texttt{sa-east-1} and
+\texttt{us-west-2}. Similarly, only one Google Cloud Platform region
 (\texttt{us-central1}) has four zones and all the others have three zones.},
 particularly if the fourth zone is only required to ensure consistency in
 relatively rare periods of maintenance.  Fortunately, it is possible to safely
@@ -951,6 +948,8 @@ If no messages have been sent then the invariants shown above certainly hold,
 so as long as each message that each node sends preserves the invariants then
 consistency is maintained.
 
+Any node may emit $\prep{p}$.
+
 The interplay between promises and acceptances is reasonably straightforward:
 the node $a$ may emit promises $\fprom{i}{a}{p}$ etc. and acceptances
 $\acc{i}{a}{p}$ where they do not conflict with previously-sent messages. In
@@ -964,16 +963,18 @@ sense that whenever \begin{itemize} \item $\mprom{i'}{a}{p'}$ for any $i' \le
 i$, or \item $\fprom{i}{a}{p'}$, or \item $\bprom{i}{a}{p'}{p''}$\end{itemize}
 it is the case that $p' \preceq p$.
 
+TODO expand this next bit, it's very complicated!
+
 The node $\owner{p}$ may change the value $v_i(p)$ as long as it has not
 already emitted $\prop{p}{i}$, and may consider phase I to be complete for
-proposal $p$ at instance $i$, and may therefore emit $\prop{p}{i}$, there is an
+proposal $p$ at instance $i$, and may therefore emit $\prop{p}{i}$, if there is an
 earlier instance ${i' < i}$ and proposal $p'$ such that $\chosen{i'}{p'}$ and
-$e(p) \le e(i')$, and there is a quorum $q \in Q_{e(p)}$ such that for every $a
-\in q$ it has previously received a promise from node $a$ for proposal $p$ in
-instance $i$. If it has not already emitted $\prop{p}{i}$, and any of the
-promises from nodes in $q$ are of the form $\bprom{i}{a}{p}{p'}$ then it must
-first set \[v_i(p) = v_i\bigl(\mathrm{max} \{p' \mid \bprom{i}{a}{p}{p'}
-\textrm{ received}, a \in q \}\bigr).\]
+$e(p) \le e(i')$ (or else $i = 0$), and there is a quorum $q \in Q_{e(p)}$ such
+that for every $a \in q$ it has previously received a promise from node $a$ for
+proposal $p$ in instance $i$. If it has not already emitted $\prop{p}{i}$ and
+any of the promises from nodes in $q$ are of the form $\bprom{i}{a}{p}{p'}$
+then it must first set \[v_i(p) = v_i\bigl(\mathrm{max} \{p' \mid
+\bprom{i}{a}{p}{p'} \textrm{ received}, a \in q \}\bigr).\]
 
 Finally any node may consider phase II to be complete for proposal $p$ at instance
 $i$, and therefore $\chosen{p}{i}$, if
@@ -1286,8 +1287,8 @@ and
 $\sum_{a \in q'} 2 w'(a) \ge \sum_{a \in \mathbb A} w'(a) + 1$.
 %
 Let $d_{\mathbb A} = w'(a_0) - w(a_0)$ so that $\sum_{a \in \mathbb A} w'(a) =
-\sum_{a \in \mathbb A} w(a) + d_{\mathbb A}$. Also let \[
-d_{q'} =
+\sum_{a \in \mathbb A} w(a) + d_{\mathbb A}$ and $|d_\mathbb A| \le 1$. Also
+let \[ d_{q'} =
 \begin{cases}
 %
 d_{\mathbb A} & a_0 \in q' \\
