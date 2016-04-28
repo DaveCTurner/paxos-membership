@@ -508,26 +508,24 @@ membership change can take an unreasonably long time to take effect.
 The value of the delay parameter $\alpha$ may be allowed to vary while the
 system is running, so it is certainly possible to design a mechanism for
 choosing a reasonably suitable value and adapting it to changing system
-conditions. The approach described here shows an alternative technique which
-allows phase II to start using a new membership without re-running phase I
-first; this is shown to preserve consistency as long as the membership change
-is sufficiently small (in a sense which is made precise in section
-\ref{types-of-membership-change} below.) By removing phase I from the critical
-path of a membership change this technique eliminates the possibility of jitter
-caused by a pipeline stall.
+conditions. The approach described here allows phase II to start using a new
+membership without re-running phase I; this is shown to preserve consistency as
+long as the membership change is sufficiently small (in a sense which is made
+precise in section \ref{types-of-membership-change} below.) By removing phase I
+from the critical path of a membership change the possibility of jitter caused
+by a pipeline stall is eliminated.
 
 The technique shown here also supports arbitrary membership changes happening
 in a single step just as in Dynamic Paxos, but any changes that are not
 sufficiently small continue to carry the risk of jitter. In reality, arbitrary
 changes would normally be performed as a sequence of these small, jitter-free
-changes.
+changes as discussed in section \ref{discussion} below.
 
 \section{A Review of Paxos}
 
-The Paxos algorithm was introduced in \cite{part-time-parliament}. It is
-briefly reviewed here for the sake of consistency of notation and to introduce
-some generalisations which are discussed in more detail in section
-\ref{deviations-from-classic}.
+The Synod and Paxos algorithms are briefly reviewed here for the sake of
+consistency of notation and to introduce some generalisations which are
+discussed in more detail in section \ref{deviations-from-classic}.
 
 \subsection{The Synod algorithm}
 
@@ -559,34 +557,34 @@ $\bprom{}{a}{p}{p'}$.  Phase II starts with the broadcast of a
 \textit{proposal} message $\prop{}{p}$ to which each node $a$ may respond with
 an \textit{acceptance} message $\acc{}{a}{p}$.
 
-It is convenient to treat these symbols as predicates indicating whether the
+It is convenient also to use these symbols as predicates indicating whether the
 corresponding messages have been sent. For instance, the predicate
 $\acc{}{a}{p}$ indicates that the message $\acc{}{a}{p}$ has been sent and
 $\neg \prop{}{p}$ indicates that the message $\prop{}{p}$ has not been sent.
-Because messages may be delayed or dropped, a node can only know a message has
-not been sent if it can prove, based solely on the messages it alone has sent
-and received, that no other node has sent it. This works in practice because
-the messages $\fprom{}{a}{p}$, $\bprom{}{a}{p}{p'}$ and $\acc{}{a}{p}$ may only
-originate from the node $a$, and there is a function $\mathrm{owner} : \mathbb
-P \to \mathbb A$ assigning an owner to each proposal such that the message
-$\prop{}{p}$ may only originate from node $\owner{p}$.
+Because messages may be delayed, reordered or dropped, a node can only know a
+message has not been sent if it can prove, based solely on the messages it
+alone has sent and received, that no other node has sent it. This works in
+practice because the messages $\fprom{}{a}{p}$, $\bprom{}{a}{p}{p'}$ and
+$\acc{}{a}{p}$ may only originate from the node $a$, and there is a function
+$\mathrm{owner} : \mathbb P \to \mathbb A$ assigning an owner to each proposal
+such that the message $\prop{}{p}$ may only originate from node $\owner{p}$.
 
 It is convenient to add another predicate $\chosen{}{p}$ which indicates that
-some node has chosen a proposal $p$. There is also a function $v : \mathbb P
-\to \mathbb V$ assigning a value to each proposal, and the system satisfies a
-set of invariants as described in appendix \ref{synod-safety} from which can be
-shown the key consistency property of the Synod algorithm: \[\textrm{if }
-\chosen{}{p} \textrm{ and } \chosen{}{p'} \textrm { then } v(p) = v(p').\]
+the proposal $p$ has been chosen and hence phase II is complete. There is also
+a function $v : \mathbb P \to \mathbb V$ assigning a value to each proposal,
+and the system satisfies a set of invariants as described in appendix
+\ref{synod-safety} from which can be shown the key consistency property of the
+Synod algorithm: \[\textrm{if } \chosen{}{p} \textrm{ and } \chosen{}{p'}
+\textrm { then } v(p) = v(p').\]
 
 Each node operates as a state machine whose transitions are caused by the
 receipts of messages. A node may emit $\prop{}{p}$ when it considers phase I to
-be complete at proposal $p$, and similarly may emit $\chosen{}{p}$ when phase
-II is complete.  A node considers phase I to be complete at proposal $p$ when
-promise messages for $p$ have been received from a quorum of nodes, and
-similarly considers phase II to be complete at $p$ when a quorum of acceptances
-of $p$ has been received. The quorums themselves can depend on the proposal
-number $p$ and the phase, but for any $p$ it must be the case that there is at
-least one node that is in a quorum of each phase.
+be complete at proposal $p$. A node considers phase I to be complete at
+proposal $p$ when promise messages for $p$ have been received from a quorum of
+nodes, and similarly considers phase II to be complete at $p$ when a quorum of
+acceptances of $p$ has been received. The quorums themselves can depend on the
+proposal number $p$ and the phase, but for any $p$ it must be the case that
+there is at least one node that is in a quorum of each phase.
 
 \subsection{The Paxos algorithm}
 
@@ -624,74 +622,73 @@ a quorum of nodes then its state machine $S_\infty$ has completed phase I at
 $p$, and therefore any state machines that are subsequently spawned will also
 have completed phase I at $p$. Each phase II instance $i$ operates just as in
 the Synod algorithm, starting with a broadcast of $\prop{i}{p}$ to which each
-node $a$ may respond with an acceptance $\acc{i}{a}{p}$ and finally
-$\chosen{i}{p}$ holds once acceptances have been received from a quorum of
-nodes.
+node $a$ may respond with an acceptance $\acc{i}{a}{p}$ and once acceptances
+have been received from a quorum of nodes it follows that $\chosen{i}{p}$ and
+phase II is complete for instance $i$.
 
 There is a function $v_i : \mathbb P \to \mathbb V$ for each instance $i$
-defining the value for each proposal, and theorem \ref{paxos-safety-theorem}
-shows that whenever $\chosen{i}{p}$ and $\chosen{i}{p'}$ it follows that
-$v_i(p) = v_i(p')$.
+giving a value to each proposal, and theorem \ref{paxos-safety-theorem} shows
+that whenever $\chosen{i}{p}$ and $\chosen{i}{p'}$ it follows that $v_i(p) =
+v_i(p')$.
 
-\section{Differences from classic Paxos} \label{deviations-from-classic}
+\section{Differences from classic Synod} \label{deviations-from-classic}
 
 \subsection{Value function}
 
-In the classic presentation of the Synod algorithm, the values of proposals are
-carried along with their identifiers in the messages $\bprom{}{a}{p}{ p',v(p')
-}$, $\prop{}{ p,v(p)}$ and $\acc{}{a}{ p,v(p) }$. Observation O4 in
+In the original presentation of the Synod algorithm, the values of proposals
+are carried along with their identifiers in the messages $\bprom{}{a}{p}{
+p',v(p') }$, $\prop{}{ p,v(p)}$ and $\acc{}{a}{ p,v(p) }$. Observation O4 in
 \cite{cheap-paxos} notes that these values can be replaced in some cases by
 hashes, which is useful if the values themselves are expensive to transmit
-between nodes. The presentation here goes one step further and shows that the
-values can be completely elided from the messages that take part in the Synod
-protocol, allowing considerably more freedom in the implementation of the
-function $v$ without sacrificing consistency.  This works because if the
-invariants of appendix \ref{synod-safety} are satisfied with a value function
-$v$ then they are satisfied for any value function $v'$ that agrees with $v$ on
-sent proposals, i.e. having $v(p) = v'(p)$ whenever $\prop{}{p}$.  Furthermore
-only $\owner{p}$ may propose $p$, so if it has not yet proposed a value for $p$
-it can, in effect, freely modify $v(p)$ as desired.
+between nodes. This can be taken one step further and the values can be
+completely elided from the messages that take part in the Synod protocol,
+allowing considerably more freedom in the implementation of the function $v$
+without sacrificing consistency.  This works because if the invariants of
+appendix \ref{synod-safety} are satisfied with a value function $v$ then they
+are satisfied for any value function $v'$ that agrees with $v$ on sent
+proposals, i.e. having $v(p) = v'(p)$ whenever $\prop{}{p}$.  Furthermore only
+$\owner{p}$ may propose $p$, so if it has not yet proposed a value for $p$ it
+can, in effect, freely modify $v(p)$ as desired.
 
 To ensure the system satisfies the desired liveness properties, the
 implementation of $v$ must be resilient to the same failure modes as the rest
 of the system. In these terms the classic presentation ensures this resilience
-by including pertinent values of $v$ in all relevant messages, but since the
-value of each proposal $p$ has at most one writer, $\owner{p}$, more efficient
-mechanisms are available. For instance, the values of proposed proposals may be
-represented as an insert-only set of pairs $\{ \langle p, v(p) \rangle \mid
-\prop{}{p} \}$ which can be implemented as a simple conflict-free replicated
-data type or CRDT~\cite{crdts}.
+by including relevant values of $v$ in messages, but since the value of each
+proposal $p$ has at most one writer, $\owner{p}$, more efficient mechanisms are
+available. For instance, the values of proposed proposals may be represented as
+an insert-only set of pairs $\{ \langle p, v(p) \rangle \mid \prop{}{p} \}$
+which can be implemented as a simple conflict-free replicated data type or
+CRDT~\cite{crdts}.
 
 \subsection{Per-phase quorums}\label{per-phase-quorums}
 
 The heart of the consistency property of the Synod algorithm is that the set of
 nodes involved in completing phase I must always intersect the set of nodes
 involved in completing phase II, so that there is at least one node to carry
-information between the two phases. Write $Q_1 \smile Q_2$ to indicate that
+information between the two phases. Write $Q_1 \frown Q_2$ to indicate that
 every element of $Q_1$ intersects every member of $Q_2$: more formally $Q_1
-\smile Q_2$ if every $q_1 \in Q_1$ and $q_2 \in Q_2$ have ${q_1 \cap q_2 \ne
+\frown Q_2$ iff every $q_1 \in Q_1$ and $q_2 \in Q_2$ have ${q_1 \cap q_2 \ne
 \varnothing}$.
 
 In the original presentation of the Synod algorithm any (weighted) majority of
 the nodes could be used as a quorum: roughly speaking, \[Q^\textrm{I}(p_1) =
 Q^\textrm{II}(p_2) = \{ q \mid q \text{ is a majority}\}\] was a constant, and
-all majorities intersect: $Q^\textrm{I}(p_1) \smile Q^\textrm{II}(p_2)$ for all
-$p_1$ and $p_2$. This intersection property is stronger than needed, and the
-ability to vary the set of quorums by proposal and by phase is the key
+$Q^\textrm{I}(p_1) \frown Q^\textrm{II}(p_2)$ for all $p_1$ and $p_2$ since all
+majorities intersect. This intersection property is stronger than needed, and
+the ability to vary the set of quorums by proposal and by phase is the key
 ingredient in being able to perform jitter-free membership changes. The proof
 of theorem \ref{synod-safety-theorem} in appendix \ref{synod-safety} is a
 generalisation of the original one to demonstrate that consistency is preserved
 in the Synod algorithm even under the weaker assumption that $Q^\textrm{I}(p_1)
-\ne Q^\textrm{II}(p_2)$ as long as $Q^\textrm{I}(p_1) \smile
-Q^\textrm{II}(p_2)$ for all proposals $p_1 \succ p_2$ having $\prop{}{p_1}$ and
-$\chosen{}{p_2}$.
+\frown Q^\textrm{II}(p_2)$ for all proposals $p_1 \succ p_2$ having
+$\prop{}{p_1}$ and $\chosen{}{p_2}$.
 
 \section{Membership changes}\label{membership-changes}
 
 Changes in the cluster membership are handled with a sequence of numbered
 \textit{epochs} $1, 2, \ldots$ and memberships $Q_0, Q_1, Q_2, \ldots$
-satisfying $Q_e \smile Q_e$ and $Q_e \smile Q_{e-1}$ for all epochs $e$.  Taken
-together, these conditions mean that $Q_{e-1} \cup Q_e \smile Q_e$ which means
+satisfying $Q_{e-1} \frown Q_e$ and $Q_e \frown Q_e$ for all epochs $e$.  Taken
+together, these conditions mean that $Q_{e-1} \cup Q_e \frown Q_e$ which means
 that $Q_{e-1} \cup Q_e$ and $Q_e$ can be respectively used for the phase-I and
 phase-II memberships of each Paxos instance by the observation of
 \ref{per-phase-quorums} above.  There are also two nondecreasing functions,
@@ -702,11 +699,13 @@ $p$ in instance $i$ from a quorum $q^\textrm{I} \in Q_{e(p)}$. A node considers
 phase II to be complete at instance $i$ and proposal $p$ if ${e(i) \le e(p)+1}$
 and it has received $\acc{i}{a}{p}$ from a quorum ${q^\textrm{II} \in
 Q_{e(i)}}$.  Thus if $\chosen{i}{p}$ then ${e(p) \in \{ e(i)-1, e(i) \}}$ and
-hence \[q^\textrm{I} \in Q_{e(p)} \subseteq Q_{e(i)-1} \cup Q_{e(i)} \smile
+hence \[q^\textrm{I} \in Q_{e(p)} \subseteq Q_{e(i)-1} \cup Q_{e(i)} \frown
 Q_{e(i)} \ni q^\textrm{II}\] so that $q^\textrm{I} \cap q^\textrm{II} \ne
 \varnothing$ as required. It is worth emphasising the subtle point that phase I
 uses the membership $Q_{e(p)}$ corresponding to the proposal $p$ whereas phase
-II uses the membership $Q_{e(i)}$ for the instance $i$.
+II uses the membership $Q_{e(i)}$ for the instance $i$, with extra conditions
+to ensure that $e(p) \le e(i) \le e(p) + 1$ and therefore that the epochs
+used in the two phases are close enough.
 
 \subsection{Dynamic membership changes}
 
@@ -763,36 +762,36 @@ phase II on proposal $p$.
 
 \def\maj#1{\mathbf{maj}(#1)}
 
-Implementations can ensure $Q_e \smile Q_e$ for each $e$ by, for instance,
+Implementations can ensure $Q_e \frown Q_e$ for each $e$ by, for instance,
 arranging for each quorum in $Q_e$ to comprise a (weighted) majority subset of
 some finite set of nodes.  If $Q_{e-1}$ and $Q_e$ are nonempty then intuitively
-the condition that $Q_{e-1} \smile Q_e$ ensures that the membership change from
+the condition that $Q_{e-1} \frown Q_e$ ensures that the membership change from
 $Q_{e-1}$ to $Q_e$ is sufficiently small that phase I need not re-run when
-moving from epoch $e-1$ to epoch $e$.  For instance, if $Q_{e-1} \smile
+moving from epoch $e-1$ to epoch $e$.  For instance, if $Q_{e-1} \frown
 Q_{e-1}$ then the trivial membership change, having $Q_e = Q_{e-1}$, certainly
-satisfies $Q_e \smile Q_{e-1}$ and $Q_e \smile Q_e$.
+satisfies $Q_e \frown Q_{e-1}$ and $Q_e \frown Q_e$.
 
 For a less trivial example, let \[\maj{s} = \{ q \subseteq s \mid 2 |q| > |s|
 \}\] be the set of all majority subsets of a finite set $s \subseteq \mathbb
-A$, and note that $\maj{s} \smile \maj{s}$ for all such $s$.  If $\mathbb A =
+A$, and note that $\maj{s} \frown \maj{s}$ for all such $s$.  If $\mathbb A =
 \{ a_1, a_2, \ldots \}$ then let $s_n = \{a_1, \ldots, a_n\}$ and observe that
-${\maj{s_3} \smile \maj{s_4}}$ and ${\maj{s_4} \smile \maj{s_5}}$ but ${\maj{s_3}
-\not\smile \maj{s_5}}$ because $\{a_1, a_2\} \in \maj{s_3}$ and $\{a_3, a_4,
+${\maj{s_3} \frown \maj{s_4}}$ and ${\maj{s_4} \frown \maj{s_5}}$ but ${\maj{s_3}
+\not\frown \maj{s_5}}$ because $\{a_1, a_2\} \in \maj{s_3}$ and $\{a_3, a_4,
 a_5\} \in \maj{s_5}$ do not intersect. Thus the majority subsets of $s_3$ and
 $s_4$ are sufficiently similar to be consecutive memberships, but those of
 $s_3$ and $s_5$ are not.
 
-The intuition that $Q_{e-1} \smile Q_e$ means that $Q_{e-1}$ and $Q_e$ are
-similar breaks down if either membership is empty, because $\varnothing \smile
+The intuition that $Q_{e-1} \frown Q_e$ means that $Q_{e-1}$ and $Q_e$ are
+similar breaks down if either membership is empty, because $\varnothing \frown
 Q$ vacuously for all memberships $Q$. Clearly if there is an instance $i$ such
 that $Q_{e(i)} = \varnothing$ then no value can ever be chosen for $i$, but
 epochs may be skipped by letting $e(i) = e(i-1) + 2$ at some instance $i$.
 This recovers the ability to perform arbitrary membership changes as in Dynamic
 Paxos: if the system is currently using membership $Q_{e(i)}$ and an operator
-wishes to change to an unrelated membership $Q'$ (where necessarily $Q' \smile
+wishes to change to an unrelated membership $Q'$ (where necessarily $Q' \frown
 Q'$) then they can set $Q_{e(i)+1} = \varnothing$ and $Q_{e(i)+2} = Q'$, which
-satisfies that \[Q_{e(i)} \smile Q_{e(i) + 1} \smile Q_{e(i)+1} \smile Q_{e(i)
-+ 2} \smile Q_{e(i) + 2}\] as desired. However in this situation phase I must
+satisfies that \[Q_{e(i)} \frown Q_{e(i) + 1} \frown Q_{e(i)+1} \frown Q_{e(i)
++ 2} \frown Q_{e(i) + 2}\] as desired. However in this situation phase I must
 re-run before the new membership can be used because an epoch is skipped, which
 reintroduces the risk of jitter. As in Dynamic Paxos, to mitigate this risk the
 operator chooses an $\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and $e(j) =
@@ -806,12 +805,12 @@ only takes finitely many nonzero values. This can be used to define a
 membership $M(w)$ by \textit{majority}: \[M(w) = \left\{ q \;\middle|\; \sum_{a
 \in q} 2 w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] If $w(a) = 0$ for all
 $a$ then $w$ is said to be \textit{weightless} and $M(w) = \varnothing$.
-Corollary \ref{weights-equal} shows that $M(w) \smile M(w)$ for any weight
+Corollary \ref{weights-equal} shows that $M(w) \frown M(w)$ for any weight
 function $w$.
 
 A sequence $w_0, w_1, \ldots$ of weight functions can be used to define the
 sequence of memberships used by a cluster, which must satisfy $M(w_{e-1})
-\smile M(w_e)$ for all $e$.  There are three simple ways to ensure this:
+\frown M(w_e)$ for all $e$.  There are three simple ways to ensure this:
 
 \begin{enumerate}
 
@@ -826,7 +825,7 @@ differ by at most $1$ at at most one node then the property holds.
 
 \end{enumerate}
 
-\section{Discussion}
+\section{Discussion}\label{discussion}
 
 Paxos supports both the crash-stop and crash-recover failure modes.
 
@@ -1072,7 +1071,7 @@ invariants.
 \item \label{synod-quorums} For proposal identifiers $p_2 \prec p_1 \in \mathbb
 P$ there are sets of quorums $Q^\textrm{I}(p_1)$ and
 $Q^\textrm{II}(p_2) \subseteq \mathcal P \mathbb A$ such that if $\prop{}{p_1}$
-and $\chosen{}{p_2}$ then ${Q^\textrm{I}(p_1) \smile Q^\textrm{II}(p_2)}$.
+and $\chosen{}{p_2}$ then ${Q^\textrm{I}(p_1) \frown Q^\textrm{II}(p_2)}$.
 
 \item \label{synod-fprom} $\fprom{}{a}{p}$ only if $\neg\acc{}{a}{p'}$ for all
 ${p' \prec p}$.
@@ -1124,7 +1123,7 @@ there is a quorum $q^\textrm{I} \in Q^\textrm{I}(p_1)$ such that either
 $\fprom{}{a}{p_1}$ or $\exists p'.  \bprom{}{a}{p_1}{p'}$ for all $a \in
 q^\textrm{I}$.  Let $P = \{ p' \mid \exists a \in q^\textrm{I}.
 \bprom{}{a}{p_1}{p'} \}$ be the set of proposals referenced by forced promises.
-By invariant \ref{synod-quorums}, ${Q^\textrm{I}(p_1) \smile
+By invariant \ref{synod-quorums}, ${Q^\textrm{I}(p_1) \frown
 Q^\textrm{II}(p_2)}$ and hence $q^\textrm{I} \cap q^\textrm{II} \ne
 \varnothing$ so it follows that $P \ne \varnothing$, which means that $v(p_1) =
 v(\mathrm{max}(P))$ by invariant \ref{synod-prop}. Let $a_{\mathrm{max}} \in
@@ -1161,7 +1160,7 @@ invariants.
 \begin{enumerate}
 
 \item\label{paxos-quorums} There is a sequence of quorums $Q_0, Q_1, \ldots$
-where ${Q_e \smile Q_e \smile Q_{e+1}}$ for all $e$.
+where ${Q_e \frown Q_e \frown Q_{e+1}}$ for all $e$.
 
 \item\label{paxos-mprom} $\mprom{i}{a}{p}$ only if $\neg\acc{i'}{a}{p'}$ for all
 $i' \ge i$ and $p' \prec p$.
@@ -1223,11 +1222,11 @@ Q^\textrm{II}(p) &= Q_{e(i)}, \\
 \]
 
 To show Synod invariant \ref{synod-quorums}, let $p'_2 \prec p'_1$ where
-$\prop{i}{p'_1}$ and $\chosen{i}{p'_2}$. Certainly $\varnothing \smile
-Q_{e(i)}$, so it remains to show that $Q_{e(p'_1)} \smile Q_{e(i)}$ if $e(p'_1)
+$\prop{i}{p'_1}$ and $\chosen{i}{p'_2}$. Certainly $\varnothing \frown
+Q_{e(i)}$, so it remains to show that $Q_{e(p'_1)} \frown Q_{e(i)}$ if $e(p'_1)
 \le e(i)$.  But since $\chosen{i}{p'_1}$ it follows that $e(i) \le e(p'_1) + 1$
 and hence $e(p'_1) \in \{e(i) - 1, e(i)\}$ and the result follows since ${Q_e
-\smile Q_e \smile Q_{e+1}}$ for all $e$. The remaining invariants are simple to
+\frown Q_e \frown Q_{e+1}}$ for all $e$. The remaining invariants are simple to
 show and hence $v_i(p_1) = v_i(p_2)$ by theorem \ref{synod-safety-theorem}.
 \end{proof}
 
@@ -1275,7 +1274,7 @@ Q_{e(i)}$ such that $\acc{i}{a}{p}$ has been received from every $a \in q$.
 
 \begin{theorem} \label{weights-nearly-equal} Let $w, w' : \mathbb A \to \mathbb
 N$ be weight functions and let $a_0 \in \mathbb A$ be such that $|w(a_0) -
-w'(a_0)| \le 1$ and $w(a) = w'(a)$ for all $a \ne a_0$. Then $M(w) \smile
+w'(a_0)| \le 1$ and $w(a) = w'(a)$ for all $a \ne a_0$. Then $M(w) \frown
 M(w')$.  \end{theorem}
 
 \begin{proof} Let $q \in M(w)$ and $q' \in M(w')$. By the
@@ -1327,7 +1326,7 @@ A} + 2 - 2d_{q'} = 2 \pm d_\mathbb A \ge 1$ and hence $q \cap q' \ne \varnothing
 \end{proof}
 
 \begin{corollary} \label{weights-equal} If $w : \mathbb A \to \mathbb N$ is a
-weight function then \[M(w) \smile M(w).\]  \end{corollary}
+weight function then \[M(w) \frown M(w).\]  \end{corollary}
 
 \begin{proof}
 This is a special case of theorem \ref{weights-nearly-equal}, where $w' = w$.
