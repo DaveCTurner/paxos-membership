@@ -1124,22 +1124,15 @@ P$ there are memberships $Q^\textrm{I}(p_1)$ and $Q^\textrm{II}(p_2) \subseteq
 \item \label{synod-fprom} $\fprom{}{a}{p}$ only if $\neg\acc{}{a}{p'}$ for all
 ${p' \prec p}$.
 
-\item \label{synod-bprom} $\bprom{}{a}{p}{p'}$ only if
-\begin{itemize}
-\item $p' \prec p$,
-\item $\acc{}{a}{p'}$, and
-\item $p'$ is the greatest such proposal, in the sense that
+\item \label{synod-bprom} $\bprom{}{a}{p}{p'}$ only if $p' \prec p$,
+$\acc{}{a}{p'}$, and $p'$ is the greatest such proposal, in the sense that
 $\neg\acc{}{a}{p''}$ for all $p''$ having $p' \prec p'' \prec p$.
-\end{itemize}
 
 \item \label{synod-prop} $\prop{}{p}$ only if there is a quorum $q^\textrm{I}
-\in Q^\textrm{I}(p)$ such that
-\begin{itemize}
-\item for every $a \in q^\textrm{I}$ either $\fprom{}{a}{p}$ or $\exists p'.
-\bprom{}{a}{p}{p'}$, and
-\item if $P = \{ p' \mid \exists a \in q^\textrm{I}. \bprom{}{a}{p}{p'} \}
-\ne \varnothing$ then $v(p) = v(\mathrm{max}(P))$.
-\end{itemize}
+\in Q^\textrm{I}(p)$ such that for every $a \in q^\textrm{I}$ either
+$\fprom{}{a}{p}$ or $\exists p'.  \bprom{}{a}{p}{p'}$, and if $P = \{ p' \mid
+\exists a \in q^\textrm{I}. \bprom{}{a}{p}{p'} \} \ne \varnothing$ then $v(p) =
+v(\mathrm{max}(P))$.
 
 \item \label{synod-acc} $\acc{}{a}{p}$ only if $\prop{}{p}$.
 
@@ -1170,14 +1163,14 @@ q^\textrm{II}$.  Also, since $\prop{}{p_1}$, by invariant \ref{synod-prop}
 there is a quorum $q^\textrm{I} \in Q^\textrm{I}(p_1)$ such that either
 $\fprom{}{a}{p_1}$ or $\exists p'.  \bprom{}{a}{p_1}{p'}$ for all $a \in
 q^\textrm{I}$.  Let $P = \{ p' \mid \exists a \in q^\textrm{I}.
-\bprom{}{a}{p_1}{p'} \}$ be the set of proposals referenced by forced promises.
-By invariant \ref{synod-quorums}, ${Q^\textrm{I}(p_1) \frown
-Q^\textrm{II}(p_2)}$ and hence $q^\textrm{I} \cap q^\textrm{II} \ne
-\varnothing$ so it follows that $P \ne \varnothing$, which means that $v(p_1) =
-v(\mathrm{max}(P))$ by invariant \ref{synod-prop}. Let $a_{\mathrm{max}} \in
-q^\textrm{I}$ be such that $\bprom{}{a_{\mathrm{max}}}{p_1}{\mathrm{max}(P)}$.
-By invariant \ref{synod-bprom} it follows that $\mathrm{max}(P) \prec p_1$ and
-also that $\acc{}{a_{\mathrm{max}}}{\mathrm{max}(P)}$ and hence
+\bprom{}{a}{p_1}{p'} \}$.  By invariant \ref{synod-quorums},
+${Q^\textrm{I}(p_1) \frown Q^\textrm{II}(p_2)}$ and hence $q^\textrm{I} \cap
+q^\textrm{II} \ne \varnothing$ so it follows that $P \ne \varnothing$, which
+means that $v(p_1) = v(\mathrm{max}(P))$ by invariant \ref{synod-prop}. Let
+$a_{\mathrm{max}} \in q^\textrm{I}$ be such that
+$\bprom{}{a_{\mathrm{max}}}{p_1}{\mathrm{max}(P)}$.  By invariant
+\ref{synod-bprom} it follows that $\mathrm{max}(P) \prec p_1$ and also that
+$\acc{}{a_{\mathrm{max}}}{\mathrm{max}(P)}$ and hence
 $\prop{}{\mathrm{max}(P)}$ by invariant \ref{synod-acc}. Furthermore by lemma
 \ref{synod-acc-bprom} it follows that $p_2 \preceq \mathrm{max}(P)$ and since
 $p_1$ was assumed to be the smallest counterexample it must be that
@@ -1187,13 +1180,12 @@ contradiction as required.  \end{proof}
 \begin{theorem}\label{synod-safety-theorem} If $\chosen{}{p_1}$ and
 $\chosen{}{p_2}$ then $v(p_1) = v(p_2)$.  \end{theorem}
 
-\begin{proof} If $p_1 = p_2$ then the result is clear, so assume that $p_1 \ne
-p_2$ and then without loss of generality that ${p_2 \prec p_1}$. By invariant
-\ref{synod-chosen} there is a quorum $q \in Q^\textrm{II}(p_1)$ such that
-$\acc{}{a}{p_1}$ for every node $a \in q$. Since $q$ is nonempty, by invariant
-\ref{synod-acc} it must be that $\prop{}{p_1}$ was previously sent.  Therefore
-by lemma \ref{synod-lemma} it follows that $v(p_1) = v(p_2)$ as required.
-\end{proof}
+\begin{proof} Without loss of generality assume that ${p_2 \prec p_1}$. By
+invariant \ref{synod-chosen} there is a quorum $q \in Q^\textrm{II}(p_1)$ such
+that $\acc{}{a}{p_1}$ for every node $a \in q$. Since $q$ is nonempty, by
+invariant \ref{synod-acc} it must be that $\prop{}{p_1}$ was previously sent.
+Therefore by lemma \ref{synod-lemma} it follows that $v(p_1) = v(p_2)$ as
+required.  \end{proof}
 
 
 \section{Consistency of the Paxos algorithm}
