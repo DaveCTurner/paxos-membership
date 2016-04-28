@@ -592,22 +592,30 @@ hashes, which is useful if the values themselves are expensive to transmit
 between nodes. This can be taken one step further and the values can be
 completely elided from the messages that take part in the Synod protocol,
 allowing considerably more freedom in the implementation of the function $v$
-without sacrificing consistency.  This works because\footnote{TODO nonsequitur}
-if the invariants of appendix \ref{synod-safety} are satisfied with a value
-function $v$ then they are satisfied for any value function $v'$ that agrees
-with $v$ on sent proposals, i.e. having $v(p) = v'(p)$ whenever $\prop{}{p}$.
-Furthermore only $\owner{p}$ may propose $p$, so if it has not yet proposed a
-value for $p$ it can, in effect, freely modify $v(p)$ as desired.
+without sacrificing consistency.
 
-To ensure the system satisfies the desired liveness properties, the
-implementation of $v$ must be resilient to the same failure modes as the rest
-of the system. In these terms the classic presentation ensures this resilience
-by including relevant values of $v$ in messages, but since the value of each
-proposal $p$ has at most one writer, $\owner{p}$, more efficient mechanisms are
-available. For instance, the Cheap Paxos algorithm implements $v$ using only
-the $f+1$ primary processors and none of the auxiliary processors, representing
-$v$ as an optimised version of a replicated insert-only set \cite{crdts} of
-pairs $\{ \langle p, v(p) \rangle \mid \prop{}{p} \}$.
+Although it appears that the function $v$ is fixed, in practice it is allowed
+to change as the system runs. Treating it as fixed simplifies the consistency
+proof and highlights that its values need not be included in all messages, but
+means that the system cannot be shown to satisfy any useful liveness
+properties.
+
+To recover liveness, it is enough to note that if the invariants of appendix
+\ref{synod-safety} are satisfied with a value function $v$ then they are
+satisfied for any value function $v'$ that agrees with $v$ on sent proposals,
+i.e. having $v(p) = v'(p)$ whenever $\prop{}{p}$.  Furthermore only $\owner{p}$
+may propose $p$, so if it has not yet proposed a value for $p$ it can, in
+effect, freely modify $v(p)$ as desired.
+
+It is also important for liveness that the implementation of $v$ is resilient
+to the same failure modes as the rest of the system. In these terms the classic
+presentation ensures this resilience by including relevant values of $v$ in
+messages. Since the value of each proposal $p$ has at most one writer,
+$\owner{p}$, there are more efficient ways to implement $v$: for instance, the
+Cheap Paxos algorithm implements $v$ using only the $f+1$ primary processors
+and none of the auxiliary processors, representing $v$ as an optimised version
+of a replicated insert-only set \cite{crdts} of pairs $\{ \langle p, v(p)
+\rangle \mid \prop{}{p} \}$.
 
 \subsection{Per-phase quorums}\label{per-phase-quorums}
 
