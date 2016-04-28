@@ -628,20 +628,18 @@ every element of $Q_1$ intersects every member of $Q_2$: more formally $Q_1
 \varnothing}$.
 
 In the original presentation of the Synod algorithm any (weighted) majority of
-the nodes could be used as a quorum: roughly speaking\footnote{TODO have not
-defined these yet}, \[Q^\textrm{I}(p_1) = Q^\textrm{II}(p_2) = \{ q \mid q
-\text{ is a majority}\}\] was a constant, where $Q^\textrm{I}(p)$ and $Q^\textrm{II}(p)$
-are the phase-I and phase-II memberships at proposal $p$ respectively.
-
-In this case $Q^\textrm{I}(p_1) \frown Q^\textrm{II}(p_2)$ for all $p_1$ and
-$p_2$ since all majorities intersect.  This intersection property is stronger
-than needed, and the ability to vary the set of quorums by proposal and by
-phase is the key ingredient in being able to perform jitter-free membership
-changes. The proof of theorem \ref{synod-safety-theorem} in appendix
-\ref{synod-safety} is a generalisation of the original one to demonstrate that
-consistency is preserved in the Synod algorithm even under the weaker
-assumption that $Q^\textrm{I}(p_1) \frown Q^\textrm{II}(p_2)$ only when
-$\chosen{}{p_2}$ and $p_1 \succ p_2$.
+the nodes could be used as a quorum: roughly speaking, \[Q^\textrm{I}(p_1) =
+Q^\textrm{II}(p_2) = \{ q \mid q \text{ is a majority}\}\] was a constant,
+where $Q^\textrm{I}(p)$ and $Q^\textrm{II}(p)$ are the phase-I and phase-II
+memberships at proposal $p$ respectively.  In this case $Q^\textrm{I}(p_1)
+\frown Q^\textrm{II}(p_2)$ for all $p_1$ and $p_2$ since all majorities
+intersect.  This intersection property is stronger than needed, and the ability
+to vary the set of quorums by proposal and by phase is the key ingredient in
+being able to perform jitter-free membership changes. The proof of theorem
+\ref{synod-safety-theorem} in appendix \ref{synod-safety} is a generalisation
+of the original one to demonstrate that consistency is preserved in the Synod
+algorithm even under the weaker assumption that $Q^\textrm{I}(p_1) \frown
+Q^\textrm{II}(p_2)$ only when $\chosen{}{p_2}$ and $p_1 \succ p_2$.
 
 \section{The Paxos algorithm}
 
