@@ -1313,13 +1313,16 @@ v_i(p_2)$ as required.  \end{proof}
 
 \section{Consecutive epochs using weight-based membership}
 
-\begin{theorem} \label{weights-nearly-equal} Let $w, w' : \mathbb A \to \mathbb
-N$ be weight functions and let $a_0 \in \mathbb A$ be such that $|w(a_0) -
-w'(a_0)| \le 1$ and $w(a) = w'(a)$ for all $a \ne a_0$. Then $M(w) \frown
-M(w')$.  \end{theorem}
+\begin{theorem} \label{weights-nearly-equal} If $w, w' : \mathbb A \to \mathbb
+N$ are weight functions such that $\sum_{a \in \mathbb A} |w'(a) - w(a)| \le 1$
+then $M(w) \frown M(w')$.  \end{theorem}
 
-\begin{proof} Let $q \in M(w)$ and $q' \in M(w')$. By the
-  definition of $M$, and since $w$ and $w'$ take only integer values,
+\begin{proof}Since $w$ and $w'$ take integer values, they must differ at at
+most one node by at most $1$. Let $a_0$ be the node such that $|w'(a_0) -
+w(a_0)| \le 1$ and $w(a) = w'(a)$ for all $a \ne a_0$.
+%
+Let $q \in M(w)$ and $q' \in M(w')$. By the definition of $M$, and since $w$
+and $w'$ take only integer values,
 %
 $\sum_{a \in q} 2 w(a) \ge \sum_{a \in \mathbb A} w(a) + 1$
 %
