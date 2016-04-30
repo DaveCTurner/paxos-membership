@@ -440,18 +440,18 @@ d.turner@tracsis.com)
 \begin{abstract} Paxos is an algorithm for building fault-tolerant distributed
 systems. Practical implementations of this kind of system must support dynamic
 reconfiguration in order to be able to replace failed components and perform
-other administrative tasks. Paxos can achieve high performance by pipelining:
-starting work on new requests before existing requests have completed, but
+other administrative tasks. Paxos can achieve high performance by pipelining
+(starting work on new requests before existing requests have completed) but
 typically limits the length of the pipeline to support dynamic reconfiguration.
-If the pipeline is too long then a reconfiguration may take a long time to
-complete, but if it too short then it may stall when the system is being
-reconfigured which can be observed as jitter in the rate that the system makes
-progress. This paper shows that the algorithm can be modified to support
+With this approach if the pipeline is too long then a reconfiguration may take
+a long time to take effect, but if it too short then it may stall when the
+system is being reconfigured which can be observed as jitter in the rate that
+the system makes progress. Instead the algorithm can be modified to support
 dynamic reconfigurations with an unbounded pipeline as long as the
-reconfigurations are sufficiently small, and gives a simple characterisation of
-a set of sufficiently small reconfigurations that is useful in practice. It
-also shows that an arbitrary reconfiguration can be performed in a single step
-by temporarily limiting the pipeline length.\end{abstract}
+reconfigurations are sufficiently small, and there is a simple characterisation
+of a set of sufficiently small reconfigurations that is useful in practice.
+With this approach it is still possible to perform an arbitrary reconfiguration
+in a single step by temporarily limiting the pipeline length.\end{abstract}
 
 % Note that keywords are not normally used for peerreview papers.
 %\begin{IEEEkeywords} TODO???
@@ -812,8 +812,8 @@ following:
 \begin{itemize}
 %
 \item This process runs without jitter as long as there are no failures.  If
-there is a failure then consistency is still preserved but there may be a
-performance impact. This is unavoidable in general.
+there is a failure then consistency and liveness are still preserved but there
+may be a performance impact. This is unavoidable in general.
 %
 \item The first part of this process requires that $e(i_\mathrm{max})$
 increases by at most $1$ before the new phase I has finished running. If
@@ -1071,14 +1071,7 @@ three: \texttt{ap-southeast-2}, \texttt{eu-west-1}, \texttt{sa-east-1} and
 \texttt{us-west-2}. Similarly, only one Google Cloud Platform region
 (\texttt{us-central1}) has four zones and all the others have three zones.},
 particularly if the fourth zone is only required to ensure consistency in
-relatively rare periods of maintenance. The more obvious migration process:
-\[\begin{array}{rcccc}
-\textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
-w_e&1&0&1&1\\
-w_{e+1}&1&1&1&1\\
-w_{e+2}&0&1&1&1\\
-\end{array}\]
-requires four zones in epoch $e+1$ to ensure resilience to a zone-wide failure.
+relatively rare periods of maintenance.
 
 % An example of a floating figure using the graphicx package.
 % Note that \label must occur AFTER (or within) \caption.
