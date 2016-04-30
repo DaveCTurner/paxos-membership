@@ -444,14 +444,14 @@ other administrative tasks. Paxos can achieve high performance by pipelining
 (starting work on new requests before existing requests have completed) but
 typically limits the length of the pipeline to support dynamic reconfiguration.
 With this approach if the pipeline is too long then a reconfiguration may take
-a long time to take effect, but if it too short then it may stall when the
-system is being reconfigured which can be observed as jitter in the rate that
-the system makes progress. Instead the algorithm can be modified to support
-dynamic reconfigurations with an unbounded pipeline as long as the
-reconfigurations are sufficiently small, and there is a simple characterisation
-of a set of sufficiently small reconfigurations that is useful in practice.
-With this approach it is still possible to perform an arbitrary reconfiguration
-in a single step by temporarily limiting the pipeline length.\end{abstract}
+a long time to complete, but if it too short then it may stall when the system
+is being reconfigured which can be observed as jitter in the rate that the
+system makes progress. Instead the algorithm can be modified to support dynamic
+reconfigurations with an unbounded pipeline as long as the reconfigurations are
+sufficiently small, and there is a simple characterisation of a set of
+sufficiently small reconfigurations that is useful in practice.  With this
+approach it is still possible to perform an arbitrary reconfiguration in a
+single step by temporarily limiting the pipeline length.\end{abstract}
 
 % Note that keywords are not normally used for peerreview papers.
 %\begin{IEEEkeywords} TODO???
@@ -519,7 +519,7 @@ configuration change is chosen at instance $i$ the effects of the change are
 postponed until instance $i + \alpha$. If $\alpha$ is large enough, there is
 time to run the new phase I before the pipeline stalls.  On the other hand, if
 $\alpha$ is too large then the configuration change can take an unreasonably
-long time to take effect.
+long time to complete.
 
 The pipeline length $\alpha$ may be allowed to vary while the system is
 running, so it is certainly possible to design a mechanism for choosing a
@@ -537,8 +537,8 @@ The technique shown here also supports arbitrary configuration changes
 happening in a single step just as in Dynamic Paxos, but any changes that are
 not sufficiently small require the pipeline length to be temporarily limited
 and continue to carry the risk of jitter. In reality, most changes would
-normally be performed as a sequence of these small, jitter-free changes as
-discussed in section \ref{discussion} below.
+normally be performed as a sequence of small, jitter-free changes as discussed
+in section \ref{discussion} below.
 
 \section{The Synod Algorithm}
 
@@ -581,9 +581,9 @@ solely on the messages it alone has sent and received, that no other node has
 sent it either. This works in practice because the messages $\fprom{}{a}{b}$,
 $\bprom{}{a}{b}{b'}$ and $\acc{}{a}{b}$ may only originate from the node $a$,
 and there is a function $\mathrm{owner} : \mathbb B \to \mathbb A$ assigning an
-owner to each ballot such that the message $\prop{}{b}$ may only originate
-from node $\owner{b}$.  It is convenient to add another predicate
-$\chosen{}{b}$ which indicates that the ballot $b$ has been chosen.
+owner to each ballot such that the message $\prop{}{b}$ may only originate from
+$\owner{b}$.  It is convenient to add another predicate $\chosen{}{b}$ which
+indicates that the ballot $b$ may be chosen.
 
 There is a function $v : \mathbb B \to \mathbb V$ assigning a value to each
 ballot, discussed in more detail in section \ref{value-function} below, and
@@ -674,18 +674,19 @@ presentation prepare messages $\prep{b}$ apply to all instances so do not need
 to be indexed.
 
 Recall that in each Synod instance each node is a state machine whose
-transitions are caused by the receipt of messages. In Paxos, let $S_i$ be the
-state machine for instance $i$. Because at any time each node has only ever
-received finitely many messages, there must be an instance number $i_\infty$
-such that all instances $i \ge i_\infty$ are in the same state. A Paxos node
-therefore needs to have a separate state machine $S_i$ for each instance $i <
-i_\infty$ but can represent all instances $i \ge i_\infty$ with a single state
-machine $S_\infty$. When a message mentioning an instance $i \ge i_\infty$ is
-received, the node must increase $i_\infty$ to $i'_\infty > i$ and create state
-machines $S_j$ for $i_\infty \le j < i'_\infty$, each of which starts out as a
-copy of $S_\infty$. Typically, after an instance has been chosen a node will
-ignore any further messages about that instance and discard the corresponding
-state machines, which ensures resource usage does not grow unboundedly.
+transitions are caused by the receipt of messages. In a Paxos node, let $S_i$
+be the Synod state machine for instance $i$. Because at any time each node has
+only ever received finitely many messages, there must be an instance number
+$i_\infty$ such that all instances $i \ge i_\infty$ are in the same state, so a
+Paxos node therefore needs to have a separate state machine $S_i$ for each
+instance $i < i_\infty$ but can represent all instances $i \ge i_\infty$ with a
+single state machine $S_\infty$. When a message mentioning an instance $i \ge
+i_\infty$ is received, the node must increase $i_\infty$ to $i'_\infty > i$ and
+create state machines $S_j$ for $i_\infty \le j < i'_\infty$, each of which
+starts out as a copy of $S_\infty$. Typically, after an instance has been
+chosen a node will ignore any further messages about that instance and discard
+the corresponding state machines, which ensures resource usage does not grow
+unboundedly.
 
 As in the Synod algorithm, phase I starts with a broadcast of $\prep{b}$ for
 some $b$ to which each node $a$ may respond with a set of promises
@@ -707,7 +708,7 @@ v_i(b')$.
 
 Changes in the cluster configuration are handled with a sequence of numbered
 \textit{epochs} $1, 2, \ldots$ and configurations $Q_0, Q_1, Q_2, \ldots$
-satisfying $Q_{e-1} \frown Q_e$ and $Q_e \frown Q_e$ for all epochs $e$.  This
+satisfying $Q_{e-1} \frown Q_e$ and $Q_e \frown Q_e$ for all $e$.  This
 means $Q_{e-1}$ and $Q_e$ can be used for the phase-I and phase-II
 configurations of a Paxos instance respectively by the observation of
 \ref{per-phase-quorums} above, or alternatively $Q_e$ can be used for both
@@ -717,15 +718,14 @@ There are also two nondecreasing functions, both written $e(\cdot)$, which
 respectively assign an epoch number $e(i)$ to each instance $i$, and an epoch
 number $e(b)$ to each ballot $b$. A node may emit $\prop{i}{b}$ if $e(b) \le
 e(i)$ and it has received promises for ballot $b$ in instance $i$ from a quorum
-$q^\textrm{I} \in Q_{e(b)}$. A node may decide $\chosen{i}{b}$ if ${e(i) \le
-e(b)+1}$ and it has received $\acc{i}{a}{b}$ from a quorum ${q^\textrm{II} \in
-Q_{e(i)}}$. Thus if $\chosen{i}{b}$ then ${e(b) \in \{ e(i)-1, e(i) \}}$ and
-hence $Q_{e(b)} \frown Q_{e(i)}$ as required. It is worth emphasising the
-subtle point that phase I uses the configuration $Q_{e(b)}$ corresponding to
-the ballot $b$ whereas phase II uses the configuration $Q_{e(i)}$ for the
-instance $i$, with extra conditions to ensure that $e(b) \le e(i) \le e(b) + 1$
-and therefore that the epochs used in the two phases are close enough to ensure
-consistency.
+in $Q_{e(b)}$. A node may decide $\chosen{i}{b}$ if ${e(i) \le e(b)+1}$ and it
+has received $\acc{i}{a}{b}$ from a quorum in $Q_{e(i)}$. Thus if
+$\chosen{i}{b}$ then ${e(b) \in \{ e(i)-1, e(i) \}}$ and hence $Q_{e(b)} \frown
+Q_{e(i)}$ as required. It is worth emphasising the subtle point that phase I
+uses the configuration $Q_{e(b)}$ corresponding to the ballot $b$ whereas phase
+II uses the configuration $Q_{e(i)}$ for the instance $i$, with extra
+conditions to ensure that $e(b) \le e(i) \le e(b) + 1$ and therefore that the
+epochs used in the two phases are close enough to ensure consistency.
 
 \subsection{Dynamic configuration changes}
 
@@ -778,7 +778,7 @@ e(i_0) = e(i_\mathrm{max}) = e_\mathrm{max}}$ and the node $\owner{b}$ has
 received a quorum of promises $q^\textrm{I} \in Q_{e(b)}$ for ballot $b$ for
 all instances $i \ge i_0$. In this state, $\owner{b}$ may emit $\prop{i}{b}$
 for any $i \ge i_0$, since $e(b) = e(i_0) \le e(i)$ as $e$ is nondecreasing.
-The node $\owner{b}$ is known as the \textit{leader} and its ballots are
+The node $\owner{b}$ is known as the \textit{leader} and its proposals are
 normally accepted without undue delay by all other nodes.
 
 When in this state, if an operator wishes to change the cluster configuration
@@ -955,7 +955,7 @@ is nondecreasing.
 \subsubsection{Choosing values} Any node may deduce $\chosen{b}{i}$ if
 \begin{itemize} \item $e(i) \le e(b) + 1$, \item for each $j \le i - \kappa$
 there is a $b'$ with $\chosen{j}{b'}$, and \item there is a quorum $q \in
-Q_{e(i)}$ such that $\acc{i}{a}{b}$ has been received for every $a \in q$.
+Q_{e(i)}$ such that $\acc{i}{a}{b}$ has been received from every $a \in q$.
 \end{itemize}
 
 \subsubsection{Proposal identifiers} Recall that $\mathbb B$ requires a
@@ -1063,7 +1063,7 @@ $2f_z + 1 \ge 3$ zones.
 
 The replacement process described above requires a minimal three zones
 throughout as it is safe to have $a_\mathrm{old}$ and $a_\mathrm{new}$ in the
-same zone. This is important as in many operating environments it may be
+same zone. This is important as in many operating environments it may be too
 expensive or complicated to arrange for four independent zones\footnote{For
 instance, at time of writing, only one Amazon Web Services region
 (\texttt{us-east-1}) has four independent zones, whereas four of them have
