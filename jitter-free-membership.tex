@@ -531,7 +531,7 @@ but not Byzantine, in the sense that messages may be delayed, reordered,
 duplicated and dropped but not corrupted. It is briefly reviewed here for the
 sake of consistency of notation and to introduce some generalisations.
 
-Let $\mathbb P$ be a set of \textit{proposal identifiers} with a wellfounded
+Let $\mathbb B$ be a set of \textit{ballot identifiers} with a wellfounded
 total order $\prec$. Let $\mathbb A$ be a set of \textit{node identifiers} and
 let $\mathbb V$ be the set of values that may be chosen.
 
@@ -545,50 +545,50 @@ let $\mathbb V$ be the set of values that may be chosen.
 \def\owner#1{\mathrm{owner}(#1)}
 
 The Synod algorithm involves four kinds of message, described below.
-Throughout, $p, p' \in \mathbb P$ and $a \in \mathbb A$.  Phase I starts with
-the broadcast of a \textit{prepare} message $\prep{p}$ to which each node may
+Throughout, $a \in \mathbb A$ and $b, b' \in \mathbb B$.  Phase I starts with
+the broadcast of a \textit{prepare} message $\prep{b}$ to which each node may
 respond with a \textit{promise} message, either a \textit{free promise} written
-$\fprom{}{a}{p}$ or a \textit{forced promise} written $\bprom{}{a}{p}{p'}$
+$\fprom{}{a}{b}$ or a \textit{forced promise} written $\bprom{}{a}{b}{b'}$
 where $a$ identifies the responding node.  Phase II starts with the broadcast
-of a \textit{proposal} message $\prop{}{p}$ to which each node $a$ may respond
-with an \textit{acceptance} message $\acc{}{a}{p}$.
+of a \textit{proposal} message $\prop{}{b}$ to which each node $a$ may respond
+with an \textit{acceptance} message $\acc{}{a}{b}$.
 
 It is convenient also to use these symbols as predicates indicating whether the
 corresponding messages have been sent. For instance, the predicate
-$\acc{}{a}{p}$ indicates that the message $\acc{}{a}{p}$ has been sent and
-$\neg \prop{}{p}$ indicates that the message $\prop{}{p}$ has not been sent.
+$\acc{}{a}{b}$ indicates that the message $\acc{}{a}{b}$ has been sent and
+$\neg \prop{}{b}$ indicates that the message $\prop{}{b}$ has not been sent.
 Because messages may be delayed, reordered or dropped, a node can only know a
 message has not been sent if it has not sent it itself and can prove, based
 solely on the messages it alone has sent and received, that no other node has
-sent it either. This works in practice because the messages $\fprom{}{a}{p}$,
-$\bprom{}{a}{p}{p'}$ and $\acc{}{a}{p}$ may only originate from the node $a$,
-and there is a function $\mathrm{owner} : \mathbb P \to \mathbb A$ assigning an
-owner to each proposal such that the message $\prop{}{p}$ may only originate
-from node $\owner{p}$.  It is convenient to add another predicate
-$\chosen{}{p}$ which indicates that the proposal $p$ has been chosen.
+sent it either. This works in practice because the messages $\fprom{}{a}{b}$,
+$\bprom{}{a}{b}{b'}$ and $\acc{}{a}{b}$ may only originate from the node $a$,
+and there is a function $\mathrm{owner} : \mathbb B \to \mathbb A$ assigning an
+owner to each ballot such that the message $\prop{}{b}$ may only originate
+from node $\owner{b}$.  It is convenient to add another predicate
+$\chosen{}{b}$ which indicates that the ballot $b$ has been chosen.
 
-There is a function $v : \mathbb P \to \mathbb V$ assigning a value to each
-proposal, discussed in more detail in section \ref{value-function} below, and
+There is a function $v : \mathbb B \to \mathbb V$ assigning a value to each
+ballot, discussed in more detail in section \ref{value-function} below, and
 the system satisfies a set of invariants as described in appendix
 \ref{synod-safety} from which can be shown that consistency is ensured:
-\[\textrm{if } \chosen{}{p} \textrm{ and } \chosen{}{p'} \textrm { then } v(p)
-= v(p').\]
+\[\textrm{if } \chosen{}{b} \textrm{ and } \chosen{}{b'} \textrm { then } v(b)
+= v(b').\]
 
 Each node operates as a state machine whose transitions are caused by the
-receipts of messages. A node may emit $\prop{}{p}$ when it considers phase I to
-be complete at proposal $p$, which is when promise messages for $p$ have been
-received from a quorum of nodes, and similarly may deduce $\chosen{}{p}$ when
-it considers phase II to be complete at $p$, which is when acceptances of $p$
+receipts of messages. A node may emit $\prop{}{b}$ when it considers phase I to
+be complete at ballot $b$, which is when promise messages for $b$ have been
+received from a quorum of nodes, and similarly may deduce $\chosen{}{b}$ when
+it considers phase II to be complete at $b$, which is when acceptances of $b$
 from a quorum of nodes have been received. The phase-I and phase-II quorums are
-chosen so as to always contain at least one node in common, but may otherwise
-vary depending on the proposal number $p$ and the phase as discussed in section
+chosen so as to always contain at least one node in common, but may vary
+depending on the ballot $b$ and the phase as discussed in section
 \ref{per-phase-quorums} below.
 
 \subsection{Implementing the value function}\label{value-function}
 
-In the original presentation of the Synod algorithm, the values of proposals
-are carried along with their identifiers in the messages $\bprom{}{a}{p}{
-p',v(p') }$, $\prop{}{ p,v(p)}$ and $\acc{}{a}{ p,v(p) }$. Observation O4 in
+In the original presentation of the Synod algorithm, the values of ballots
+are carried along with their identifiers in the messages $\bprom{}{a}{b}{
+b',v(b') }$, $\prop{}{ b,v(b)}$ and $\acc{}{a}{ b,v(b) }$. Observation O4 in
 \cite{cheap-paxos} notes that these values can be replaced in some cases by
 hashes, which is useful if the values themselves are expensive to transmit
 between nodes. This can be taken one step further and the values can be
@@ -604,15 +604,15 @@ properties.
 
 To recover liveness, it is enough to note that if the invariants of appendix
 \ref{synod-safety} are satisfied with a value function $v$ then they are
-satisfied for any value function $v'$ that agrees with $v$ on sent proposals,
-i.e. having $v(p) = v'(p)$ only whenever $\prop{}{p}$.  Furthermore only
-$\owner{p}$ may propose $p$, so if it has not yet proposed a value for $p$ it
-can prove that $\neg\prop{}{p}$ and therefore freely modify $v(p)$.
+satisfied for any value function $v'$ that agrees with $v$ on proposed ballots,
+i.e. having $v(b) = v'(b)$ only whenever $\prop{}{b}$.  Furthermore only
+$\owner{b}$ may propose $b$, so if it has not yet proposed a value for $b$ it
+can prove that $\neg\prop{}{b}$ and therefore freely modify $v(b)$.
 
 It is also important for liveness that the implementation of $v$ is resilient
 to the same failure modes as the rest of the system. Since the value of each
-proposal $p$ has at most one writer, $\owner{p}$, it is possible to think of
-$v$ as an insert-only set of pairs ${\{ \langle p, v(p) \rangle \mid \prop{}{p}
+ballot $b$ has at most one writer, $\owner{b}$, it is possible to think of
+$v$ as an insert-only set of pairs ${\{ \langle b, v(b) \rangle \mid \prop{}{b}
 \}}$ which is an example of a convergent replicated data type\cite{crdts}.
 From this viewpoint, including values in all messages ensures convergence
 occurs as quickly as possible, and replicating this set across all ${2f+1}$
@@ -630,29 +630,29 @@ involved in completing phase II, so that there is at least one node to carry
 information between the two phases. Write $Q_1 \frown Q_2$ to indicate that
 every element of $Q_1$ intersects every element of $Q_2$: more formally $Q_1
 \frown Q_2$ iff every $q_1 \in Q_1$ and $q_2 \in Q_2$ have ${q_1 \cap q_2 \ne
-\varnothing}$. Write $Q^\textrm{I}(p)$ and $Q^\textrm{II}(p)$ for the sets of
+\varnothing}$. Write $Q^\textrm{I}(b)$ and $Q^\textrm{II}(b)$ for the sets of
 phase-I and phase-II quorums respectively.
 
 In the original presentation of the Synod algorithm any (weighted) majority of
-the nodes could be used as a quorum, so that $Q^\textrm{I}(p_1) \frown
-Q^\textrm{II}(p_2)$ for all $p_1$ and $p_2$ since all majorities intersect.
+the nodes could be used as a quorum, so that $Q^\textrm{I}(b_1) \frown
+Q^\textrm{II}(b_2)$ for all $b_1$ and $b_2$ since all majorities intersect.
 This intersection property is stronger than needed: the proof of theorem
 \ref{synod-safety-theorem} in appendix \ref{synod-safety} is a generalisation
 of the original one to demonstrate that consistency still holds even under the
-weaker assumption that $Q^\textrm{I}(p_1) \frown Q^\textrm{II}(p_2)$ only when
-$\prop{}{p_1}$, $\chosen{}{p_2}$ and $p_1 \succ p_2$.
+weaker assumption that $Q^\textrm{I}(b_1) \frown Q^\textrm{II}(b_2)$ only when
+$\prop{}{b_1}$, $\chosen{}{b_2}$ and $b_1 \succ b_2$.
 
 \section{The Paxos algorithm}
 
 Conceptually, Paxos is a sequence of distinct instances of the Synod algorithm
 all running simultaneously. To achieve this, the messages of the Synod
 algorithm above are indexed with the instance number $i \in \mathbb N$:
-$\fprom{i}{a}{p}$, $\bprom{i}{a}{p}{p'}$, $\prop{i}{p}$ and $\acc{i}{a}{p}$.
+$\fprom{i}{a}{b}$, $\bprom{i}{a}{b}{b'}$, $\prop{i}{b}$ and $\acc{i}{a}{b}$.
 There is another kind of message known as a \textit{multi-promise}, written
-$\mprom{i}{a}{p}$, which can be thought of as standing for the infinite set of
-free promises ${\{ \fprom{j}{a}{p} \mid j \ge i \}}$. The predicate
-$\chosen{i}{p}$ is also indexed by the instance number $i$, but in this
-presentation prepare messages $\prep{p}$ apply to all instances so do not need
+$\mprom{i}{a}{b}$, which can be thought of as standing for the infinite set of
+free promises ${\{ \fprom{j}{a}{b} \mid j \ge i \}}$. The predicate
+$\chosen{i}{b}$ is also indexed by the instance number $i$, but in this
+presentation prepare messages $\prep{b}$ apply to all instances so do not need
 to be indexed.
 
 Recall that in each Synod instance each node is a state machine whose
@@ -670,21 +670,21 @@ are chosen at a node then this node ignores any further messages about these
 instances and discards the corresponding state machines, which ensures resource
 usage does not grow unboundedly.
 
-As in the Synod algorithm, phase I starts with a broadcast of $\prep{p}$ for
-some $p$ to which each node $a$ may respond with a set of promises
-$\fprom{i}{a}{p}$, $\bprom{i}{a}{p}{p'}$ and $\mprom{i}{a}{p}$ according to its
-set of state machines. If a node receives $\mprom{i}{a}{p}$ messages from a
-quorum of nodes then its state machine $S_\infty$ has completed phase I at $p$,
+As in the Synod algorithm, phase I starts with a broadcast of $\prep{b}$ for
+some $b$ to which each node $a$ may respond with a set of promises
+$\fprom{i}{a}{b}$, $\bprom{i}{a}{b}{b'}$ and $\mprom{i}{a}{b}$ according to its
+set of state machines. If a node receives $\mprom{i}{a}{b}$ messages from a
+quorum of nodes then its state machine $S_\infty$ has completed phase I at $b$,
 and therefore any state machines that are subsequently spawned will also have
-completed phase I at $p$. Each phase II instance $i$ operates just as in the
-Synod algorithm, starting with a broadcast of $\prop{i}{p}$ to which each node
-$a$ may respond with an acceptance $\acc{i}{a}{p}$ and once acceptances have
-been received from a quorum of nodes it follows that $\chosen{i}{p}$.
+completed phase I at $b$. Each phase II instance $i$ operates just as in the
+Synod algorithm, starting with a broadcast of $\prop{i}{b}$ to which each node
+$a$ may respond with an acceptance $\acc{i}{a}{b}$ and once acceptances have
+been received from a quorum of nodes it follows that $\chosen{i}{b}$.
 
-There is a function $v_i : \mathbb P \to \mathbb V$ for each instance $i$
-giving a value to each proposal, and theorem \ref{paxos-safety-theorem} shows
-that whenever $\chosen{i}{p}$ and $\chosen{i}{p'}$ it follows that $v_i(p) =
-v_i(p')$.
+There is a function $v_i : \mathbb B \to \mathbb V$ for each instance $i$
+giving a value to each ballot, and theorem \ref{paxos-safety-theorem} shows
+that whenever $\chosen{i}{b}$ and $\chosen{i}{b'}$ it follows that $v_i(b) =
+v_i(b')$.
 
 \subsection{Configuration changes}\label{configuration-changes}
 
@@ -698,16 +698,16 @@ phases.
 
 There are also two nondecreasing functions, both written $e(\cdot)$, which
 respectively assign an epoch number $e(i)$ to each instance $i$, and an epoch
-number $e(p)$ to each proposal $p$. A node may emit $\prop{i}{p}$ if $e(p) \le
-e(i)$ and it has received promises for proposal $p$ in instance $i$ from a
-quorum $q^\textrm{I} \in Q_{e(p)}$. A node may decide $\chosen{i}{p}$ if ${e(i)
-\le e(p)+1}$ and it has received $\acc{i}{a}{p}$ from a quorum ${q^\textrm{II}
-\in Q_{e(i)}}$. Thus if $\chosen{i}{p}$ then ${e(p) \in \{ e(i)-1, e(i) \}}$
-and hence $Q_{e(p)} \frown Q_{e(i)}$ so that $q^\textrm{I} \cap q^\textrm{II}
+number $e(b)$ to each ballot $b$. A node may emit $\prop{i}{b}$ if $e(b) \le
+e(i)$ and it has received promises for ballot $b$ in instance $i$ from a
+quorum $q^\textrm{I} \in Q_{e(b)}$. A node may decide $\chosen{i}{b}$ if ${e(i)
+\le e(b)+1}$ and it has received $\acc{i}{a}{b}$ from a quorum ${q^\textrm{II}
+\in Q_{e(i)}}$. Thus if $\chosen{i}{b}$ then ${e(b) \in \{ e(i)-1, e(i) \}}$
+and hence $Q_{e(b)} \frown Q_{e(i)}$ so that $q^\textrm{I} \cap q^\textrm{II}
 \ne \varnothing$ as required. It is worth emphasising the subtle point that
-phase I uses the configuration $Q_{e(p)}$ corresponding to the proposal $p$
+phase I uses the configuration $Q_{e(b)}$ corresponding to the ballot $b$
 whereas phase II uses the configuration $Q_{e(i)}$ for the instance $i$, with
-extra conditions to ensure that $e(p) \le e(i) \le e(p) + 1$ and therefore that
+extra conditions to ensure that $e(b) \le e(i) \le e(b) + 1$ and therefore that
 the epochs used in the two phases are close enough to ensure consistency.
 
 \subsection{Dynamic configuration changes}
@@ -719,77 +719,77 @@ Q_{e_\mathrm{max}}$ and the epoch numbers of instances are tracked by a state
 machine whose state is the finite sequence $e(0), \ldots, e(i_\mathrm{max})$.
 Their transitions append one or more elements to these sequences, but do not
 change any existing elements, and the tracked sequences are always long enough
-to make progress: if $\chosen{i}{p}$ then the epoch-number state machine
+to make progress: if $\chosen{i}{b}$ then the epoch-number state machine
 satisfies $i_\mathrm{max} > i+1$ and $e_\mathrm{max} \ge e(i_\mathrm{max})$ in
-the configuration-sequence state machine. Epoch numbers $e(p)$ for proposals
-$p$ are fixed in advance and not chosen by Paxos.
+the configuration-sequence state machine. Epoch numbers $e(b)$ for ballots
+$b$ are fixed in advance and not chosen by Paxos.
 
 Slightly more generally, if the system is being used to build a state machine
 that remains consistent even if some of its transitions are reordered then it
-may be desirable to be able to deduce $\chosen{i}{p}$ even if the chosen values
+may be desirable to be able to deduce $\chosen{i}{b}$ even if the chosen values
 of all previous instances are not yet known.  This can be done with a limit
 $\kappa > 0$ on how many instances may be chosen concurrently, and the
 epoch-number state machine then must satisfy $i_\mathrm{max} > i + \kappa$.
 Note carefully that this concurrency parameter $\kappa$ is different from the
-parameter $\alpha$ in the original Dynamic Paxos: there $\prop{i}{p}$ may not
+parameter $\alpha$ in the original Dynamic Paxos: there $\prop{i}{b}$ may not
 occur until all instances $\le i - \alpha$ have been chosen whereas here there
-is no limit on which proposals can be made and the only restriction is that
-$\chosen{i}{p}$ may not occur until all instances $\le i - \kappa$ are chosen.
+is no limit on which ballots can be made and the only restriction is that
+$\chosen{i}{b}$ may not occur until all instances $\le i - \kappa$ are chosen.
 In the common case that the transitions may not be reordered, $\kappa = 1$ is
 sufficient.
 
-In order for a node to decide whether it can send out $\prop{i}{p}$ it must
-check whether it has received promises from a quorum of nodes $q \in Q_{e(p)}$,
-for which it needs to know $Q_{e(p)}$. This can be achieved by simply requiring
-nodes not to emit $\prep{p}$ messages for which $Q_{e(p)}$ is not known. The
-node must also check that $e(p) \le e(i)$; if $e(i)$ is not known then
+In order for a node to decide whether it can send out $\prop{i}{b}$ it must
+check whether it has received promises from a quorum of nodes $q \in Q_{e(b)}$,
+for which it needs to know $Q_{e(b)}$. This can be achieved by simply requiring
+nodes not to emit $\prep{b}$ messages for which $Q_{e(b)}$ is not known. The
+node must also check that $e(b) \le e(i)$; if $e(i)$ is not known then
 $i_\mathrm{max} < i$, but $e$ is a nondecreasing function so $e(i_\mathrm{max})
-\le e(i)$ and it is therefore sufficient to check that $e(p) \le
+\le e(i)$ and it is therefore sufficient to check that $e(b) \le
 e(i_\mathrm{max})$.
 
-Similarly, in order to decide if $\chosen{i}{p}$ a node must check whether it
+Similarly, in order to decide if $\chosen{i}{b}$ a node must check whether it
 has received acceptances from a quorum of nodes $q \in Q_{e(i)}$ and must
 therefore know the value of $Q_{e(i)}$. This will be known if the node has
 chosen all but the previous $\kappa$ instances, because if
-$\chosen{i-\kappa}{p'}$ then $i < i_\mathrm{max}$ and hence ${e(i) \le
+$\chosen{i-\kappa}{b'}$ then $i < i_\mathrm{max}$ and hence ${e(i) \le
 e(i_\mathrm{max}) \le e_\mathrm{max}}$ as required.
 
 \subsection{Jitter-free configuration changes}
 
-In normal running there is an instance $i_0$ and a proposal $p$ with ${e(p) =
-e(i_0) = e(i_\mathrm{max}) = e_\mathrm{max}}$ and the node $\owner{p}$ has
-received a quorum of promises $q^\textrm{I} \in Q_{e(p)}$ for proposal $p$ for
-all instances $i \ge i_0$. In this state, $\owner{p}$ may emit $\prop{i}{p}$
-for any $i \ge i_0$, since $e(p) = e(i_0) \le e(i)$ as $e$ is nondecreasing.
-The node $\owner{p}$ is known as the \textit{leader} and its proposals are
+In normal running there is an instance $i_0$ and a ballot $b$ with ${e(b) =
+e(i_0) = e(i_\mathrm{max}) = e_\mathrm{max}}$ and the node $\owner{b}$ has
+received a quorum of promises $q^\textrm{I} \in Q_{e(b)}$ for ballot $b$ for
+all instances $i \ge i_0$. In this state, $\owner{b}$ may emit $\prop{i}{b}$
+for any $i \ge i_0$, since $e(b) = e(i_0) \le e(i)$ as $e$ is nondecreasing.
+The node $\owner{b}$ is known as the \textit{leader} and its ballots are
 normally accepted without undue delay by all other nodes.
 
 When in this state, if an operator wishes to change the cluster configuration
-to $Q'$ where $Q_{e(p)} \frown Q' \frown Q'$ they must first arrange to append
-$Q'$ to the sequence of configurations, setting $Q_{e(p)+1} = Q'$ and
-$e_\mathrm{max} = e(p) + 1$, then pick a future instance $i_c > i_\mathrm{max}$
+to $Q'$ where $Q_{e(b)} \frown Q' \frown Q'$ they must first arrange to append
+$Q'$ to the sequence of configurations, setting $Q_{e(b)+1} = Q'$ and
+$e_\mathrm{max} = e(b) + 1$, then pick a future instance $i_c > i_\mathrm{max}$
 at which the change should take effect and append values to the sequence of
 epochs to set $e(i) = e(i_0)$ for $i_0 \le i < i_c$ and $e(i_c) = e(i_0) + 1$.
-Since $e(i_c) = e(i_0) + 1 \le e(p) + 1$, instance $i_c$ and any other
+Since $e(i_c) = e(i_0) + 1 \le e(b) + 1$, instance $i_c$ and any other
 instances with the same epoch may be chosen even though phase I has not yet run
-for a proposal in this epoch. As long as $e(i_\mathrm{max})$ is not increased
+for a ballot in this epoch. As long as $e(i_\mathrm{max})$ is not increased
 again, this means there is no limit on how many instances can be chosen without
 waiting for another phase I to run, which means the pipeline cannot stall.
 
 At this point, the system is no longer in normal running as defined above
-because $e(p) = e_\mathrm{max} - 1$. In order to get back to normal running, a
-proposal $p'$ should be chosen with $e(p') = e(p) + 1$ and $\owner{p'}$ should
-try and obtain a quorum of promises for $p'$ without preventing progress in
-epoch $e(p)$. It can do this by dividing the cluster into two quorums in such a
+because $e(b) = e_\mathrm{max} - 1$. In order to get back to normal running, a
+ballot $b'$ should be chosen with $e(b') = e(b) + 1$ and $\owner{b'}$ should
+try and obtain a quorum of promises for $b'$ without preventing progress in
+epoch $e(b)$. It can do this by dividing the cluster into two quorums in such a
 way that it has a \textit{casting vote} between the two quorums: it finds $q
-\in Q_{e(p)}$ and $q' \in Q_{e(p)+1}$ having $q \cap q' = \{\owner{p'}\}$ and
-broadcasts $\prep{p'}$ to all nodes in $q'$ except itself. While it is waiting
-for the promises to arrive in response to this broadcast, $\owner{p}$ continues
-to make progress choosing instances of proposal $p$ using the quorum $q \in
-Q_{e(p)}$.  Eventually when promises have arrived from every node in $q'$
-except $\owner{p'}$ itself, it can send itself a final promise, immediately
-complete phase I for proposal $p'$, and start broadcasting proposals
-$\prop{i}{p'}$.  This restores the system to normal running.
+\in Q_{e(b)}$ and $q' \in Q_{e(b)+1}$ having $q \cap q' = \{\owner{b'}\}$ and
+broadcasts $\prep{b'}$ to all nodes in $q'$ except itself. While it is waiting
+for the promises to arrive in response to this broadcast, $\owner{b}$ continues
+to make progress choosing instances of ballot $b$ using the quorum $q \in
+Q_{e(b)}$.  Eventually when promises have arrived from every node in $q'$
+except $\owner{b'}$ itself, it can send itself a final promise, immediately
+complete phase I for ballot $b'$, and start broadcasting proposals
+$\prop{i}{b'}$.  This restores the system to normal running.
 
 Notice that this process requires that $e(i_\mathrm{max})$ increases by at most
 $1$ before the new phase I has finished running. If $e(i_\mathrm{max})$ were
@@ -797,10 +797,10 @@ increased by a larger amount then this would put a limit on how many instances
 can run in the old epoch, and if the limit were reached then the pipeline may
 stall until the corresponding phase I was completed.
 
-Notice also that this process requires the existence of a node $\owner{p'}$
-that has a casting vote. If $\owner{p} \ne \owner{p'}$ then this process
-includes an \textit{abdication}: the original leader $\owner{p}$ hands over the
-leadership of the cluster to $\owner{p'}$. As the current leader is responsible
+Notice also that this process requires the existence of a node $\owner{b'}$
+that has a casting vote. If $\owner{b} \ne \owner{b'}$ then this process
+includes an \textit{abdication}: the original leader $\owner{b}$ hands over the
+leadership of the cluster to $\owner{b'}$. As the current leader is responsible
 for proposing values, the system may need to take action to redirect its
 clients from the old leader to the new leader in order to fully avoid jitter.
 
@@ -889,50 +889,50 @@ induction. Notice that all the invariants limit which messages may be sent but
 do not insist that any messages are sent at all: this section ignores liveness
 and focuses only on safety.
 
-\subsubsection{Prepare messages} Since $\prep{p}$ is not mentioned in appendix
-\ref{paxos-invariants} any node may send a $\prep{p}$ message without affecting
+\subsubsection{Prepare messages} Since $\prep{b}$ is not mentioned in appendix
+\ref{paxos-invariants} any node may send a $\prep{b}$ message without affecting
 consistency.
 
 \subsubsection{Promises and acceptances} The node $a$ may emit promises
-$\fprom{i}{a}{p}$ etc. and acceptances $\acc{i}{a}{p}$ where they do not
+$\fprom{i}{a}{b}$ etc. and acceptances $\acc{i}{a}{b}$ where they do not
 conflict with previously-sent messages. In more detail: \begin{itemize} \item
-It may emit $\mprom{i}{a}{p}$ if it has previously sent no $\acc{i'}{a}{p'}$
-for any $p'$ and any $i' \le i$. \item It may emit $\fprom{i}{a}{p}$ if it has
-previously sent no $\acc{i}{a}{p'}$ for any $p'$. \item It may emit
-$\bprom{i}{a}{p}{p'}$ if $\acc{i}{a}{p'}$, $p' \prec p$ and $p'$ is the
-greatest such proposal. \item It may emit $\acc{i}{a}{p}$ as long as
-$\prop{i}{p}$ and it does not violate any previously-made promises, in the
-sense that whenever \begin{itemize} \item $\mprom{i'}{a}{p'}$ for any $i' \le
-i$, or \item $\fprom{i}{a}{p'}$, or \item $\bprom{i}{a}{p'}{p''}$\end{itemize}
-it is the case that $p' \preceq p$. \end{itemize}
+It may emit $\mprom{i}{a}{b}$ if it has previously sent no $\acc{i'}{a}{b'}$
+for any $b'$ and any $i' \le i$. \item It may emit $\fprom{i}{a}{b}$ if it has
+previously sent no $\acc{i}{a}{b'}$ for any $b'$. \item It may emit
+$\bprom{i}{a}{b}{b'}$ if $\acc{i}{a}{b'}$, $b' \prec b$ and $b'$ is the
+greatest such ballot. \item It may emit $\acc{i}{a}{b}$ as long as
+$\prop{i}{b}$ and it does not violate any previously-made promises, in the
+sense that whenever \begin{itemize} \item $\mprom{i'}{a}{b'}$ for any $i' \le
+i$, or \item $\fprom{i}{a}{b'}$, or \item $\bprom{i}{a}{b'}{b''}$\end{itemize}
+it is the case that $b' \preceq b$. \end{itemize}
 
 \subsubsection{Proposing values} From the discussion in \ref{value-function}
-above the value $v_i(p)$ of proposal $p$ in instance $i$ may be changed without
-affecting any invariants as long as $\neg\prop{p}{i}$. So as to ensure this,
-each proposal $p$ has a unique node $\owner{p}$ which is the only one that may
-send out $\prop{p}{i}$ and which is therefore responsible for the value
-$v_i(p)$ for each $i$. If $\owner{p}$ has already sent $\prop{p}{i}$ then it
-may not change the value $v_i(p)$ but if desired it may send out $\prop{p}{i}$
+above the value $v_i(b)$ of ballot $b$ in instance $i$ may be changed without
+affecting any invariants as long as $\neg\prop{b}{i}$. So as to ensure this,
+each ballot $b$ has a unique node $\owner{b}$ which is the only one that may
+send out $\prop{b}{i}$ and which is therefore responsible for the value
+$v_i(b)$ for each $i$. If $\owner{b}$ has already sent $\prop{b}{i}$ then it
+may not change the value $v_i(b)$ but if desired it may send out $\prop{b}{i}$
 again, since messages may be duplicated. On the other hand if it has not sent
-out $\prop{p}{i}$ then it may change $v_i(p)$ freely. Once it has received
-promises for $p$ in instance $i$ from every node in a quorum $q \in Q_{e(p)}$
-where $e(p) \le e(i)$ then it may send out $\prop{p}{i}$. If any of the
-promises from nodes in $q$ is of the form $\bprom{i}{a}{p}{p'}$ then it must
-first set \[v_i(p) = v_i\bigl(\mathrm{max} \{p' \mid \bprom{i}{a}{p}{p'}
+out $\prop{b}{i}$ then it may change $v_i(b)$ freely. Once it has received
+promises for $b$ in instance $i$ from every node in a quorum $q \in Q_{e(b)}$
+where $e(b) \le e(i)$ then it may send out $\prop{b}{i}$. If any of the
+promises from nodes in $q$ is of the form $\bprom{i}{a}{b}{b'}$ then it must
+first set \[v_i(b) = v_i\bigl(\mathrm{max} \{b' \mid \bprom{i}{a}{b}{b'}
 \textrm{ received}, a \in q \}\bigr).\] If $i > i_\mathrm{max}$ so the value of
 $e(i)$ is not known then it is sufficient to find an earlier instance $i' < i$
-and proposal $p'$ such that $\chosen{i'}{p'}$ and $e(p) \le e(i')$ because $e$
+and ballot $b'$ such that $\chosen{i'}{b'}$ and $e(b) \le e(i')$ because $e$
 is nondecreasing.
 
-\subsubsection{Choosing values} Any node may deduce $\chosen{p}{i}$ if
-\begin{itemize} \item $e(i) \le e(p) + 1$, \item for each $j \le i - \kappa$
-there is a $p'$ with $\chosen{j}{p'}$, and \item there is a quorum $q \in
-Q_{e(i)}$ such that $\acc{i}{a}{p}$ has been received for every $a \in q$.
+\subsubsection{Choosing values} Any node may deduce $\chosen{b}{i}$ if
+\begin{itemize} \item $e(i) \le e(b) + 1$, \item for each $j \le i - \kappa$
+there is a $b'$ with $\chosen{j}{b'}$, and \item there is a quorum $q \in
+Q_{e(i)}$ such that $\acc{i}{a}{b}$ has been received for every $a \in q$.
 \end{itemize}
 
-\subsubsection{Proposal identifiers} Recall that $\mathbb P$ requires a
-wellfounded total order $\prec$, a function $\mathrm{owner} : \mathbb P \to
-\mathbb A$ and a nondecreasing function $e : \mathbb P \to \mathbb N$. If
+\subsubsection{Proposal identifiers} Recall that $\mathbb B$ requires a
+wellfounded total order $\prec$, a function $\mathrm{owner} : \mathbb B \to
+\mathbb A$ and a nondecreasing function $e : \mathbb B \to \mathbb N$. If
 $\mathbb A$ is also wellordered then one possible implementation is $\mathbb N
 \times \mathbb N \times \mathbb A$ with the lexicographic order, where
 $\owner{\langle e, n, a \rangle} = a$ and $e(\langle e, n, a\rangle) = e$.
@@ -1158,74 +1158,74 @@ invariants.
 
 \begin{enumerate}
 
-\item \label{synod-quorums} For $p_1 \succ p_2 \in \mathbb P$ there are
-configurations $Q^\textrm{I}(p_1)$ and $Q^\textrm{II}(p_2) \subseteq \mathcal P
-\mathbb A$ such that if $\prop{}{p_1}$ and $\chosen{}{p_2}$ then
-${Q^\textrm{I}(p_1) \frown Q^\textrm{II}(p_2)}$.
+\item \label{synod-quorums} For $b_1 \succ b_2 \in \mathbb B$ there are
+configurations $Q^\textrm{I}(b_1)$ and $Q^\textrm{II}(b_2) \subseteq \mathcal P
+\mathbb A$ such that if $\prop{}{b_1}$ and $\chosen{}{b_2}$ then
+${Q^\textrm{I}(b_1) \frown Q^\textrm{II}(b_2)}$.
 
-\item \label{synod-fprom} $\fprom{}{a}{p}$ only if $\neg\acc{}{a}{p'}$ for ${p'
-\prec p}$.
+\item \label{synod-fprom} $\fprom{}{a}{b}$ only if $\neg\acc{}{a}{b'}$ for ${b'
+\prec b}$.
 
-\item \label{synod-bprom} $\bprom{}{a}{p}{p'}$ only if $p' \prec p$,
-$\acc{}{a}{p'}$, and $p'$ is the greatest such proposal, in the sense that
-$\neg\acc{}{a}{p''}$ for all $p''$ having $p' \prec p'' \prec p$.
+\item \label{synod-bprom} $\bprom{}{a}{b}{b'}$ only if $b' \prec b$,
+$\acc{}{a}{b'}$, and $b'$ is the greatest such ballot, in the sense that
+$\neg\acc{}{a}{b''}$ for all $b''$ having $b' \prec b'' \prec b$.
 
-\item \label{synod-prop} $\prop{}{p}$ only if there is a quorum $q^\textrm{I}
-\in Q^\textrm{I}(p)$ such that for every node $a \in q^\textrm{I}$ either
-$\fprom{}{a}{p}$ or else $\exists p'.  \bprom{}{a}{p}{p'}$, and if ${P = \{ p'
-\mid \exists a \in q^\textrm{I}. \bprom{}{a}{p}{p'} \} \ne \varnothing}$ then
-it follows that $v(p) = v(\mathrm{max}(P))$.
+\item \label{synod-prop} $\prop{}{b}$ only if there is a quorum $q^\textrm{I}
+\in Q^\textrm{I}(b)$ such that for every node $a \in q^\textrm{I}$ either
+$\fprom{}{a}{b}$ or else $\exists b'.  \bprom{}{a}{b}{b'}$, and if ${P = \{ b'
+\mid \exists a \in q^\textrm{I}. \bprom{}{a}{b}{b'} \} \ne \varnothing}$ then
+it follows that $v(b) = v(\mathrm{max}(P))$.
 
-\item \label{synod-acc} $\acc{}{a}{p}$ only if $\prop{}{p}$.
+\item \label{synod-acc} $\acc{}{a}{b}$ only if $\prop{}{b}$.
 
-\item \label{synod-chosen} $\chosen{}{p}$ only if there is a quorum
-$q^\textrm{II} \in Q^\textrm{II}(p)$ such that $\acc{}{a}{p}$ for every $a \in
+\item \label{synod-chosen} $\chosen{}{b}$ only if there is a quorum
+$q^\textrm{II} \in Q^\textrm{II}(b)$ such that $\acc{}{a}{b}$ for every $a \in
 q^\textrm{II}$.
 
 \end{enumerate}
 
-\begin{lemma}\label{synod-acc-bprom}If $\acc{}{a}{p_2}$,
-$\bprom{}{a}{p_1}{p_3}$ and $p_2 \prec p_1$ then $p_2 \preceq p_3$.\end{lemma}
+\begin{lemma}\label{synod-acc-bprom}If $\acc{}{a}{b_2}$,
+$\bprom{}{a}{b_1}{b_3}$ and $b_2 \prec b_1$ then $b_2 \preceq b_3$.\end{lemma}
 
-\begin{proof} From invariant \ref{synod-bprom} it follows that $p_3$ is the
-largest proposal such that $p_3 \prec p_1$ and $\acc{}{a}{p_3}$, but $p_2$ is
-also such a proposal and therefore $p_2 \preceq p_3$ as required.  \end{proof}
+\begin{proof} From invariant \ref{synod-bprom} it follows that $b_3$ is the
+largest ballot such that $b_3 \prec b_1$ and $\acc{}{a}{b_3}$, but $b_2$ is
+also such a ballot and therefore $b_2 \preceq b_3$ as required.  \end{proof}
 
-\begin{lemma}\label{synod-lemma} If $\chosen{}{p_2}$, $\prop{}{p_1}$ and $p_2
-\prec p_1$ then $v(p_1) = v(p_2)$. \end{lemma}
+\begin{lemma}\label{synod-lemma} If $\chosen{}{b_2}$, $\prop{}{b_1}$ and $b_2
+\prec b_1$ then $v(b_1) = v(b_2)$. \end{lemma}
 
 \begin{proof}Suppose for a contradiction the result is false, and since $\prec$
-is wellfounded suppose without loss of generality that $p_1$ is the minimal
-proposal at which it is false.  Since $\chosen{}{p_2}$, by invariant
-\ref{synod-chosen} there is a quorum $q^\textrm{II} \in Q^\textrm{II}(p_2)$
-such that $\acc{}{a}{p_2}$ for every $a \in q^\textrm{II}$.  By invariant
-\ref{synod-fprom} it cannot be that $\fprom{}{a}{p_1}$ for any $a \in
-q^\textrm{II}$.  Also, since $\prop{}{p_1}$, by invariant \ref{synod-prop}
-there is a quorum $q^\textrm{I} \in Q^\textrm{I}(p_1)$ such that either
-$\fprom{}{a}{p_1}$ or $\exists p'.  \bprom{}{a}{p_1}{p'}$ for all $a \in
-q^\textrm{I}$.  Let $P = \{ p' \mid \exists a \in q^\textrm{I}.
-\bprom{}{a}{p_1}{p'} \}$.  By invariant \ref{synod-quorums},
-${Q^\textrm{I}(p_1) \frown Q^\textrm{II}(p_2)}$ and hence $q^\textrm{I} \cap
+is wellfounded suppose without loss of generality that $b_1$ is the minimal
+ballot at which it is false.  Since $\chosen{}{b_2}$, by invariant
+\ref{synod-chosen} there is a quorum $q^\textrm{II} \in Q^\textrm{II}(b_2)$
+such that $\acc{}{a}{b_2}$ for every $a \in q^\textrm{II}$.  By invariant
+\ref{synod-fprom} it cannot be that $\fprom{}{a}{b_1}$ for any $a \in
+q^\textrm{II}$.  Also, since $\prop{}{b_1}$, by invariant \ref{synod-prop}
+there is a quorum $q^\textrm{I} \in Q^\textrm{I}(b_1)$ such that either
+$\fprom{}{a}{b_1}$ or $\exists b'.  \bprom{}{a}{b_1}{b'}$ for all $a \in
+q^\textrm{I}$.  Let $P = \{ b' \mid \exists a \in q^\textrm{I}.
+\bprom{}{a}{b_1}{b'} \}$.  By invariant \ref{synod-quorums},
+${Q^\textrm{I}(b_1) \frown Q^\textrm{II}(b_2)}$ and hence $q^\textrm{I} \cap
 q^\textrm{II} \ne \varnothing$ so it follows that $P \ne \varnothing$, which
-means that $v(p_1) = v(\mathrm{max}(P))$ by invariant \ref{synod-prop}. Let
+means that $v(b_1) = v(\mathrm{max}(P))$ by invariant \ref{synod-prop}. Let
 $a_{\mathrm{max}} \in q^\textrm{I}$ be such that
-$\bprom{}{a_{\mathrm{max}}}{p_1}{\mathrm{max}(P)}$.  By invariant
-\ref{synod-bprom} it follows that $\mathrm{max}(P) \prec p_1$ and also that
+$\bprom{}{a_{\mathrm{max}}}{b_1}{\mathrm{max}(P)}$.  By invariant
+\ref{synod-bprom} it follows that $\mathrm{max}(P) \prec b_1$ and also that
 $\acc{}{a_{\mathrm{max}}}{\mathrm{max}(P)}$ and hence
 $\prop{}{\mathrm{max}(P)}$ by invariant \ref{synod-acc}. Furthermore by lemma
-\ref{synod-acc-bprom} it follows that $p_2 \preceq \mathrm{max}(P)$ and since
-$p_1$ was assumed to be the smallest counterexample it must be that
-$v(\mathrm{max}(P)) = v(p_2)$.  Hence $v(p_1) = v(p_2)$ which is a
+\ref{synod-acc-bprom} it follows that $b_2 \preceq \mathrm{max}(P)$ and since
+$b_1$ was assumed to be the smallest counterexample it must be that
+$v(\mathrm{max}(P)) = v(b_2)$.  Hence $v(b_1) = v(b_2)$ which is a
 contradiction as required.  \end{proof}
 
-\begin{theorem}\label{synod-safety-theorem} If $\chosen{}{p_1}$ and
-$\chosen{}{p_2}$ then $v(p_1) = v(p_2)$.  \end{theorem}
+\begin{theorem}\label{synod-safety-theorem} If $\chosen{}{b_1}$ and
+$\chosen{}{b_2}$ then $v(b_1) = v(b_2)$.  \end{theorem}
 
-\begin{proof} Without loss of generality assume that ${p_2 \prec p_1}$. By
-invariant \ref{synod-chosen} there is a quorum $q \in Q^\textrm{II}(p_1)$ such
-that $\acc{}{a}{p_1}$ for every node $a \in q$ and therefore $\prop{}{p_1}$ by
+\begin{proof} Without loss of generality assume that ${b_2 \prec b_1}$. By
+invariant \ref{synod-chosen} there is a quorum $q \in Q^\textrm{II}(b_1)$ such
+that $\acc{}{a}{b_1}$ for every node $a \in q$ and therefore $\prop{}{b_1}$ by
 invariant \ref{synod-acc}.  Therefore by lemma \ref{synod-lemma} it follows
-that $v(p_1) = v(p_2)$ as required.  \end{proof}
+that $v(b_1) = v(b_2)$ as required.  \end{proof}
 
 \section{Consistency of the Paxos algorithm}\label{paxos-invariants}
 
@@ -1237,72 +1237,72 @@ invariants.
 \item\label{paxos-quorums} There is a sequence of configurations $Q_0, Q_1,
 \ldots$ where ${Q_e \frown Q_e \frown Q_{e+1}}$ for each $e$.
 
-\item\label{paxos-mprom} $\mprom{i}{a}{p}$ only if $\neg\acc{i'}{a}{p'}$ for
-all $i' \ge i$ and $p' \prec p$.
+\item\label{paxos-mprom} $\mprom{i}{a}{b}$ only if $\neg\acc{i'}{a}{b'}$ for
+all $i' \ge i$ and $b' \prec b$.
 
-\item\label{paxos-fprom} $\fprom{i}{a}{p}$ only if $\neg\acc{i}{a}{p'}$ for all
-$p' \prec p$.
+\item\label{paxos-fprom} $\fprom{i}{a}{b}$ only if $\neg\acc{i}{a}{b'}$ for all
+$b' \prec b$.
 
-\item\label{paxos-bprom} $\bprom{i}{a}{p}{p'}$ only if \begin{itemize} \item
-$p' \prec p$ \item $\acc{i}{a}{p'}$, and \item $p'$ is the greatest such
-proposal, in the sense that $\neg \acc{i}{a}{p''}$ for all $p''$ having $p'
-\prec p'' \prec p$. \end{itemize}
+\item\label{paxos-bprom} $\bprom{i}{a}{b}{b'}$ only if \begin{itemize} \item
+$b' \prec b$ \item $\acc{i}{a}{b'}$, and \item $b'$ is the greatest such
+ballot, in the sense that $\neg \acc{i}{a}{b''}$ for all $b''$ having $b'
+\prec b'' \prec b$. \end{itemize}
 
-\item\label{paxos-prop} $\prop{i}{p}$ only if $e(p) \le e(i)$ and there is a
-quorum $q \in Q_{e(p)}$ such that
+\item\label{paxos-prop} $\prop{i}{b}$ only if $e(b) \le e(i)$ and there is a
+quorum $q \in Q_{e(b)}$ such that
 \begin{itemize}
 \item for every $a \in q$ one of the following holds:
 %
 \begin{itemize}
-\item $\mprom{i'}{a}{p}$ for some $i' \le i$, or
-\item $\fprom{i}{a}{p}$, or
-\item $\bprom{i}{a}{p}{p'}$ for some $p'$, and
+\item $\mprom{i'}{a}{b}$ for some $i' \le i$, or
+\item $\fprom{i}{a}{b}$, or
+\item $\bprom{i}{a}{b}{b'}$ for some $b'$, and
 \end{itemize}
 
-\item if $P = \{ p' \mid \exists a \in q. \bprom{i}{a}{p}{p'} \} \ne
-\varnothing$ then $v_i(p) = v_i(\mathrm{max}(P))$.
+\item if $P = \{ b' \mid \exists a \in q. \bprom{i}{a}{b}{b'} \} \ne
+\varnothing$ then $v_i(b) = v_i(\mathrm{max}(P))$.
 
 \end{itemize}
 
-\item \label{paxos-acc} $\acc{i}{a}{p}$ only if $\prop{i}{p}$.
+\item \label{paxos-acc} $\acc{i}{a}{b}$ only if $\prop{i}{b}$.
 
-\item \label{paxos-chosen} $\chosen{i}{p}$ only if \begin{itemize} \item for
-each $j \le i - \kappa$ there is a $p'$ with $\chosen{i-1}{p'}$, \item $e(i)
-\le e(p) + 1$, and \item there is a quorum $q \in Q_{e(i)}$ with
-$\acc{i}{a}{p}$ for every $a \in q$.  \end{itemize}
+\item \label{paxos-chosen} $\chosen{i}{b}$ only if \begin{itemize} \item for
+each $j \le i - \kappa$ there is a $b'$ with $\chosen{i-1}{b'}$, \item $e(i)
+\le e(b) + 1$, and \item there is a quorum $q \in Q_{e(i)}$ with
+$\acc{i}{a}{b}$ for every $a \in q$.  \end{itemize}
 
 \end{enumerate}
 
-\begin{lemma}\label{paxos-synod-quorum-invariant} For $p_1 \succ p_2 \in
-\mathbb P$, if $\prop{i}{p_1}$ and $\chosen{i}{p_2}$ then ${Q_{e(p_1)} \frown
+\begin{lemma}\label{paxos-synod-quorum-invariant} For $b_1 \succ b_2 \in
+\mathbb B$, if $\prop{i}{b_1}$ and $\chosen{i}{b_2}$ then ${Q_{e(b_1)} \frown
 Q_{e(i)}}$.  \end{lemma}
 
-\begin{proof} $e(i) \le e(p_2) + 1 \le e(p_1) + 1 \le e(i) + 1$ since
-$\chosen{i}{p_2}$, $e$ is nondecreasing, and $\prop{i}{p_1}$ respectively.
-Therefore $e(p_1) \in \{ e(i) - 1, e(i) \}$ and hence ${Q_{e(p_1)} \frown
+\begin{proof} $e(i) \le e(b_2) + 1 \le e(b_1) + 1 \le e(i) + 1$ since
+$\chosen{i}{b_2}$, $e$ is nondecreasing, and $\prop{i}{b_1}$ respectively.
+Therefore $e(b_1) \in \{ e(i) - 1, e(i) \}$ and hence ${Q_{e(b_1)} \frown
 Q_{e(i)}}$ by invariant \ref{paxos-quorums}.  \end{proof}
 
-\begin{theorem}\label{paxos-safety-theorem} If $\chosen{i}{p_1}$ and
-$\chosen{i}{p_2}$ then ${v_i(p_1) = v_i(p_2)}$.  \end{theorem}
+\begin{theorem}\label{paxos-safety-theorem} If $\chosen{i}{b_1}$ and
+$\chosen{i}{b_2}$ then ${v_i(b_1) = v_i(b_2)}$.  \end{theorem}
 
-\begin{proof} If $\chosen{i}{p_1}$ then the Paxos invariants imply the Synod
+\begin{proof} If $\chosen{i}{b_1}$ then the Paxos invariants imply the Synod
 invariants for instance $i$.  In more detail, let
 \[\begin{array}{rl}
-Q^\textrm{I}(p) &= Q_{e(p)}, \\
-Q^\textrm{II}(p) &= Q_{e(i)}, \\
-\fprom{}{a}{p} &= \fprom{i}{a}{p} \\
-& \ {}\vee \exists i' \le i. \mprom{i'}{a}{p}, \\
-\bprom{}{a}{p}{p'} &= \bprom{i}{a}{p}{p'}, \\
-\prop{}{p} &= \prop{i}{p}, \\
-\acc{}{a}{p} &= \acc{i}{a}{p} \textrm{ and} \\
-\chosen{}{p} &= \chosen{i}{p}. \\
-v(p) &= v_i(p)\\
+Q^\textrm{I}(b) &= Q_{e(b)}, \\
+Q^\textrm{II}(b) &= Q_{e(i)}, \\
+\fprom{}{a}{b} &= \fprom{i}{a}{b} \\
+& \ {}\vee \exists i' \le i. \mprom{i'}{a}{b}, \\
+\bprom{}{a}{b}{b'} &= \bprom{i}{a}{b}{b'}, \\
+\prop{}{b} &= \prop{i}{b}, \\
+\acc{}{a}{b} &= \acc{i}{a}{b} \textrm{ and} \\
+\chosen{}{b} &= \chosen{i}{b}. \\
+v(b) &= v_i(b)\\
 \end{array}
 \]
 Synod's invariant \ref{synod-quorums} follows from lemma
 \ref{paxos-synod-quorum-invariant} and the remaining invariants are simple to
-show so by theorem \ref{synod-safety-theorem} it follows that $v_i(p_1) =
-v_i(p_2)$ as required.  \end{proof}
+show so by theorem \ref{synod-safety-theorem} it follows that $v_i(b_1) =
+v_i(b_2)$ as required.  \end{proof}
 
 \section{Consecutive epochs using weight-based configurations}
 
