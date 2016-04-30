@@ -498,29 +498,32 @@ are chosen.
 
 It is unavoidable that a faulty node or disrupted communications may have an
 impact on the system's performance, but changing its configuration is a routine
-task which should have no such effect. Dynamic Paxos avoids a pipeline stall
-when a cluster configuration change is chosen at instance $i$ by postponing the
-effects of the change until instance $i + \alpha$ for some $\alpha > 0$. If
-$\alpha$ is large enough, there is time to run the new phase I before the
-pipeline stalls.  On the other hand, if $\alpha$ is too large then the
-configuration change can take an unreasonably long time to take effect.
+task which should have no such effect. Dynamic Paxos maintains consistency by
+limiting the length of the pipeline to $\alpha > 0$, so that when a cluster
+configuration change is chosen at instance $i$ the effects of the change are
+postponed until instance $i + \alpha$. If $\alpha$ is large enough, there is
+time to run the new phase I before the pipeline stalls.  On the other hand, if
+$\alpha$ is too large then the configuration change can take an unreasonably
+long time to take effect.
 
-The delay parameter $\alpha$ may be allowed to vary while the system is
+The pipeline length $\alpha$ may be allowed to vary while the system is
 running, so it is certainly possible to design a mechanism for choosing a
 reasonably suitable value and adapting it to changing system conditions,
-although this seems inelegant\cite{reconfiguring-a-state-machine}.  The
-approach described here allows phase II to start using a new configuration
-without re-running phase I; this is shown to preserve consistency as long as
-the configuration change is sufficiently small (in a sense which is made
-precise in section \ref{types-of-configuration-change} below.) By removing
-phase I from the critical path of a configuration change the possibility of
-jitter caused by a pipeline stall is eliminated.
+although this seems inelegant\cite{reconfiguring-a-state-machine}. The approach
+described here removes the need for a limited-length pipeline by allowing phase
+II to start using a new configuration without re-running phase I; this is shown
+to preserve consistency as long as the configuration change is sufficiently
+small (in a sense which is made precise in section
+\ref{types-of-configuration-change} below.) By removing phase I from the
+critical path of a configuration change the possibility of jitter caused by a
+pipeline stall is eliminated.
 
 The technique shown here also supports arbitrary configuration changes
 happening in a single step just as in Dynamic Paxos, but any changes that are
-not sufficiently small continue to carry the risk of jitter. In reality,
-arbitrary changes would normally be performed as a sequence of these small,
-jitter-free changes as discussed in section \ref{discussion} below.
+not sufficiently small require the pipeline length to be temporarily limited
+and continue to carry the risk of jitter. In reality, most changes would
+normally be performed as a sequence of these small, jitter-free changes as
+discussed in section \ref{discussion} below.
 
 \section{The Synod Algorithm}
 
@@ -631,7 +634,7 @@ information between the two phases. Write $Q_1 \frown Q_2$ to indicate that
 every element of $Q_1$ intersects every element of $Q_2$: more formally $Q_1
 \frown Q_2$ iff every $q_1 \in Q_1$ and $q_2 \in Q_2$ have ${q_1 \cap q_2 \ne
 \varnothing}$. Write $Q^\textrm{I}(b)$ and $Q^\textrm{II}(b)$ for the sets of
-phase-I and phase-II quorums respectively.
+phase-I and phase-II quorums for ballot $b$ respectively.
 
 In the original presentation of the Synod algorithm any (weighted) majority of
 the nodes could be used as a quorum, so that $Q^\textrm{I}(b_1) \frown
@@ -661,14 +664,13 @@ state machine for instance $i$. Because at any time each node has only ever
 received finitely many messages, there must be an instance number $i_\infty$
 such that all instances $i \ge i_\infty$ are in the same state. A Paxos node
 therefore needs to have a separate state machine $S_i$ for each instance $i <
-i_\infty$ but then just a single state machine $S_\infty$ that represents all
-instances $i \ge i_\infty$. When a message mentioning an instance $i \ge
-i_\infty$ is received, the node must increase $i_\infty$ to $i'_\infty > i$ and
-create state machines $S_j$ for $i_\infty \le j < i'_\infty$, each of which
-starts out as a copy of $S_\infty$. Typically, when all the instances up to $i$
-are chosen at a node then this node ignores any further messages about these
-instances and discards the corresponding state machines, which ensures resource
-usage does not grow unboundedly.
+i_\infty$ but can represent all instances $i \ge i_\infty$ with a single state
+machine $S_\infty$. When a message mentioning an instance $i \ge i_\infty$ is
+received, the node must increase $i_\infty$ to $i'_\infty > i$ and create state
+machines $S_j$ for $i_\infty \le j < i'_\infty$, each of which starts out as a
+copy of $S_\infty$. Typically, after an instance has been chosen a node will
+ignore any further messages about that instance and discard the corresponding
+state machines, which ensures resource usage does not grow unboundedly.
 
 As in the Synod algorithm, phase I starts with a broadcast of $\prep{b}$ for
 some $b$ to which each node $a$ may respond with a set of promises
@@ -699,16 +701,16 @@ phases.
 There are also two nondecreasing functions, both written $e(\cdot)$, which
 respectively assign an epoch number $e(i)$ to each instance $i$, and an epoch
 number $e(b)$ to each ballot $b$. A node may emit $\prop{i}{b}$ if $e(b) \le
-e(i)$ and it has received promises for ballot $b$ in instance $i$ from a
-quorum $q^\textrm{I} \in Q_{e(b)}$. A node may decide $\chosen{i}{b}$ if ${e(i)
-\le e(b)+1}$ and it has received $\acc{i}{a}{b}$ from a quorum ${q^\textrm{II}
-\in Q_{e(i)}}$. Thus if $\chosen{i}{b}$ then ${e(b) \in \{ e(i)-1, e(i) \}}$
-and hence $Q_{e(b)} \frown Q_{e(i)}$ so that $q^\textrm{I} \cap q^\textrm{II}
-\ne \varnothing$ as required. It is worth emphasising the subtle point that
-phase I uses the configuration $Q_{e(b)}$ corresponding to the ballot $b$
-whereas phase II uses the configuration $Q_{e(i)}$ for the instance $i$, with
-extra conditions to ensure that $e(b) \le e(i) \le e(b) + 1$ and therefore that
-the epochs used in the two phases are close enough to ensure consistency.
+e(i)$ and it has received promises for ballot $b$ in instance $i$ from a quorum
+$q^\textrm{I} \in Q_{e(b)}$. A node may decide $\chosen{i}{b}$ if ${e(i) \le
+e(b)+1}$ and it has received $\acc{i}{a}{b}$ from a quorum ${q^\textrm{II} \in
+Q_{e(i)}}$. Thus if $\chosen{i}{b}$ then ${e(b) \in \{ e(i)-1, e(i) \}}$ and
+hence $Q_{e(b)} \frown Q_{e(i)}$ as required. It is worth emphasising the
+subtle point that phase I uses the configuration $Q_{e(b)}$ corresponding to
+the ballot $b$ whereas phase II uses the configuration $Q_{e(i)}$ for the
+instance $i$, with extra conditions to ensure that $e(b) \le e(i) \le e(b) + 1$
+and therefore that the epochs used in the two phases are close enough to ensure
+consistency.
 
 \subsection{Dynamic configuration changes}
 
@@ -733,7 +735,7 @@ epoch-number state machine then must satisfy $i_\mathrm{max} > i + \kappa$.
 Note carefully that this concurrency parameter $\kappa$ is different from the
 parameter $\alpha$ in the original Dynamic Paxos: there $\prop{i}{b}$ may not
 occur until all instances $\le i - \alpha$ have been chosen whereas here there
-is no limit on which ballots can be made and the only restriction is that
+is no limit on which proposals can be made and the only restriction is that
 $\chosen{i}{b}$ may not occur until all instances $\le i - \kappa$ are chosen.
 In the common case that the transitions may not be reordered, $\kappa = 1$ is
 sufficient.
@@ -789,20 +791,31 @@ to make progress choosing instances of ballot $b$ using the quorum $q \in
 Q_{e(b)}$.  Eventually when promises have arrived from every node in $q'$
 except $\owner{b'}$ itself, it can send itself a final promise, immediately
 complete phase I for ballot $b'$, and start broadcasting proposals
-$\prop{i}{b'}$.  This restores the system to normal running.
-
-Notice that this process requires that $e(i_\mathrm{max})$ increases by at most
-$1$ before the new phase I has finished running. If $e(i_\mathrm{max})$ were
-increased by a larger amount then this would put a limit on how many instances
-can run in the old epoch, and if the limit were reached then the pipeline may
-stall until the corresponding phase I was completed.
-
-Notice also that this process requires the existence of a node $\owner{b'}$
-that has a casting vote. If $\owner{b} \ne \owner{b'}$ then this process
-includes an \textit{abdication}: the original leader $\owner{b}$ hands over the
-leadership of the cluster to $\owner{b'}$. As the current leader is responsible
-for proposing values, the system may need to take action to redirect its
-clients from the old leader to the new leader in order to fully avoid jitter.
+$\prop{i}{b'}$.  This restores the system to normal running. Observe the
+following:
+%
+\begin{itemize}
+%
+\item This process runs without jitter as long as there are no failures.  If
+there is a failure then consistency is still preserved but there may be a
+performance impact. This is unavoidable in general.
+%
+\item The first part of this process requires that $e(i_\mathrm{max})$
+increases by at most $1$ before the new phase I has finished running. If
+$e(i_\mathrm{max})$ were increased by a larger amount then this would put a
+limit on how many instances can run in the old epoch, and if the limit were
+reached then the pipeline may stall until the corresponding phase I was
+completed.
+%
+\item The second part of this process requires the existence of a node
+$\owner{b'}$ that has a casting vote. If $\owner{b} \ne \owner{b'}$ then this
+process includes an \textit{abdication}: the original leader $\owner{b}$ hands
+over the leadership of the cluster to $\owner{b'}$. As the current leader is
+responsible for proposing values, the system may need to take action to
+redirect its clients from the old leader to the new leader in order to fully
+avoid jitter.
+%
+\end{itemize}
 
 \subsection{Examples}\label{types-of-configuration-change}
 
@@ -875,9 +888,9 @@ holds.
 \item Finally, if $w_{e-1}$ is weightless then the property holds vacuously.
 
 \end{enumerate}
-
-Theorem \ref{weights-nearly-equal} is reminiscent of the \textit{amoeba}
-analogy described in \cite{cheap-paxos}.
+%
+Theorem \ref{weights-nearly-equal} is reminiscent of the amoeba analogy in
+\cite{cheap-paxos}.
 
 \subsection{Preserving invariants}
 
