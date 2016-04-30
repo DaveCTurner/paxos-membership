@@ -610,15 +610,15 @@ $\owner{p}$ may propose $p$, so if it has not yet proposed a value for $p$ it
 can prove that $\neg\prop{}{p}$ and therefore freely modify $v(p)$.
 
 It is also important for liveness that the implementation of $v$ is resilient
-to the same failure modes as the rest of the system. In these terms the classic
-presentation ensures this resilience by including relevant values of $v$ in
-messages. Since the value of each proposal $p$ has at most one writer,
-$\owner{p}$, there are more efficient ways to implement $v$: for instance, the
-Cheap Paxos algorithm effectively implements $v$ as an optimised version of an
-insert-only set \cite{crdts} of pairs ${\{ \langle p, v(p) \rangle \mid
-\prop{}{p} \}}$ which is replicated across the $f+1$ primary processors, with
-the $f$ auxiliary processors storing just the hashes of values to ensure
-integrity.
+to the same failure modes as the rest of the system. Since the value of each
+proposal $p$ has at most one writer, $\owner{p}$, it is possible to implement
+$v$ as an insert-only set \cite{crdts} of pairs ${\{ \langle p, v(p) \rangle
+\mid \prop{}{p} \}}$ which is an example of a convergent replicated data type.
+From this viewpoint, including values in all messages ensures convergence
+occurs as quickly as possible, and replicating this set across all $2f+1$ nodes
+ensures resilience. Cheap Paxos effectively weakens the resilience by
+replicating the set across just the $f+1$ primary processors, with the $f$
+auxiliary processors storing just the hashes of values to ensure integrity.
 
 \subsection{Per-phase quorums}\label{per-phase-quorums}
 
