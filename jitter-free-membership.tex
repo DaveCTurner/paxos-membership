@@ -489,12 +489,12 @@ remains in phase II for extended periods of time, but will return to phase I if
 certain nodes become faulty, or if messages between certain pairs of nodes
 cease to be delivered reliably for a period, or if the configuration changes.
 
-Paxos allows for \textit{pipelining} \cite{smart} in phase II: later instances
-can be started before earlier ones have been chosen, which means that the rate
-of choosing values is not limited by network latency. The pipeline runs
-smoothly as long as phase I does not need to run again, but may stall if phase
-I is re-run. A pipeline stall can be observed as jitter in the rate at which
-values are chosen.
+Paxos allows for \textit{pipelining} \cite{smart} in phase II: later values can
+be proposed before earlier ones have been chosen, which means that the rate of
+choosing values is not limited by network latency. The pipeline runs smoothly
+as long as phase I does not need to run again, but may stall if phase I is
+re-run. A pipeline stall can be observed as jitter in the rate at which values
+are chosen.
 
 It is unavoidable that a faulty node or disrupted communications may have an
 impact on the system's performance, but changing its configuration is a routine
