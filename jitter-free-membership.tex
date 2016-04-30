@@ -377,9 +377,12 @@
 %
 
 \author{David C. Turner% <-this % stops a space
-\thanks{D. Turner is with the Operations and Planning Systems division of Tracsis plc
+\thanks{The author is with the Operations and Planning Systems division of
+Tracsis plc, 103 Clarendon Road, Leeds LS2 9DF, United Kingdom (email:
+d.turner@tracsis.com)
 }% <-this % stops a space
-\thanks{Manuscript received April 19, 2005; revised August 26, 2015.}}
+%\thanks{Manuscript received April 19, 2005; revised August 26, 2015.}} TODO
+}
 
 % note the % following the last \IEEEmembership and also \thanks - 
 % these prevent an unwanted space from occurring between the last author name
@@ -402,7 +405,7 @@
 
 
 % The paper headers
-\markboth{Journal of \LaTeX\ Class Files,~Vol.~14, No.~8, August~2015}%
+\markboth{}%TODO Journal of \LaTeX\ Class Files,~Vol.~14, No.~8, August~2015}%
 {Turner: Jitter-free Dynamic Paxos}
 % The only time the second header will appear is for the odd numbered pages
 % after the title page when using the twoside option.
@@ -432,11 +435,23 @@
 % make the title area
 \maketitle
 
-% As a general rule, do not put math, special symbols or citations
-% in the abstract or keywords.
-\begin{abstract}
-The abstract goes here. %TODO
-\end{abstract}
+% As a general rule, do not put math, special symbols or citations in the
+% abstract or keywords.
+\begin{abstract} Paxos is an algorithm for building fault-tolerant distributed
+systems. Practical implementations of this kind of system must support dynamic
+reconfiguration in order to be able to replace failed components and perform
+other administrative tasks. Paxos can achieve high performance by pipelining:
+starting work on new requests before existing requests have completed, but
+typically limits the length of the pipeline to support dynamic reconfiguration.
+If the pipeline is too long then a reconfiguration may take a long time to
+complete. On the other hand if the pipeline is too short then it may stall when
+the system is being reconfigured which can be observed as jitter in the rate
+that the system makes progress. This paper shows that the algorithm can be
+modified to support dynamic reconfigurations with an unbounded pipeline as long
+as the reconfigurations are sufficiently small, and gives a simple
+characterisation of a set of sufficiently small reconfigurations that is useful
+in practice. It also shows that an arbitrary reconfiguration can be performed
+in a single step by temporarily limiting the pipeline length.\end{abstract}
 
 % Note that keywords are not normally used for peerreview papers.
 %\begin{IEEEkeywords} TODO???
@@ -979,7 +994,7 @@ node. However, a cluster of four equally-weighted nodes has no nodes with a
 casting vote, so instead two of the nodes must have weight $1$ and the other
 two have weight $2$, and then the sequence of weights used for this maintenance
 procedure is as follows, with maintenance on $a_{\textrm{maint}}$ occurring
-during while $w_{e+1}$ is in use.
+during epoch ${e+1}$:
 \[\begin{array}{rcccc}
 \textrm{node}&a_{\textrm{maint}}&a_1&a_2&a_3 \\
 w_e&1&1&2&2\\
@@ -1056,7 +1071,14 @@ three: \texttt{ap-southeast-2}, \texttt{eu-west-1}, \texttt{sa-east-1} and
 \texttt{us-west-2}. Similarly, only one Google Cloud Platform region
 (\texttt{us-central1}) has four zones and all the others have three zones.},
 particularly if the fourth zone is only required to ensure consistency in
-relatively rare periods of maintenance.
+relatively rare periods of maintenance. The more obvious migration process:
+\[\begin{array}{rcccc}
+\textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
+w_e&1&0&1&1\\
+w_{e+1}&1&1&1&1\\
+w_{e+2}&0&1&1&1\\
+\end{array}\]
+requires four zones in epoch $e+1$ to ensure resilience to a zone-wide failure.
 
 % An example of a floating figure using the graphicx package.
 % Note that \label must occur AFTER (or within) \caption.
@@ -1155,10 +1177,10 @@ relatively rare periods of maintenance.
 
 
 
-\section{Conclusion}
+%\section{Conclusion}
+%TODO
 
-TODO
-
+\vfill
 
 \pagebreak
 
