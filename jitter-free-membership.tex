@@ -756,47 +756,48 @@ e(i_0) = e(i_\mathrm{max}) = e_\mathrm{max}}$ and the node $\owner{p}$ has
 received a quorum of promises $q^\textrm{I} \in Q_{e(p)}$ for proposal $p$ for
 all instances $i \ge i_0$. In this state, $\owner{p}$ may emit $\prop{i}{p}$
 for any $i \ge i_0$, since $e(p) = e(i_0) \le e(i)$ as $e$ is nondecreasing.
-The node $\owner{p}$ is known as the \textit{leader}.
+The node $\owner{p}$ is known as the \textit{leader} and its proposals are
+normally accepted without undue delay by all other nodes.
 
 When in this state, if an operator wishes to change the cluster membership to
-$Q'$ where $Q' \frown Q_{e(p)}$ they must first arrange to append $Q'$ to the
-sequence of memberships, setting $Q_{e(p)+1} = Q'$ and $e_\mathrm{max} = e(p) +
-1$, then pick a future instance $i_c > i_\mathrm{max}$ at which the change
-should take effect and append values to the sequence of epochs to set $e(i) =
-e(i_0)$ for $i_0 \le i < i_c$ and $e(i_c) = e(i_0) + 1$.  Since $e(i_c) =
-e(i_0) + 1 \le e(p) + 1$, instance $i_c$ and any other instances in the same
-epoch may be chosen even though phase I has not yet run for a proposal in this
-epoch. As long as $e(i_\mathrm{max})$ is not changed again, this means there is
-no limit on how many instances can be chosen without waiting for another phase
-I to run, which means the pipeline cannot stall.
+$Q'$ where $Q_{e(p)} \frown Q' \frown Q'$ they must first arrange to
+append $Q'$ to the sequence of memberships, setting $Q_{e(p)+1} = Q'$ and
+$e_\mathrm{max} = e(p) + 1$, then pick a future instance $i_c > i_\mathrm{max}$
+at which the change should take effect and append values to the sequence of
+epochs to set $e(i) = e(i_0)$ for $i_0 \le i < i_c$ and $e(i_c) = e(i_0) + 1$.
+Since $e(i_c) = e(i_0) + 1 \le e(p) + 1$, instance $i_c$ and any other
+instances with the same epoch may be chosen even though phase I has not yet run
+for a proposal in this epoch. As long as $e(i_\mathrm{max})$ is not increased
+again, this means there is no limit on how many instances can be chosen without
+waiting for another phase I to run, which means the pipeline cannot stall.
 
 At this point, the system is no longer in normal running as defined above
-because $e(p) = e_\mathrm{max} - 1$. In order to get back into a normal state,
-a proposal $p'$ should be chosen with $e(p') = e(p) + 1$ and $\owner{p'}$
-should try and receive a quorum of promises for $p'$. It can do this by
-dividing the cluster into two quorums in such a way that it has a
-\textit{casting vote} between the two quorums: it finds $q \in Q_{e(p)}$ and
-$q' \in Q_{e(p)+1}$ having $q \cap q' = \{\owner{p'}\}$ and broadcasts
-$\prep{p'}$ to all nodes in $q'$ except itself. While it is waiting for the
-promises to arrive in response to this broadcast, $\owner{p}$ continues to make
-progress choosing instances of proposal $p$ using the quorum $q \in Q_{e(p)}$.
-Eventually when promises have arrived from every node in $q'$ except
-$\owner{p'}$ itself, it can send itself a final promise, immediately complete
-phase I for proposal $p'$, and start broadcasting proposals $\prop{i}{p'}$.
-This restores the system to normal running.
+because $e(p) = e_\mathrm{max} - 1$. In order to get back to normal running, a
+proposal $p'$ should be chosen with $e(p') = e(p) + 1$ and $\owner{p'}$ should
+try and obtain a quorum of promises for $p'$ without preventing progress in
+epoch $e(p)$. It can do this by dividing the cluster into two quorums in such a
+way that it has a \textit{casting vote} between the two quorums: it finds $q
+\in Q_{e(p)}$ and $q' \in Q_{e(p)+1}$ having $q \cap q' = \{\owner{p'}\}$ and
+broadcasts $\prep{p'}$ to all nodes in $q'$ except itself. While it is waiting
+for the promises to arrive in response to this broadcast, $\owner{p}$ continues
+to make progress choosing instances of proposal $p$ using the quorum $q \in
+Q_{e(p)}$.  Eventually when promises have arrived from every node in $q'$
+except $\owner{p'}$ itself, it can send itself a final promise, immediately
+complete phase I for proposal $p'$, and start broadcasting proposals
+$\prop{i}{p'}$.  This restores the system to normal running.
 
 Notice that this process requires that $e(i_\mathrm{max})$ increases by at most
 $1$ before the new phase I has finished running. If $e(i_\mathrm{max})$ were
 increased by a larger amount then this would put a limit on how many instances
-can run in the old epoch, and if the limit were reached then progress would
-have to stop until the corresponding phase I was completed.
+can run in the old epoch, and if the limit were reached then the pipeline may
+stall until the corresponding phase I was completed.
 
 Notice also that this process requires the existence of a node $\owner{p'}$
-that has a casting vote. If $\owner{p} \ne \owner{p'}$ then this process is
-known as an \textit{abdication}: the original leader $\owner{p}$ hands over the
-leadership of the cluster to $\owner{p'}$ at instance $i_c$.  As the current
-leader is responsible for proposing values, the system may need to take action
-to redirect its clients to the new leader in order to fully avoid jitter.
+that has a casting vote. If $\owner{p} \ne \owner{p'}$ then this process
+includes an \textit{abdication}: the original leader $\owner{p}$ hands over the
+leadership of the cluster to $\owner{p'}$. As the current leader is responsible
+for proposing values, the system may need to take action to redirect its
+clients from the old leader to the new leader in order to fully avoid jitter.
 
 \subsection{Examples}\label{types-of-membership-change}
 
@@ -810,7 +811,7 @@ $Q_{e-1}$ to $Q_e$ is sufficiently small that phase I need not re-run when
 moving from epoch $e-1$ to epoch $e$.  For instance, if $Q_{e-1} \frown
 Q_{e-1}$ then the trivial membership change, having $Q_e = Q_{e-1}$, certainly
 satisfies $Q_{e-1} \frown Q_e \frown Q_e$.
-
+%
 For a less trivial example, let \[\maj{s} = \{ q \subseteq s \mid 2 |q| > |s|
 \}\] be the set of all majority subsets of a finite set $s \subseteq \mathbb
 A$, and note that $\maj{s} \frown \maj{s}$ for all such $s$.  If $\mathbb A =
@@ -828,17 +829,17 @@ $Q_{e(j)} = \varnothing$ then no value can ever be chosen for $j$, but an epoch
 may be skipped at instance $i$ by letting $e(i) = e(i-1) + 2$.  This recovers
 the ability to perform arbitrary membership changes in a single step as in
 Dynamic Paxos: if the system is currently using membership $Q_{e(i)}$ and an
-operator wishes to change to an unrelated membership $Q'$ (where necessarily
-$Q' \frown Q'$) then they can set $Q_{e(i)+1} = \varnothing$ and $Q_{e(i)+2} =
-Q'$, which satisfies that \[Q_{e(i)} \frown Q_{e(i) + 1} \frown Q_{e(i)+1}
-\frown Q_{e(i) + 2} \frown Q_{e(i) + 2}\] as desired. However, re-running phase
-I can only be avoided if the epoch increases by $1$ and in this situation the
-epoch increases by $2$, so the new phase I must be complete before any new
-phase II instances can be started which reintroduces the risk of jitter.  As in
-Dynamic Paxos, to mitigate this risk the operator chooses an $\alpha > 0$ and
-sets $e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i + \alpha$,
-effectively delaying the membership change for $\alpha$ instances, in the hope
-that this is long enough to have completed the new phase I.
+operator wishes to change to an unrelated membership $Q'$ (i.e.  $Q_{e(i)}
+\not\frown Q' \frown Q'$) then they can set $Q_{e(i)+1} = \varnothing$ and
+$Q_{e(i)+2} = Q'$, which satisfies that \[Q_{e(i)} \frown Q_{e(i) + 1} \frown
+Q_{e(i)+1} \frown Q_{e(i) + 2} \frown Q_{e(i) + 2}\] as desired. However,
+re-running phase I can only be avoided if the epoch increases by $1$ and in
+this situation the epoch increases by $2$, so the new phase I must be complete
+before any new phase II instances can be started which reintroduces the risk of
+jitter.  As in Dynamic Paxos, to mitigate this risk the operator chooses an
+$\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i
++ \alpha$, effectively delaying the membership change for $\alpha$ instances in
+the hope that this is long enough to have completed the new phase I.
 
 \subsection{Weight-based memberships}
 \label{weight-based-memberships}
