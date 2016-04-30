@@ -664,23 +664,22 @@ therefore needs to have a separate state machine $S_i$ for each instance $i <
 i_\infty$ but then just a single state machine $S_\infty$ that represents all
 instances $i \ge i_\infty$. When a message mentioning an instance $i \ge
 i_\infty$ is received, the node must increase $i_\infty$ to $i'_\infty > i$ and
-create (or \textit{spawn}) state machines $S_j$ for $i_\infty \le j <
-i'_\infty$, all of which start in the same state as $S_\infty$. Typically, when
-all the instances up to $i$ are chosen at a node then this node ignores any
-further messages about these instances and discards the corresponding state
-machines.
+create state machines $S_j$ for $i_\infty \le j < i'_\infty$, each of which
+starts out as a copy of $S_\infty$. Typically, when all the instances up to $i$
+are chosen at a node then this node ignores any further messages about these
+instances and discards the corresponding state machines, which ensures resource
+usage does not grow unboundedly.
 
 As in the Synod algorithm, phase I starts with a broadcast of $\prep{p}$ for
 some $p$ to which each node $a$ may respond with a set of promises
-$\fprom{i}{a}{p}$, $\bprom{i}{a}{p}{p'}$ and $\mprom{i}{a}{p}$ according to the
-state of its state machines. If a node receives $\mprom{i}{a}{p}$ messages from
-a quorum of nodes then its state machine $S_\infty$ has completed phase I at
-$p$, and therefore any state machines that are subsequently spawned will also
-have completed phase I at $p$. Each phase II instance $i$ operates just as in
-the Synod algorithm, starting with a broadcast of $\prop{i}{p}$ to which each
-node $a$ may respond with an acceptance $\acc{i}{a}{p}$ and once acceptances
-have been received from a quorum of nodes it follows that $\chosen{i}{p}$ and
-phase II is complete for instance $i$.
+$\fprom{i}{a}{p}$, $\bprom{i}{a}{p}{p'}$ and $\mprom{i}{a}{p}$ according to its
+set of state machines. If a node receives $\mprom{i}{a}{p}$ messages from a
+quorum of nodes then its state machine $S_\infty$ has completed phase I at $p$,
+and therefore any state machines that are subsequently spawned will also have
+completed phase I at $p$. Each phase II instance $i$ operates just as in the
+Synod algorithm, starting with a broadcast of $\prop{i}{p}$ to which each node
+$a$ may respond with an acceptance $\acc{i}{a}{p}$ and once acceptances have
+been received from a quorum of nodes it follows that $\chosen{i}{p}$.
 
 There is a function $v_i : \mathbb P \to \mathbb V$ for each instance $i$
 giving a value to each proposal, and theorem \ref{paxos-safety-theorem} shows
