@@ -751,16 +751,12 @@ e(i_\mathrm{max}) \le e_\mathrm{max}}$ as required.
 
 \subsection{Jitter-free membership changes}
 
-In normal running messages between nodes are delivered reasonably reliably and
-there is an instance $i_0$ and a proposal $p$ with ${e(p) = e(i_0) =
-e(i_\mathrm{max}) = e_\mathrm{max}}$ and the node $\owner{p}$ has received a
-quorum of promises $q^\textrm{I} \in Q_{e(p)}$ for proposal $p$ for all
-instances $i \ge i_0$. In this state, $\owner{p}$ may emit $\prop{i}{p}$ for
-any $i \ge i_0$, since $e(p) = e(i_0) \le e(i)$ as $e$ is nondecreasing.
-Furthermore, if $e(i) \le e(p) + 1$, all instances below $i$ are chosen and
-acceptances $\acc{i}{a}{p}$ have been received from a quorum $q^\textrm{II} \in
-Q_{e(i)}$ then $\chosen{i}{p}$. The node $\owner{p}$ is known as the
-\textit{leader}.
+In normal running there is an instance $i_0$ and a proposal $p$ with ${e(p) =
+e(i_0) = e(i_\mathrm{max}) = e_\mathrm{max}}$ and the node $\owner{p}$ has
+received a quorum of promises $q^\textrm{I} \in Q_{e(p)}$ for proposal $p$ for
+all instances $i \ge i_0$. In this state, $\owner{p}$ may emit $\prop{i}{p}$
+for any $i \ge i_0$, since $e(p) = e(i_0) \le e(i)$ as $e$ is nondecreasing.
+The node $\owner{p}$ is known as the \textit{leader}.
 
 When in this state, if an operator wishes to change the cluster membership to
 $Q'$ where $Q' \frown Q_{e(p)}$ they must first arrange to append $Q'$ to the
