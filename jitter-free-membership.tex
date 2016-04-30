@@ -726,16 +726,17 @@ are fixed in advance and not chosen by Paxos.
 
 Slightly more generally, if the system is being used to build a state machine
 that remains consistent even if some of its transitions are reordered then it
-may be desirable to be able to deduce $\chosen{i}{p}$ even if the chosen value
-at instance $i-1$ is not yet known. There must be a limit $\kappa > 0$ on how
-many instances may be chosen concurrently, in case any of the unchosen
-instances eventually chooses a membership change. Note carefully that the
-concurrency parameter $\kappa$ is different from the parameter $\alpha$ in the
-original Dynamic Paxos: there $\prop{i}{p}$ may not occur until all instances
-$\le i - \alpha$ have been chosen whereas here there is no limit on which
-proposals can be made and the only restriction is that $\chosen{i}{p}$ may not
-occur until all instances $\le i - \kappa$ are chosen. In the common case that
-the transitions may not be reordered, $\kappa = 1$ is sufficient.
+may be desirable to be able to deduce $\chosen{i}{p}$ even if the chosen values
+of all previous instances are not yet known.  This can be done with a limit
+$\kappa > 0$ on how many instances may be chosen concurrently, and the
+epoch-number state machine then must satisfy $i_\mathrm{max} > i + \kappa$.
+Note carefully that this concurrency parameter $\kappa$ is different from the
+parameter $\alpha$ in the original Dynamic Paxos: there $\prop{i}{p}$ may not
+occur until all instances $\le i - \alpha$ have been chosen whereas here there
+is no limit on which proposals can be made and the only restriction is that
+$\chosen{i}{p}$ may not occur until all instances $\le i - \kappa$ are chosen.
+In the common case that the transitions may not be reordered, $\kappa = 1$ is
+sufficient.
 
 In order for a node to decide whether it can send out $\prop{i}{p}$ it must
 check whether it has received promises from a quorum of nodes $q \in Q_{e(p)}$,
@@ -814,17 +815,17 @@ the condition that $Q_{e-1} \frown Q_e$ ensures that the membership change from
 $Q_{e-1}$ to $Q_e$ is sufficiently small that phase I need not re-run when
 moving from epoch $e-1$ to epoch $e$.  For instance, if $Q_{e-1} \frown
 Q_{e-1}$ then the trivial membership change, having $Q_e = Q_{e-1}$, certainly
-satisfies $Q_{e-1} \frown Q_e \frown Q_e$.
+satisfies $Q_{e-1} \frown Q_e \frown Q_e$ and is therefore sufficiently small.
 %
 For a less trivial example, let \[\maj{s} = \{ q \subseteq s \mid 2 |q| > |s|
-\}\] be the set of all majority subsets of a finite set $s \subseteq \mathbb
-A$, and note that $\maj{s} \frown \maj{s}$ for all such $s$.  If $\mathbb A =
-\{ a_1, a_2, \ldots \}$ then let $s_n = \{a_1, \ldots, a_n\}$ and observe that
-${\maj{s_3} \frown \maj{s_4}}$ and ${\maj{s_4} \frown \maj{s_5}}$ but ${\maj{s_3}
-\not\frown \maj{s_5}}$ because $\{a_1, a_2\} \in \maj{s_3}$ and $\{a_3, a_4,
-a_5\} \in \maj{s_5}$ do not intersect. Thus the majority subsets of $s_3$ and
-$s_4$ are sufficiently similar to be consecutive memberships, but those of
-$s_3$ and $s_5$ are not.
+\}\] comprise all majority subsets of a finite set $s \subseteq \mathbb A$, and
+note that $\maj{s} \frown \maj{s}$ for all such $s$.  If $\mathbb A = \{ a_1,
+a_2, \ldots \}$ then let $s_n = \{a_1, \ldots, a_n\}$ and observe that
+${\maj{s_3} \frown \maj{s_4}}$ and ${\maj{s_4} \frown \maj{s_5}}$ but
+${\maj{s_3} \not\frown \maj{s_5}}$ because $\{a_1, a_2\} \in \maj{s_3}$ and
+$\{a_3, a_4, a_5\} \in \maj{s_5}$ do not intersect. Thus the majority subsets
+of $s_3$ and $s_4$ are sufficiently similar to be consecutive memberships, but
+those of $s_3$ and $s_5$ are not.
 
 The intuition that $Q_{e-1} \frown Q_e$ captures that $Q_{e-1}$ and $Q_e$ are
 similar breaks down if either is empty because $\varnothing \frown Q$ vacuously
@@ -1224,10 +1225,9 @@ $\chosen{}{p_2}$ then $v(p_1) = v(p_2)$.  \end{theorem}
 
 \begin{proof} Without loss of generality assume that ${p_2 \prec p_1}$. By
 invariant \ref{synod-chosen} there is a quorum $q \in Q^\textrm{II}(p_1)$ such
-that $\acc{}{a}{p_1}$ for every node $a \in q$. Since $q$ is nonempty, by
-invariant \ref{synod-acc} it must be that $\prop{}{p_1}$ was previously sent.
-Therefore by lemma \ref{synod-lemma} it follows that $v(p_1) = v(p_2)$ as
-required.  \end{proof}
+that $\acc{}{a}{p_1}$ for every node $a \in q$ and therefore $\prop{}{p_1}$ by
+invariant \ref{synod-acc}.  Therefore by lemma \ref{synod-lemma} it follows
+that $v(p_1) = v(p_2)$ as required.  \end{proof}
 
 
 \section{Consistency of the Paxos algorithm}\label{paxos-invariants}
@@ -1278,9 +1278,9 @@ q$.
 
 \end{enumerate}
 
-\begin{lemma}\label{paxos-synod-quorum-invariant} For $p_1
-\succ p_2 \in \mathbb P$ and instance $i$, if $\prop{i}{p_1}$ and
-$\chosen{i}{p_2}$ then ${Q_{e(p_1)} \frown Q_{e(i)}}$.  \end{lemma}
+\begin{lemma}\label{paxos-synod-quorum-invariant} For $p_1 \succ p_2 \in
+\mathbb P$, if $\prop{i}{p_1}$ and $\chosen{i}{p_2}$ then ${Q_{e(p_1)} \frown
+Q_{e(i)}}$.  \end{lemma}
 
 \begin{proof} $e(i) \le e(p_2) + 1 \le e(p_1) + 1 \le e(i) + 1$ since
 $\chosen{i}{p_2}$, $e$ is nondecreasing, and $\prop{i}{p_1}$ respectively.
