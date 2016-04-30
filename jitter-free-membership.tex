@@ -489,12 +489,12 @@ remains in phase II for extended periods of time, but will return to phase I if
 certain nodes become faulty, or if messages between certain pairs of nodes
 cease to be delivered reliably for a period, or if the membership changes.
 
-Paxos allows for \textit{pipelining} in phase II: later instances can be
-started before earlier ones have been chosen, which means that the rate of
-choosing values is not limited by network latency. The pipeline runs smoothly
-as long as phase I does not need to run again, but may stall if phase I is
-re-run. A pipeline stall can be observed as jitter in the rate at which values
-are chosen.
+Paxos allows for \textit{pipelining} \cite{smart} in phase II: later instances
+can be started before earlier ones have been chosen, which means that the rate
+of choosing values is not limited by network latency. The pipeline runs
+smoothly as long as phase I does not need to run again, but may stall if phase
+I is re-run. A pipeline stall can be observed as jitter in the rate at which
+values are chosen.
 
 It is unavoidable that a faulty node or disrupted communications may have an
 impact on the system's performance, but changing its membership is a routine
@@ -507,14 +507,14 @@ membership change can take an unreasonably long time to take effect.
 
 The delay parameter $\alpha$ may be allowed to vary while the system is
 running, so it is certainly possible to design a mechanism for choosing a
-reasonably suitable value and adapting it to changing system
-conditions\footnote{TODO also ``inelegant'', cf \textit{Reconfiguring a state
-machine}}. The approach described here allows phase II to start using a new
-membership without re-running phase I; this is shown to preserve consistency as
-long as the membership change is sufficiently small (in a sense which is made
-precise in section \ref{types-of-membership-change} below.) By removing phase I
-from the critical path of a membership change the possibility of jitter caused
-by a pipeline stall is eliminated.
+reasonably suitable value and adapting it to changing system conditions,
+although this seems inelegant\cite{reconfiguring-a-state-machine}.  The
+approach described here allows phase II to start using a new membership without
+re-running phase I; this is shown to preserve consistency as long as the
+membership change is sufficiently small (in a sense which is made precise in
+section \ref{types-of-membership-change} below.) By removing phase I from the
+critical path of a membership change the possibility of jitter caused by a
+pipeline stall is eliminated.
 
 The technique shown here also supports arbitrary membership changes happening
 in a single step just as in Dynamic Paxos, but any changes that are not
@@ -1051,9 +1051,9 @@ to ensure consistency in relatively rare periods of maintenance.
 It is straightforward to ensure that membership changes do not increase the
 exposure of the cluster to the risk of too many zone-wide failures, and do not
 result in a cluster with no nodes having a casting vote. A real implementation
-of the membership state machines could entirely prevent such changes to reduce
-the risk of operator error, or could at least require a \textit{safety catch}
-to be explicitly disabled before performing unsafe membership changes.
+of the membership state machines could entirely proscribe such changes to
+reduce the risk of operator error, or could at least require a \textit{safety
+catch} to be explicitly disabled before performing unsafe membership changes.
 
 
 
@@ -1178,10 +1178,10 @@ invariants.
 
 \begin{enumerate}
 
-\item \label{synod-quorums} For proposal identifiers $p_1 \succ p_2 \in \mathbb
+\item \label{synod-quorums} For $p_1 \succ p_2 \in \mathbb
 P$ there are memberships $Q^\textrm{I}(p_1)$ and $Q^\textrm{II}(p_2) \subseteq
-\mathcal P \mathbb A$ such that if $\chosen{}{p_2}$ then ${Q^\textrm{I}(p_1)
-\frown Q^\textrm{II}(p_2)}$.
+\mathcal P \mathbb A$ such that if $\prop{}{p_1}$ and $\chosen{}{p_2}$ then
+${Q^\textrm{I}(p_1) \frown Q^\textrm{II}(p_2)}$.
 
 \item \label{synod-fprom} $\fprom{}{a}{p}$ only if $\neg\acc{}{a}{p'}$ for all
 ${p' \prec p}$.
@@ -1298,14 +1298,14 @@ Q_{e(i)}$ such that $\acc{i}{a}{p}$ for every $a \in q$.
 
 \end{enumerate}
 
-\begin{lemma}\label{paxos-synod-quorum-invariant} For proposal identifiers $p_1
-\succ p_2 \in \mathbb P$ and instance $i$, if $\chosen{i}{p_2}$ and $e(p_1) \le
-e(i)$ then ${Q_{e(p_1)} \frown Q_{e(i)}}$.  \end{lemma}
+\begin{lemma}\label{paxos-synod-quorum-invariant} For $p_1
+\succ p_2 \in \mathbb P$ and instance $i$, if $\prop{i}{p_1}$ and
+$\chosen{i}{p_2}$ then ${Q_{e(p_1)} \frown Q_{e(i)}}$.  \end{lemma}
 
-\begin{proof} Since $\chosen{i}{p_2}$ it follows that $e(i) \le e(p_2) + 1$,
-and since $e$ is nondecreasing $e(p_2) \le e(p_1)$. Therefore $e(p_1) \in \{
-e(i) - 1, e(i) \}$ and hence ${Q_{e(p_1)} \frown Q_{e(i)}}$ by invariant
-\ref{paxos-quorums}.  \end{proof}
+\begin{proof} $e(i) \le e(p_2) + 1 \le e(p_1) + 1 \le e(i) + 1$ since
+$\chosen{i}{p_2}$, $e$ is nondecreasing, and $\prop{i}{p_1}$ respectively.
+Therefore $e(p_1) \in \{ e(i) - 1, e(i) \}$ and hence ${Q_{e(p_1)} \frown
+Q_{e(i)}}$ by invariant \ref{paxos-quorums}.  \end{proof}
 
 \begin{theorem}\label{paxos-safety-theorem} If $\chosen{i}{p_1}$ and
 $\chosen{i}{p_2}$ then ${v_i(p_1) = v_i(p_2)}$.  \end{theorem}
@@ -1314,9 +1314,7 @@ $\chosen{i}{p_2}$ then ${v_i(p_1) = v_i(p_2)}$.  \end{theorem}
 If $\chosen{i}{p_1}$ then the Paxos invariants imply the Synod invariants for
 instance $i$.  In more detail, let
 \[\begin{array}{rl}
-Q^\textrm{I}(p) &= \begin{cases}
-Q_{e(p)} & e(p) \le e(i) \\
-\varnothing & \textrm{otherwise,} \end{cases} \\
+Q^\textrm{I}(p) &= Q_{e(p)}, \\
 Q^\textrm{II}(p) &= Q_{e(i)}, \\
 \fprom{}{a}{p} &= \fprom{i}{a}{p} \\
 & \ {}\vee \exists i' \le i. \mprom{i'}{a}{p}, \\
@@ -1328,10 +1326,9 @@ v(p) &= v_i(p)\\
 \end{array}
 \]
 Synod's invariant \ref{synod-quorums} follows from lemma
-\ref{paxos-synod-quorum-invariant} and the fact that $\varnothing \frown
-Q_{e(i)}$ and the remaining invariants are simple to show so by theorem
-\ref{synod-safety-theorem} it follows that $v_i(p_1) = v_i(p_2)$ as required.
-\end{proof}
+\ref{paxos-synod-quorum-invariant} and the remaining invariants are simple to
+show so by theorem \ref{synod-safety-theorem} it follows that $v_i(p_1) =
+v_i(p_2)$ as required.  \end{proof}
 
 
 \section{Consecutive epochs using weight-based membership}
