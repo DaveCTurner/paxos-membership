@@ -471,14 +471,14 @@ when $\ge f+1$ (i.e.  a majority) of the nodes agree.  More generally, if
 $\mathbb A$ is the set of all nodes then there is a set $Q \subseteq \mathcal P
 \mathbb A$ of \textit{quorums}, and a value is chosen when all nodes $a \in q$
 agree for some quorum $q \in Q$. The set of quorums is called the
-\textit{membership} of the cluster.
+\textit{configuration} of the cluster.
 
 It is normally necessary to be able to add or remove nodes from the cluster,
-which amounts to the ability to change the membership while the cluster is
+which amounts to the ability to change the configuration while the cluster is
 running. It is crucial that all participating nodes agree on the cluster
-membership at all times, and Dynamic Paxos~\cite{cheap-paxos} achieves this by
-tracking the cluster membership with a state machine whose transitions occur
-when particular values in the sequence are chosen.
+configuration at all times, and Dynamic Paxos~\cite{cheap-paxos} achieves this
+by tracking the configuration with a state machine whose transitions occur when
+particular values in the sequence are chosen.
 
 Each value $v_i \in \mathbb V$ is chosen using a separate instance $i$ of a
 two-phase consensus protocol known as \textit{Synod}. The full Paxos algorithm
@@ -487,7 +487,7 @@ by running phase I of all instances at once and then runs phase II of each
 instance in turn to yield the desired sequence of chosen values. It normally
 remains in phase II for extended periods of time, but will return to phase I if
 certain nodes become faulty, or if messages between certain pairs of nodes
-cease to be delivered reliably for a period, or if the membership changes.
+cease to be delivered reliably for a period, or if the configuration changes.
 
 Paxos allows for \textit{pipelining} \cite{smart} in phase II: later instances
 can be started before earlier ones have been chosen, which means that the rate
@@ -497,30 +497,30 @@ I is re-run. A pipeline stall can be observed as jitter in the rate at which
 values are chosen.
 
 It is unavoidable that a faulty node or disrupted communications may have an
-impact on the system's performance, but changing its membership is a routine
+impact on the system's performance, but changing its configuration is a routine
 task which should have no such effect. Dynamic Paxos avoids a pipeline stall
-when a cluster membership change is chosen at instance $i$ by postponing the
+when a cluster configuration change is chosen at instance $i$ by postponing the
 effects of the change until instance $i + \alpha$ for some $\alpha > 0$. If
 $\alpha$ is large enough, there is time to run the new phase I before the
 pipeline stalls.  On the other hand, if $\alpha$ is too large then the
-membership change can take an unreasonably long time to take effect.
+configuration change can take an unreasonably long time to take effect.
 
 The delay parameter $\alpha$ may be allowed to vary while the system is
 running, so it is certainly possible to design a mechanism for choosing a
 reasonably suitable value and adapting it to changing system conditions,
 although this seems inelegant\cite{reconfiguring-a-state-machine}.  The
-approach described here allows phase II to start using a new membership without
-re-running phase I; this is shown to preserve consistency as long as the
-membership change is sufficiently small (in a sense which is made precise in
-section \ref{types-of-membership-change} below.) By removing phase I from the
-critical path of a membership change the possibility of jitter caused by a
-pipeline stall is eliminated.
+approach described here allows phase II to start using a new configuration
+without re-running phase I; this is shown to preserve consistency as long as
+the configuration change is sufficiently small (in a sense which is made
+precise in section \ref{types-of-configuration-change} below.) By removing
+phase I from the critical path of a configuration change the possibility of
+jitter caused by a pipeline stall is eliminated.
 
-The technique shown here also supports arbitrary membership changes happening
-in a single step just as in Dynamic Paxos, but any changes that are not
-sufficiently small continue to carry the risk of jitter. In reality, arbitrary
-changes would normally be performed as a sequence of these small, jitter-free
-changes as discussed in section \ref{discussion} below.
+The technique shown here also supports arbitrary configuration changes
+happening in a single step just as in Dynamic Paxos, but any changes that are
+not sufficiently small continue to carry the risk of jitter. In reality,
+arbitrary changes would normally be performed as a sequence of these small,
+jitter-free changes as discussed in section \ref{discussion} below.
 
 \section{The Synod Algorithm}
 
@@ -686,15 +686,15 @@ giving a value to each proposal, and theorem \ref{paxos-safety-theorem} shows
 that whenever $\chosen{i}{p}$ and $\chosen{i}{p'}$ it follows that $v_i(p) =
 v_i(p')$.
 
+\subsection{Configuration changes}\label{configuration-changes}
 
-\subsection{Membership changes}\label{membership-changes}
-
-Changes in the cluster membership are handled with a sequence of numbered
-\textit{epochs} $1, 2, \ldots$ and memberships $Q_0, Q_1, Q_2, \ldots$
+Changes in the cluster configuration are handled with a sequence of numbered
+\textit{epochs} $1, 2, \ldots$ and configurations $Q_0, Q_1, Q_2, \ldots$
 satisfying $Q_{e-1} \frown Q_e$ and $Q_e \frown Q_e$ for all epochs $e$.  This
-means $Q_{e-1}$ and $Q_e$ can be used for the phase-I and phase-II memberships
-of a Paxos instance respectively by the observation of \ref{per-phase-quorums}
-above, or alternatively $Q_e$ can be used for both phases.
+means $Q_{e-1}$ and $Q_e$ can be used for the phase-I and phase-II
+configurations of a Paxos instance respectively by the observation of
+\ref{per-phase-quorums} above, or alternatively $Q_e$ can be used for both
+phases.
 
 There are also two nondecreasing functions, both written $e(\cdot)$, which
 respectively assign an epoch number $e(i)$ to each instance $i$, and an epoch
@@ -705,24 +705,24 @@ quorum $q^\textrm{I} \in Q_{e(p)}$. A node may decide $\chosen{i}{p}$ if ${e(i)
 \in Q_{e(i)}}$. Thus if $\chosen{i}{p}$ then ${e(p) \in \{ e(i)-1, e(i) \}}$
 and hence $Q_{e(p)} \frown Q_{e(i)}$ so that $q^\textrm{I} \cap q^\textrm{II}
 \ne \varnothing$ as required. It is worth emphasising the subtle point that
-phase I uses the membership $Q_{e(p)}$ corresponding to the proposal $p$
-whereas phase II uses the membership $Q_{e(i)}$ for the instance $i$, with
+phase I uses the configuration $Q_{e(p)}$ corresponding to the proposal $p$
+whereas phase II uses the configuration $Q_{e(i)}$ for the instance $i$, with
 extra conditions to ensure that $e(p) \le e(i) \le e(p) + 1$ and therefore that
 the epochs used in the two phases are close enough to ensure consistency.
 
-\subsection{Dynamic membership changes}
+\subsection{Dynamic configuration changes}
 
-As in Dynamic Paxos, the memberships $Q_0, Q_1, \ldots$ and epoch numbers
-$e(i)$ are themselves chosen by Paxos. In more detail, memberships are tracked
-by a state machine whose state is the finite sequence $Q_0, \ldots,
+As in Dynamic Paxos, the configurations $Q_0, Q_1, \ldots$ and epoch numbers
+$e(i)$ are themselves chosen by Paxos. In more detail, configurations are
+tracked by a state machine whose state is the finite sequence $Q_0, \ldots,
 Q_{e_\mathrm{max}}$ and the epoch numbers of instances are tracked by a state
 machine whose state is the finite sequence $e(0), \ldots, e(i_\mathrm{max})$.
 Their transitions append one or more elements to these sequences, but do not
 change any existing elements, and the tracked sequences are always long enough
 to make progress: if $\chosen{i}{p}$ then the epoch-number state machine
 satisfies $i_\mathrm{max} > i+1$ and $e_\mathrm{max} \ge e(i_\mathrm{max})$ in
-the membership-sequence state machine. Epoch numbers $e(p)$ for proposals $p$
-are fixed in advance and not chosen by Paxos.
+the configuration-sequence state machine. Epoch numbers $e(p)$ for proposals
+$p$ are fixed in advance and not chosen by Paxos.
 
 Slightly more generally, if the system is being used to build a state machine
 that remains consistent even if some of its transitions are reordered then it
@@ -754,7 +754,7 @@ chosen all but the previous $\kappa$ instances, because if
 $\chosen{i-\kappa}{p'}$ then $i < i_\mathrm{max}$ and hence ${e(i) \le
 e(i_\mathrm{max}) \le e_\mathrm{max}}$ as required.
 
-\subsection{Jitter-free membership changes}
+\subsection{Jitter-free configuration changes}
 
 In normal running there is an instance $i_0$ and a proposal $p$ with ${e(p) =
 e(i_0) = e(i_\mathrm{max}) = e_\mathrm{max}}$ and the node $\owner{p}$ has
@@ -764,9 +764,9 @@ for any $i \ge i_0$, since $e(p) = e(i_0) \le e(i)$ as $e$ is nondecreasing.
 The node $\owner{p}$ is known as the \textit{leader} and its proposals are
 normally accepted without undue delay by all other nodes.
 
-When in this state, if an operator wishes to change the cluster membership to
-$Q'$ where $Q_{e(p)} \frown Q' \frown Q'$ they must first arrange to
-append $Q'$ to the sequence of memberships, setting $Q_{e(p)+1} = Q'$ and
+When in this state, if an operator wishes to change the cluster configuration
+to $Q'$ where $Q_{e(p)} \frown Q' \frown Q'$ they must first arrange to append
+$Q'$ to the sequence of configurations, setting $Q_{e(p)+1} = Q'$ and
 $e_\mathrm{max} = e(p) + 1$, then pick a future instance $i_c > i_\mathrm{max}$
 at which the change should take effect and append values to the sequence of
 epochs to set $e(i) = e(i_0)$ for $i_0 \le i < i_c$ and $e(i_c) = e(i_0) + 1$.
@@ -804,18 +804,19 @@ leadership of the cluster to $\owner{p'}$. As the current leader is responsible
 for proposing values, the system may need to take action to redirect its
 clients from the old leader to the new leader in order to fully avoid jitter.
 
-\subsection{Examples}\label{types-of-membership-change}
+\subsection{Examples}\label{types-of-configuration-change}
 
 \def\maj#1{\mathbf{maj}(#1)}
 
 Implementations can ensure $Q_e \frown Q_e$ for each $e$ by, for instance,
 arranging for each quorum in $Q_e$ to comprise a (weighted) majority subset of
 some finite set of nodes.  If $Q_{e-1}$ and $Q_e$ are nonempty then intuitively
-the condition that $Q_{e-1} \frown Q_e$ ensures that the membership change from
-$Q_{e-1}$ to $Q_e$ is sufficiently small that phase I need not re-run when
+the condition that $Q_{e-1} \frown Q_e$ ensures that the configuration change
+from $Q_{e-1}$ to $Q_e$ is sufficiently small that phase I need not re-run when
 moving from epoch $e-1$ to epoch $e$.  For instance, if $Q_{e-1} \frown
-Q_{e-1}$ then the trivial membership change, having $Q_e = Q_{e-1}$, certainly
-satisfies $Q_{e-1} \frown Q_e \frown Q_e$ and is therefore sufficiently small.
+Q_{e-1}$ then the trivial configuration change, having $Q_e = Q_{e-1}$,
+certainly satisfies $Q_{e-1} \frown Q_e \frown Q_e$ and is therefore
+sufficiently small.
 %
 For a less trivial example, let \[\maj{s} = \{ q \subseteq s \mid 2 |q| > |s|
 \}\] comprise all majority subsets of a finite set $s \subseteq \mathbb A$, and
@@ -824,17 +825,17 @@ a_2, \ldots \}$ then let $s_n = \{a_1, \ldots, a_n\}$ and observe that
 ${\maj{s_3} \frown \maj{s_4}}$ and ${\maj{s_4} \frown \maj{s_5}}$ but
 ${\maj{s_3} \not\frown \maj{s_5}}$ because $\{a_1, a_2\} \in \maj{s_3}$ and
 $\{a_3, a_4, a_5\} \in \maj{s_5}$ do not intersect. Thus the majority subsets
-of $s_3$ and $s_4$ are sufficiently similar to be consecutive memberships, but
-those of $s_3$ and $s_5$ are not.
+of $s_3$ and $s_4$ are sufficiently similar to be consecutive configurations,
+but those of $s_3$ and $s_5$ are not.
 
 The intuition that $Q_{e-1} \frown Q_e$ captures that $Q_{e-1}$ and $Q_e$ are
 similar breaks down if either is empty because $\varnothing \frown Q$ vacuously
-for all memberships $Q$. Clearly if there is an instance $j$ such that
+for all configurations $Q$. Clearly if there is an instance $j$ such that
 $Q_{e(j)} = \varnothing$ then no value can ever be chosen for $j$, but an epoch
 may be skipped at instance $i$ by letting $e(i) = e(i-1) + 2$.  This recovers
-the ability to perform arbitrary membership changes in a single step as in
-Dynamic Paxos: if the system is currently using membership $Q_{e(i)}$ and an
-operator wishes to change to an unrelated membership $Q'$ (i.e.  $Q_{e(i)}
+the ability to perform arbitrary configuration changes in a single step as in
+Dynamic Paxos: if the system is currently using configuration $Q_{e(i)}$ and an
+operator wishes to change to an unrelated configuration $Q'$ (i.e.  $Q_{e(i)}
 \not\frown Q' \frown Q'$) then they can set $Q_{e(i)+1} = \varnothing$ and
 $Q_{e(i)+2} = Q'$, which satisfies that \[Q_{e(i)} \frown Q_{e(i) + 1} \frown
 Q_{e(i)+1} \frown Q_{e(i) + 2} \frown Q_{e(i) + 2}\] as desired. However,
@@ -843,24 +844,23 @@ this situation the epoch increases by $2$, so the new phase I must be complete
 before any new phase II instances can be started which reintroduces the risk of
 jitter.  As in Dynamic Paxos, to mitigate this risk the operator chooses an
 $\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i
-+ \alpha$, effectively delaying the membership change for $\alpha$ instances in
-the hope that this is long enough to have completed the new phase I.
++ \alpha$, effectively delaying the configuration change for $\alpha$ instances
+in the hope that this is long enough to have completed the new phase I.
 
-\subsection{Weight-based memberships}
-\label{weight-based-memberships}
+\subsection{Weight-based configurations} \label{weight-based-configurations}
 
 Let a \textit{weight} function be a function $w : \mathbb A \to \mathbb N$ that
 only takes finitely many nonzero values. This can be used to define a
-membership $M(w)$ by \textit{majority}: \[M(w) = \left\{ q \;\middle|\; \sum_{a
-\in q} 2 w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] If $w(a) = 0$ for all
-$a$ then $w$ is said to be \textit{weightless} and $M(w) = \varnothing$.
-Corollary \ref{weights-equal} shows that $M(w) \frown M(w)$ for any weight
-function $w$.
+configuration $M(w)$ by \textit{majority}: \[M(w) = \left\{ q \;\middle|\;
+\sum_{a \in q} 2 w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] If $w(a) = 0$
+for all $a$ then $w$ is said to be \textit{weightless} and $M(w) =
+\varnothing$.  Corollary \ref{weights-equal} shows that $M(w) \frown M(w)$ for
+any weight function $w$.
 
 A sequence $w_0, w_1, \ldots$ of weight functions can be used to define the
-sequence of memberships $M(w_0), M(w_1), \ldots$ used by a cluster, which must
-satisfy $M(w_{e-1}) \frown M(w_e)$ for all $e$.  There are three simple ways to
-ensure this:
+sequence of configurations $M(w_0), M(w_1), \ldots$ used by a cluster, which
+must satisfy $M(w_{e-1}) \frown M(w_e)$ for all $e$.  There are three simple
+ways to ensure this:
 
 \begin{enumerate}
 
@@ -958,7 +958,7 @@ nodes, this represents a significant overhead simply to cover relatively rare
 periods of maintenance: if maintenance is ignored then only three nodes are
 required.
 
-The required number of nodes can be reduced using a membership change as
+The required number of nodes can be reduced using a configuration change as
 follows. A cluster of four equally-weighted nodes can only tolerate a single
 failure, but by reducing the weight of node $a_{\textrm{maint}}$ to zero before
 taking it offline, the remaining three nodes can tolerate the loss of another
@@ -975,7 +975,7 @@ w_{e+2}&1&1&2&2\\
 \end{array}\]
 Since each step changes the weight of a single node by $1$ this sequence
 satisfies $M(w_e) \frown M(w_{e+1}) \frown M(w_{e+2})$, and $a_3$ has a casting
-vote in each membership, so this sequence is jitter-free.  If $a_3$ required
+vote in each configuration, so this sequence is jitter-free.  If $a_3$ required
 maintenance then its casting vote could be moved to $a_1$ first as follows:
 \[\begin{array}{rcccc}
 \textrm{node}&a_0&a_1&a_2&a_3 \\
@@ -1010,7 +1010,7 @@ w_{e+2}&2&2&1\\
 It may be more usual to run a cluster of three nodes with equal weights as in
 $w_{e+1}$ above. If the weights are all equal to $k \ne 2$, recall that
 changing the weights of all nodes by a constant factor does not change the
-cluster membership, so multiplying by $\frac{2}{k}$ has the desired effect:
+cluster configuration, so multiplying by $\frac{2}{k}$ has the desired effect:
 \[\begin{array}{rcccc}
 \textrm{node}&a_0&a_1&a_2 \\
 w_e&k&k&k\\
@@ -1144,15 +1144,7 @@ relatively rare periods of maintenance.
 
 \section{Conclusion}
 
-TODO note that $\mathbb P$ can be implemented as $\mathbb N \times \mathbb N
-\times \mathbb A$ with the lexicographic order where $e(\langle e, n, a
-\rangle) = e$ and $\owner{\langle e, n, a\rangle} = a$.
-
-If using term-based leadership elections, it can be implemented as $\mathbb N
-\times \mathbb N \times \mathbb N \times \mathbb A$ with the lexicographic
-order where $e(\langle e, t, n, a \rangle) = e$ and $\owner{\langle e, t, n,
-a\rangle} = a$ and the term of $\langle e, t, n, a \rangle$ is the pair
-$\langle e, t \rangle$.
+TODO
 
 
 \pagebreak
@@ -1166,9 +1158,9 @@ invariants.
 
 \begin{enumerate}
 
-\item \label{synod-quorums} For $p_1 \succ p_2 \in \mathbb
-P$ there are memberships $Q^\textrm{I}(p_1)$ and $Q^\textrm{II}(p_2) \subseteq
-\mathcal P \mathbb A$ such that if $\prop{}{p_1}$ and $\chosen{}{p_2}$ then
+\item \label{synod-quorums} For $p_1 \succ p_2 \in \mathbb P$ there are
+configurations $Q^\textrm{I}(p_1)$ and $Q^\textrm{II}(p_2) \subseteq \mathcal P
+\mathbb A$ such that if $\prop{}{p_1}$ and $\chosen{}{p_2}$ then
 ${Q^\textrm{I}(p_1) \frown Q^\textrm{II}(p_2)}$.
 
 \item \label{synod-fprom} $\fprom{}{a}{p}$ only if $\neg\acc{}{a}{p'}$ for ${p'
@@ -1178,11 +1170,11 @@ ${Q^\textrm{I}(p_1) \frown Q^\textrm{II}(p_2)}$.
 $\acc{}{a}{p'}$, and $p'$ is the greatest such proposal, in the sense that
 $\neg\acc{}{a}{p''}$ for all $p''$ having $p' \prec p'' \prec p$.
 
-\item \label{synod-prop} $\prop{}{p}$ only if there is a quorum
-$q^\textrm{I} \in Q^\textrm{I}(p)$ such that for every node $a \in q^\textrm{I}$
-either $\fprom{}{a}{p}$ or else $\exists p'.  \bprom{}{a}{p}{p'}$, and if ${P = \{
-p' \mid \exists a \in q^\textrm{I}. \bprom{}{a}{p}{p'} \} \ne \varnothing}$
-then it follows that $v(p) = v(\mathrm{max}(P))$.
+\item \label{synod-prop} $\prop{}{p}$ only if there is a quorum $q^\textrm{I}
+\in Q^\textrm{I}(p)$ such that for every node $a \in q^\textrm{I}$ either
+$\fprom{}{a}{p}$ or else $\exists p'.  \bprom{}{a}{p}{p'}$, and if ${P = \{ p'
+\mid \exists a \in q^\textrm{I}. \bprom{}{a}{p}{p'} \} \ne \varnothing}$ then
+it follows that $v(p) = v(\mathrm{max}(P))$.
 
 \item \label{synod-acc} $\acc{}{a}{p}$ only if $\prop{}{p}$.
 
@@ -1192,8 +1184,8 @@ q^\textrm{II}$.
 
 \end{enumerate}
 
-\begin{lemma}\label{synod-acc-bprom}If $\acc{}{a}{p_2}$, $\bprom{}{a}{p_1}{p_3}$
-and $p_2 \prec p_1$ then $p_2 \preceq p_3$.\end{lemma}
+\begin{lemma}\label{synod-acc-bprom}If $\acc{}{a}{p_2}$,
+$\bprom{}{a}{p_1}{p_3}$ and $p_2 \prec p_1$ then $p_2 \preceq p_3$.\end{lemma}
 
 \begin{proof} From invariant \ref{synod-bprom} it follows that $p_3$ is the
 largest proposal such that $p_3 \prec p_1$ and $\acc{}{a}{p_3}$, but $p_2$ is
@@ -1235,7 +1227,6 @@ that $\acc{}{a}{p_1}$ for every node $a \in q$ and therefore $\prop{}{p_1}$ by
 invariant \ref{synod-acc}.  Therefore by lemma \ref{synod-lemma} it follows
 that $v(p_1) = v(p_2)$ as required.  \end{proof}
 
-
 \section{Consistency of the Paxos algorithm}\label{paxos-invariants}
 
 The consistency property of the Paxos algorithm is derived from the following
@@ -1243,11 +1234,11 @@ invariants.
 
 \begin{enumerate}
 
-\item\label{paxos-quorums} There is a sequence of memberships $Q_0, Q_1,
+\item\label{paxos-quorums} There is a sequence of configurations $Q_0, Q_1,
 \ldots$ where ${Q_e \frown Q_e \frown Q_{e+1}}$ for each $e$.
 
-\item\label{paxos-mprom} $\mprom{i}{a}{p}$ only if $\neg\acc{i'}{a}{p'}$ for all
-$i' \ge i$ and $p' \prec p$.
+\item\label{paxos-mprom} $\mprom{i}{a}{p}$ only if $\neg\acc{i'}{a}{p'}$ for
+all $i' \ge i$ and $p' \prec p$.
 
 \item\label{paxos-fprom} $\fprom{i}{a}{p}$ only if $\neg\acc{i}{a}{p'}$ for all
 $p' \prec p$.
@@ -1268,19 +1259,17 @@ quorum $q \in Q_{e(p)}$ such that
 \item $\bprom{i}{a}{p}{p'}$ for some $p'$, and
 \end{itemize}
 
-\item if $P = \{ p' \mid \exists a \in q. \bprom{i}{a}{p}{p'} \}
-\ne \varnothing$ then $v_i(p) = v_i(\mathrm{max}(P))$.
+\item if $P = \{ p' \mid \exists a \in q. \bprom{i}{a}{p}{p'} \} \ne
+\varnothing$ then $v_i(p) = v_i(\mathrm{max}(P))$.
+
 \end{itemize}
 
 \item \label{paxos-acc} $\acc{i}{a}{p}$ only if $\prop{i}{p}$.
 
-\item \label{paxos-chosen} $\chosen{i}{p}$ only if
-\begin{itemize}
-\item for each $j \le i - \kappa$ there is a $p'$ with $\chosen{i-1}{p'}$,
-\item $e(i) \le e(p) + 1$, and
-\item there is a quorum $q \in Q_{e(i)}$ with $\acc{i}{a}{p}$ for every $a \in
-q$.
-\end{itemize}
+\item \label{paxos-chosen} $\chosen{i}{p}$ only if \begin{itemize} \item for
+each $j \le i - \kappa$ there is a $p'$ with $\chosen{i-1}{p'}$, \item $e(i)
+\le e(p) + 1$, and \item there is a quorum $q \in Q_{e(i)}$ with
+$\acc{i}{a}{p}$ for every $a \in q$.  \end{itemize}
 
 \end{enumerate}
 
@@ -1296,9 +1285,8 @@ Q_{e(i)}}$ by invariant \ref{paxos-quorums}.  \end{proof}
 \begin{theorem}\label{paxos-safety-theorem} If $\chosen{i}{p_1}$ and
 $\chosen{i}{p_2}$ then ${v_i(p_1) = v_i(p_2)}$.  \end{theorem}
 
-\begin{proof}
-If $\chosen{i}{p_1}$ then the Paxos invariants imply the Synod invariants for
-instance $i$.  In more detail, let
+\begin{proof} If $\chosen{i}{p_1}$ then the Paxos invariants imply the Synod
+invariants for instance $i$.  In more detail, let
 \[\begin{array}{rl}
 Q^\textrm{I}(p) &= Q_{e(p)}, \\
 Q^\textrm{II}(p) &= Q_{e(i)}, \\
@@ -1316,8 +1304,7 @@ Synod's invariant \ref{synod-quorums} follows from lemma
 show so by theorem \ref{synod-safety-theorem} it follows that $v_i(p_1) =
 v_i(p_2)$ as required.  \end{proof}
 
-
-\section{Consecutive epochs using weight-based membership}
+\section{Consecutive epochs using weight-based configurations}
 
 \begin{theorem} \label{weights-nearly-equal} If $w, w' : \mathbb A \to \mathbb
 N$ are weight functions such that $\sum_{a \in \mathbb A} |w'(a) - w(a)| \le 1$
@@ -1372,21 +1359,20 @@ Then
 +    \sum_{a \in q \cap q'} 2w(a) + 2d_{q'},\\
 %
 \end{aligned}\end{gather*} so that $\sum_{a \in q \cap q'} 2w(a) \ge d_{\mathbb
-A} + 2 - 2d_{q'} = 2 \pm d_\mathbb A \ge 1$ and hence $q \cap q' \ne \varnothing$ as desired.
-\end{proof}
+A} + 2 - 2d_{q'} = 2 \pm d_\mathbb A \ge 1$ and hence $q \cap q' \ne
+\varnothing$ as desired.  \end{proof}
 
 \begin{corollary} \label{weights-equal} If $w : \mathbb A \to \mathbb N$ is a
 weight function then \[M(w) \frown M(w).\]  \end{corollary}
 
-\begin{proof}
-This is a special case of theorem \ref{weights-nearly-equal}, where $w' = w$.
-\end{proof}
+\begin{proof} This is a special case of theorem \ref{weights-nearly-equal},
+where $w' = w$.  \end{proof}
 
 % use section* for acknowledgment
-\section*{Acknowledgment}
+%\section*{Acknowledgment} TODO
 
 
-The authors would like to thank...
+%The authors would like to thank...
 
 
 % Can use something like this to put references on a page
@@ -1431,22 +1417,22 @@ The authors would like to thank...
 %\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{mshell}}]{Michael Shell}
 % or if you just want to reserve a space for a photo:
 
-\begin{IEEEbiography}{Michael Shell}
-Biography text here.
-\end{IEEEbiography}
-
-% if you will not have a photo at all:
-\begin{IEEEbiographynophoto}{John Doe}
-Biography text here.
-\end{IEEEbiographynophoto}
-
-% insert where needed to balance the two columns on the last page with
-% biographies
-%\newpage
-
-\begin{IEEEbiographynophoto}{Jane Doe}
-Biography text here.
-\end{IEEEbiographynophoto}
+%\begin{IEEEbiography}{Michael Shell}
+%Biography text here.
+%\end{IEEEbiography}
+%
+%% if you will not have a photo at all:
+%\begin{IEEEbiographynophoto}{John Doe}
+%Biography text here.
+%\end{IEEEbiographynophoto}
+%
+%% insert where needed to balance the two columns on the last page with
+%% biographies
+%%\newpage
+%
+%\begin{IEEEbiographynophoto}{Jane Doe}
+%Biography text here.
+%\end{IEEEbiographynophoto}
 
 % You can push biographies down or up by placing
 % a \vfill before or after them. The appropriate
