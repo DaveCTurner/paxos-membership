@@ -724,23 +724,27 @@ satisfies $i_\mathrm{max} > i+1$ and $e_\mathrm{max} \ge e(i_\mathrm{max})$ in
 the membership-sequence state machine. Epoch numbers $e(p)$ for proposals $p$
 are fixed in advance and not chosen by Paxos.
 
-Slightly more generally\footnote{TODO}, sometimes it is important to be able to
-choose the value for an instance even if not all of the values of previous
-instances have been chosen. If one of the unchosen values were a membership
-change then this may allow for inconsistency, so there must be a limit $\kappa
-\ge 1$ such that if $i$ is the smallest unchosen instance then only an instance
-${j \in \{ i, \ldots, i + \kappa - 1 \}}$ may be chosen next. With a little
-care the parameter $\kappa$ may itself be chosen dynamically by Paxos but this
-extension is not considered here. This does not affect the 
+Slightly more generally, if the system is being used to build a state machine
+that remains consistent even if some of its transitions are reordered then it
+may be desirable to be able to deduce $\chosen{i}{p}$ even if the chosen value
+at instance $i-1$ is not yet known. There must be a limit $\kappa > 0$ on how
+many instances may be chosen concurrently, in case any of the unchosen
+instances eventually chooses a membership change. Note carefully that the
+concurrency parameter $\kappa$ is different from the parameter $\alpha$ in the
+original Dynamic Paxos: there $\prop{i}{p}$ may not occur until all instances
+$\le i - \alpha$ have been chosen whereas here there is no limit on which
+proposals can be made and the only restriction is that $\chosen{i}{p}$ may not
+occur until all instances $\le i - \kappa$ are chosen. In the common case that
+the transitions may not be reordered, $\kappa = 1$ is sufficient.
 
-Note that in order to check whether phase I is complete for a proposal $p$ at
-an instance $i$ a node must check whether it has received promises from a
-quorum of nodes $q \in Q_{e(p)}$, for which it needs to know $Q_{e(p)}$. This
-can be achieved by simply requiring nodes not to emit $\prep{p}$ messages for
-which $Q_{e(p)}$ is not known. The node must also check that $e(p) \le e(i)$;
-if $e(i)$ is not known then $i_\mathrm{max} < i$, but $e$ is a nondecreasing
-function so $e(i_\mathrm{max}) \le e(i)$ and it is therefore sufficient to
-check that $e(p) \le e(i_\mathrm{max})$.
+In order for a node to decide whether it can send out $\prop{i}{p}$ it must
+check whether it has received promises from a quorum of nodes $q \in Q_{e(p)}$,
+for which it needs to know $Q_{e(p)}$. This can be achieved by simply requiring
+nodes not to emit $\prep{p}$ messages for which $Q_{e(p)}$ is not known. The
+node must also check that $e(p) \le e(i)$; if $e(i)$ is not known then
+$i_\mathrm{max} < i$, but $e$ is a nondecreasing function so $e(i_\mathrm{max})
+\le e(i)$ and it is therefore sufficient to check that $e(p) \le
+e(i_\mathrm{max})$.
 
 Similarly, in order to decide if $\chosen{i}{p}$ a node must check whether it
 has received acceptances from a quorum of nodes $q \in Q_{e(i)}$ and must
@@ -921,27 +925,12 @@ is nondecreasing.
 
 \subsubsection{Choosing values} Any node may consider phase II to be complete
 for proposal $p$ at instance $i$, and therefore $\chosen{p}{i}$, if
-\begin{itemize} \item $e(i) \le e(p) + 1$, \item if $i > 0$ then
-$\chosen{i-1}{p'}$ for some $p'$, and \item there is a quorum $q \in Q_{e(i)}$
-such that $\acc{i}{a}{p}$ has been received for every $a \in q$.  \end{itemize}
+\begin{itemize} \item $e(i) \le e(p) + 1$, \item for each $j \le i - \kappa$
+there is a $p'$ with $\chosen{j}{p'}$, and \item there is a quorum $q \in
+Q_{e(i)}$ such that $\acc{i}{a}{p}$ has been received for every $a \in q$.
+\end{itemize}
 
 \section{Discussion}\label{discussion}
-
-Paxos supports both the crash-stop and crash-recover failure modes.
-
-To do crash-recovery, there must be a write to stable storage between
-receiving a $\prop{i}{p}$ message and replying with $\acc{i}{a}{p}$.
-
-Raises the question of what to do if storage itself is lost? What does
-``stable'' mean?
-
-In a realistic system, all nodes will eventually fail unrecoverably.
-
-
-
-
-
-\subsection{TODO merge with the above}
 
 Typically the nodes in a system must be taken offline for maintenance from time
 to time. Since Paxos is designed to be resilient to failures of nodes, a simple
@@ -990,10 +979,11 @@ w_{e+2}&1&2&2&1\\
 Here $a_2$ has a casting vote throughout so this is also jitter-free.
 
 In many situations it is feasible simply to replace a node $a_{\textrm{old}}$
-with a new node $a_{\textrm{new}}$ rather than to upgrade it in-situ. If
-$a_{\textrm{new}}$ is brought online before $a_{\textrm{old}}$ is taken offline
-then the system is not put at risk, requiring four nodes to perform maintenance
-but only three in normal operation:
+with a new node $a_{\textrm{new}}$ rather than to maintain it in-situ. This
+technique is known as a \textit{migration}.  If $a_{\textrm{new}}$ is brought
+online before $a_{\textrm{old}}$ is taken offline then the system is not put at
+risk, requiring four nodes to perform maintenance but only three in normal
+operation:
 \[\begin{array}{rcccc}
 \textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
 w_e&1&0&2&2\\
@@ -1029,32 +1019,24 @@ To control this sitation, the cluster may be divided into \textit{zones}, where
 the nodes within a single zone may share infrastructure but failures in
 different zones can be considered to be independent. In a traditional data
 centre environment, individual racks are often assumed to be independent, so
-each rack could be a separate zone. If geographical redundancy is required then
-the cluster will be separated across multiple data centres, each of which is an
-independent zone, and many cloud environments also divide their services into
-zones in this way.  For the system to be resilient to simultaneous zone-wide
-failures of $f_z > 0$ zones, it must have nodes running in at least $2f_z + 1
-\ge 3$ zones.
+each rack could be a separate zone. If geographical redundancy is considered
+then the cluster will be separated across multiple data centres, each of which
+is an independent zone, and many cloud environments also divide their services
+into zones in this way.  For the system to be resilient to simultaneous
+zone-wide failures of $f_z > 0$ zones, it must have nodes running in at least
+$2f_z + 1 \ge 3$ zones.
 
-The replacement process described above requires only three zones as it is safe
-to have $a_\mathrm{old}$ and $a_\mathrm{new}$ in the same zone. This is
-important as in many operating environments it may be expensive or complicated
-to arrange for four independent zones\footnote{For instance, at time of
-writing, only one Amazon Web Services region (\texttt{us-east-1}) has four
-independent zones, whereas four of them have three: \texttt{ap-southeast-2},
-\texttt{eu-west-1}, \texttt{sa-east-1} and \texttt{us-west-2}. Similarly, only
-one Google Cloud Platform region (\texttt{us-central1}) has four zones and all
-the others have three zones.}, particularly if the fourth zone is only required
-to ensure consistency in relatively rare periods of maintenance.
-
-It is straightforward to ensure that membership changes do not increase the
-exposure of the cluster to the risk of too many zone-wide failures, and do not
-result in a cluster with no nodes having a casting vote. A real implementation
-of the membership state machines could entirely proscribe such changes to
-reduce the risk of operator error, or could at least require a \textit{safety
-catch} to be explicitly disabled before performing unsafe membership changes.
-
-
+The replacement process described above requires a minimal three zones
+throughout as it is safe to have $a_\mathrm{old}$ and $a_\mathrm{new}$ in the
+same zone. This is important as in many operating environments it may be
+expensive or complicated to arrange for four independent zones\footnote{For
+instance, at time of writing, only one Amazon Web Services region
+(\texttt{us-east-1}) has four independent zones, whereas four of them have
+three: \texttt{ap-southeast-2}, \texttt{eu-west-1}, \texttt{sa-east-1} and
+\texttt{us-west-2}. Similarly, only one Google Cloud Platform region
+(\texttt{us-central1}) has four zones and all the others have three zones.},
+particularly if the fourth zone is only required to ensure consistency in
+relatively rare periods of maintenance.
 
 % An example of a floating figure using the graphicx package.
 % Note that \label must occur AFTER (or within) \caption.
@@ -1182,18 +1164,18 @@ P$ there are memberships $Q^\textrm{I}(p_1)$ and $Q^\textrm{II}(p_2) \subseteq
 \mathcal P \mathbb A$ such that if $\prop{}{p_1}$ and $\chosen{}{p_2}$ then
 ${Q^\textrm{I}(p_1) \frown Q^\textrm{II}(p_2)}$.
 
-\item \label{synod-fprom} $\fprom{}{a}{p}$ only if $\neg\acc{}{a}{p'}$ for all
-${p' \prec p}$.
+\item \label{synod-fprom} $\fprom{}{a}{p}$ only if $\neg\acc{}{a}{p'}$ for ${p'
+\prec p}$.
 
 \item \label{synod-bprom} $\bprom{}{a}{p}{p'}$ only if $p' \prec p$,
 $\acc{}{a}{p'}$, and $p'$ is the greatest such proposal, in the sense that
 $\neg\acc{}{a}{p''}$ for all $p''$ having $p' \prec p'' \prec p$.
 
-\item \label{synod-prop} $\prop{}{p}$ only if there is a quorum $q^\textrm{I}
-\in Q^\textrm{I}(p)$ such that for every $a \in q^\textrm{I}$ either
-$\fprom{}{a}{p}$ or $\exists p'.  \bprom{}{a}{p}{p'}$, and if $P = \{ p' \mid
-\exists a \in q^\textrm{I}. \bprom{}{a}{p}{p'} \} \ne \varnothing$ then $v(p) =
-v(\mathrm{max}(P))$.
+\item \label{synod-prop} $\prop{}{p}$ only if there is a quorum
+$q^\textrm{I} \in Q^\textrm{I}(p)$ such that for every node $a \in q^\textrm{I}$
+either $\fprom{}{a}{p}$ or else $\exists p'.  \bprom{}{a}{p}{p'}$, and if ${P = \{
+p' \mid \exists a \in q^\textrm{I}. \bprom{}{a}{p}{p'} \} \ne \varnothing}$
+then it follows that $v(p) = v(\mathrm{max}(P))$.
 
 \item \label{synod-acc} $\acc{}{a}{p}$ only if $\prop{}{p}$.
 
@@ -1206,10 +1188,9 @@ q^\textrm{II}$.
 \begin{lemma}\label{synod-acc-bprom}If $\acc{}{a}{p_2}$, $\bprom{}{a}{p_1}{p_3}$
 and $p_2 \prec p_1$ then $p_2 \preceq p_3$.\end{lemma}
 
-\begin{proof}Since $\bprom{}{a}{p_1}{p_3}$ from invariant \ref{synod-bprom} it
-follows that $p_3$ is the largest proposal such that $p_3 \prec p_1$ and
-$\acc{}{a}{p_3}$, but $p_2$ is also such a proposal and therefore $p_2
-\preceq p_3$ as required.  \end{proof}
+\begin{proof} From invariant \ref{synod-bprom} it follows that $p_3$ is the
+largest proposal such that $p_3 \prec p_1$ and $\acc{}{a}{p_3}$, but $p_2$ is
+also such a proposal and therefore $p_2 \preceq p_3$ as required.  \end{proof}
 
 \begin{lemma}\label{synod-lemma} If $\chosen{}{p_2}$, $\prop{}{p_1}$ and $p_2
 \prec p_1$ then $v(p_1) = v(p_2)$. \end{lemma}
@@ -1257,7 +1238,7 @@ invariants.
 \begin{enumerate}
 
 \item\label{paxos-quorums} There is a sequence of memberships $Q_0, Q_1,
-\ldots$ where ${Q_e \frown Q_e \frown Q_{e+1}}$ for all $e$.
+\ldots$ where ${Q_e \frown Q_e \frown Q_{e+1}}$ for each $e$.
 
 \item\label{paxos-mprom} $\mprom{i}{a}{p}$ only if $\neg\acc{i'}{a}{p'}$ for all
 $i' \ge i$ and $p' \prec p$.
@@ -1289,10 +1270,10 @@ quorum $q \in Q_{e(p)}$ such that
 
 \item \label{paxos-chosen} $\chosen{i}{p}$ only if
 \begin{itemize}
-\item $e(i) \le e(p) + 1$,
-\item if $i > 0$ then $\chosen{i-1}{p'}$ for some $p'$, and
-\item there is a quorum $q \in
-Q_{e(i)}$ such that $\acc{i}{a}{p}$ for every $a \in q$.
+\item for each $j \le i - \kappa$ there is a $p'$ with $\chosen{i-1}{p'}$,
+\item $e(i) \le e(p) + 1$, and
+\item there is a quorum $q \in Q_{e(i)}$ with $\acc{i}{a}{p}$ for every $a \in
+q$.
 \end{itemize}
 
 \end{enumerate}
