@@ -364,7 +364,7 @@
 % not capitalized unless they are the first or last word of the title.
 % Linebreaks \\ can be used within to get better formatting as desired.
 % Do not put math or special symbols in the title.
-\title{Jitter-free Dynamic Paxos}
+\title{Fully concurrent Dynamic Paxos}
 %
 %
 % author names and IEEE memberships
@@ -409,7 +409,7 @@ d.turner@tracsis.com)
 
 % The paper headers
 \markboth{}%TODO Journal of \LaTeX\ Class Files,~Vol.~14, No.~8, August~2015}%
-{Turner: Jitter-free Dynamic Paxos}
+{Turner: Fully concurrent Dynamic Paxos}
 % The only time the second header will appear is for the odd numbered pages
 % after the title page when using the twoside option.
 % 
@@ -440,21 +440,17 @@ d.turner@tracsis.com)
 
 % As a general rule, do not put math, special symbols or citations in the
 % abstract or keywords.
-\begin{abstract} Paxos is an algorithm for building fault-tolerant distributed
-systems. Practical implementations of this kind of system must support dynamic
-reconfiguration in order to be able to replace failed components and perform
-other administrative tasks. Paxos can achieve high performance by pipelining
-(starting work on new requests before existing requests have completed) but
-typically limits the length of the pipeline to support dynamic reconfiguration.
-With this approach if the pipeline is too long then a reconfiguration may take
-a long time to complete, but if it is too short then it may stall when the
-system is being reconfigured which can be observed as jitter in the rate that
-the system makes progress. Instead the algorithm can be modified to support
-dynamic reconfigurations with an unbounded pipeline as long as the
-reconfigurations are sufficiently small, and there is a simple characterisation
-of a set of sufficiently small reconfigurations that is useful in practice.
-With this approach it is still possible to perform an arbitrary reconfiguration
-in a single step by temporarily limiting the pipeline length.\end{abstract}
+\begin{abstract}Paxos and Raft are algorithms for building fault-tolerant
+distributed systems. Practical implementations of this kind of system must
+support dynamic reconfiguration in order to be able to replace failed
+components and perform other administrative tasks. Paxos can achieve high
+performance by pipelining (starting work on new requests before existing
+requests have completed) but typically limits the length of the pipeline to
+ensure safety during reconfiguration. Raft imposes no such limit on concurrent
+requests and preserves safety by insisting on sufficient similarity between the
+configurations before and after the reconfiguration. It is shown that Paxos can
+be elegantly extended to support reconfiguration without limiting concurrency
+in much the same way as is done in Raft.\end{abstract}
 
 % Note that keywords are not normally used for peerreview papers.
 %\begin{IEEEkeywords} TODO???
@@ -478,70 +474,71 @@ in a single step by temporarily limiting the pipeline length.\end{abstract}
 
 \section{Introduction}
 
-\IEEEPARstart{P}{axos} is an algorithm for achieving consensus on (or
+\IEEEPARstart{P}{axos} and Raft are algorithms for achieving consensus on (or
 \textit{choosing}) a sequence $v_0, v_1, \ldots$ of values in a distributed,
-fault-tolerant fashion~\cite{part-time-parliament}. It guarantees system-wide
+fault-tolerant fashion~\cite{part-time-parliament}. They guarantee system-wide
 \textit{consistency}, in the sense that the values chosen are guaranteed to be
-equal across the whole system even in the presence of failures. It typically
-runs on a cluster of $2f+1$ nodes, where $f$ is the number of faulty nodes that
+equal across the whole system even in the presence of failures. They typically
+run on a cluster of $2f+1$ nodes, where $f$ is the number of faulty nodes that
 should be tolerated, and consensus is achieved on a value $v_i \in \mathbb V$
-when $\ge f+1$ (i.e.  a majority) of the nodes agree.  More generally, if
+when $\ge f+1$ (i.e. a majority) of the nodes agree. More generally, if
 $\mathbb A$ is the set of all nodes then there is a set $Q \subseteq \mathcal P
 \mathbb A$ of \textit{quorums}, and a value is chosen when all nodes $a \in q$
-agree for some quorum $q \in Q$. The set of quorums is called the
+agree for some quorum $q \in Q$. The set of quorums $Q$ is called the
 \textit{configuration} of the cluster.
 
 It is normally necessary to be able to add or remove nodes from the cluster,
 which amounts to the ability to change the configuration while the cluster is
 running. It is crucial that all participating nodes agree on the cluster
-configuration at all times, and Dynamic Paxos~\cite{cheap-paxos} achieves this
-by tracking the configuration with a state machine whose transitions occur when
-particular values in the sequence are chosen.
-
-Each value $v_i \in \mathbb V$ is chosen using a separate instance $i$ of a
-two-phase consensus protocol known as \textit{Synod}. The full Paxos algorithm
-essentially runs an infinite sequence of Synod protocols in parallel: it starts
-by running phase I of all instances at once and then runs phase II of each
-instance in turn to yield the desired sequence of chosen values. It normally
-remains in phase II for extended periods of time, but will return to phase I if
-certain nodes become faulty, or if messages between certain pairs of nodes
-cease to be delivered reliably for a period, or if the configuration changes.
-
-Paxos allows for \textit{pipelining} \cite{smart} in phase II: later values can
-be proposed before earlier ones have been chosen, which means that the rate of
-choosing values is not limited by network latency. The pipeline runs smoothly
-as long as phase I does not need to run again, but may stall if phase I is
-re-run. A pipeline stall can be observed as jitter in the rate at which values
+configuration, and this can be achieved by tracking the configuration with a
+state machine whose transitions occur when particular values in the sequence
 are chosen.
 
-It is unavoidable that a faulty node or disrupted communications may have an
-impact on the system's performance, but changing its configuration is a routine
-task which should have no such effect. Dynamic Paxos maintains consistency by
-limiting the length of the pipeline to $\alpha > 0$, so that when a cluster
-configuration change is chosen at instance $i$ the effects of the change are
-postponed until instance $i + \alpha$. If $\alpha$ is large enough, there is
-time to run the new phase I before the pipeline stalls.  On the other hand, if
-$\alpha$ is too large then the configuration change can take an unreasonably
-long time to complete.
+In Paxos, each value $v_i \in \mathbb V$ is chosen using a separate instance
+$i$ of a two-phase consensus protocol known as \textit{Synod}. The full Paxos
+algorithm essentially runs an infinite sequence of Synod protocols in parallel:
+it starts by running phase I of all instances at once and then runs phase II of
+each instance in turn to yield the desired sequence of chosen values. It
+normally remains in phase II for extended periods of time, but will return to
+phase I if certain nodes become faulty, or if messages between certain pairs of
+nodes cease to be delivered reliably for a period, or if the configuration
+changes. Raft's pattern of execution is similar.
 
-The pipeline length $\alpha$ may be allowed to vary while the system is
-running, so it is certainly possible to design a mechanism for choosing a
-reasonably suitable value and adapting it to changing system conditions,
-although this seems inelegant\cite{reconfiguring-a-state-machine}. The approach
-described here removes the need for a limited-length pipeline by allowing phase
-II to start using a new configuration without re-running phase I; this is shown
-to preserve consistency as long as the configuration change is sufficiently
-small (in a sense which is made precise in section
-\ref{types-of-configuration-change} below.) By removing phase I from the
-critical path of a configuration change the possibility of jitter caused by a
-pipeline stall is eliminated.
+Both algorithms allow for \textit{pipelining} \cite{smart}: later values can be
+proposed before earlier ones have been chosen. To ensure that this preserves
+consistency is nontrivial: a value may only be proposed once a quorum of nodes
+are ready for it, but whether a set of nodes is a quorum or not may change as
+earlier values are chosen. Paxos typically solves this problem by limiting the
+length of the pipeline to some $\alpha > 0$ so that if a configuration change
+is chosen at instance $i$ then its effects are delayed until instance $i +
+\alpha$. Raft imposes no such limit on the number of concurrently-running
+instances and instead ensures consistency by only allowing certain
+reconfigurations to take place, and then performs sequences of these restricted
+reconfigurations in order to achieve an arbitrary reconfiguration without
+compromising consistency.
 
-The technique shown here also supports arbitrary configuration changes
-happening in a single step just as in Dynamic Paxos, but any changes that are
-not sufficiently small require the pipeline length to be temporarily limited
-and continue to carry the risk of jitter. In reality, most changes would
-normally be performed as a sequence of small, jitter-free changes as discussed
-in section \ref{discussion} below.
+The choice of the pipeline length parameter $\alpha$ is a little delicate: too
+small and the system may suffer from poor performance due to lack of
+parallelism, but too large and configuration changes can take an unreasonably
+long time to complete. The pipeline length $\alpha$ may be allowed to vary
+while the system is running, so it is certainly possible to design a mechanism
+for choosing a reasonably suitable value and adapting it to changing system
+conditions, although this seems inelegant\cite{reconfiguring-a-state-machine}
+particularly when compared with Raft's approach.
+
+Here it is shown that Paxos can also support an unlimited-length pipeline by
+allowing phase II to start using a new configuration without re-running phase
+I; this is shown to preserve consistency as long as the configuration change is
+sufficiently small (in a sense which is made precise in section
+\ref{types-of-configuration-change} below.) In particular, this approach neatly
+unifies and generalises the reconfigurations supported by both Raft and Dynamic
+Paxos.
+
+The algorithm is presented here in its entirety for the sake of consistency of
+notation and because it modifies the original algorithm in ways that invalidate
+its consistency and liveness proofs. Reworked proofs are included in appendices
+\ref{synod-safety} and \ref{paxos-invariants} and differences from the original
+are discussed throughout.
 
 \section{The Synod Algorithm}
 
@@ -549,8 +546,7 @@ Synod\cite{part-time-parliament} is an algorithm for achieving consensus on a
 single value in a distributed system comprising a set of nodes which can
 communicate by sending messages to each other. Communication is asynchronous
 but not Byzantine, in the sense that messages may be delayed, reordered,
-duplicated and dropped but not corrupted. It is briefly reviewed here for the
-sake of consistency of notation and to introduce some generalisations.
+duplicated and dropped but not corrupted.
 
 Let $\mathbb B$ be a set of \textit{ballot identifiers} with a wellfounded
 total order $\prec$. Let $\mathbb A$ be a set of \textit{node identifiers} and
@@ -572,21 +568,10 @@ respond with a \textit{promise} message, either a \textit{free promise} written
 $\fprom{}{a}{b}$ or a \textit{forced promise} written $\bprom{}{a}{b}{b'}$
 where $a$ identifies the responding node.  Phase II starts with the broadcast
 of a \textit{proposal} message $\prop{}{b}$ to which each node $a$ may respond
-with an \textit{acceptance} message $\acc{}{a}{b}$.
-
-It is convenient also to use these symbols as predicates indicating whether the
-corresponding messages have been sent. For instance, the predicate
-$\acc{}{a}{b}$ indicates that the message $\acc{}{a}{b}$ has been sent and
-$\neg \prop{}{b}$ indicates that the message $\prop{}{b}$ has not been sent.
-Because messages may be delayed, reordered or dropped, a node can only know a
-message has not been sent if it has not sent it itself and can prove, based
-solely on the messages it alone has sent and received, that no other node has
-sent it either. This works in practice because the messages $\fprom{}{a}{b}$,
-$\bprom{}{a}{b}{b'}$ and $\acc{}{a}{b}$ may only originate from the node $a$,
-and there is a function $\mathrm{owner} : \mathbb B \to \mathbb A$ assigning an
-owner to each ballot such that the message $\prop{}{b}$ may only originate from
-$\owner{b}$.  It is convenient to add another predicate $\chosen{}{b}$ which
-indicates that the ballot $b$ may be chosen.
+with an \textit{acceptance} message $\acc{}{a}{b}$.  It is convenient also to
+use these symbols as predicates indicating whether the corresponding messages
+have been sent, and to add another predicate $\chosen{}{b}$ which indicates
+that the ballot $b$ may be chosen.
 
 There is a function $v : \mathbb B \to \mathbb V$ assigning a value to each
 ballot, discussed in more detail in section \ref{value-function} below, and
@@ -672,35 +657,16 @@ $\fprom{i}{a}{b}$, $\bprom{i}{a}{b}{b'}$, $\prop{i}{b}$ and $\acc{i}{a}{b}$.
 There is another kind of message known as a \textit{multi-promise}, written
 $\mprom{i}{a}{b}$, which can be thought of as standing for the infinite set of
 free promises ${\{ \fprom{j}{a}{b} \mid j \ge i \}}$. The predicate
-$\chosen{i}{b}$ is also indexed by the instance number $i$, but in this
-presentation prepare messages $\prep{b}$ apply to all instances so do not need
-to be indexed.
-
-Recall that in each Synod instance each node is a state machine whose
-transitions are caused by the receipt of messages. In a Paxos node, let $S_i$
-be the Synod state machine for instance $i$. Because at any time each node has
-only ever received finitely many messages, there must be an instance number
-$i_\infty$ such that all instances $i \ge i_\infty$ are in the same state, so a
-Paxos node therefore needs to have a separate state machine $S_i$ for each
-instance $i < i_\infty$ but can represent all instances $i \ge i_\infty$ with a
-single state machine $S_\infty$. When a message mentioning an instance $i \ge
-i_\infty$ is received, the node must increase $i_\infty$ to $i'_\infty > i$ and
-create state machines $S_j$ for $i_\infty \le j < i'_\infty$, each of which
-starts out as a copy of $S_\infty$. Typically, after an instance has been
-chosen a node will ignore any further messages about that instance and discard
-the corresponding state machines, which ensures resource usage does not grow
-unboundedly.
+$\chosen{i}{b}$ is also indexed by the instance number $i$, but prepare
+messages $\prep{b}$ apply to all instances so do not need to be indexed.
 
 As in the Synod algorithm, phase I starts with a broadcast of $\prep{b}$ for
 some $b$ to which each node $a$ may respond with a set of promises
 $\fprom{i}{a}{b}$, $\bprom{i}{a}{b}{b'}$ and $\mprom{i}{a}{b}$ according to its
-set of state machines. If a node receives $\mprom{i}{a}{b}$ messages from a
-quorum of nodes then its state machine $S_\infty$ has completed phase I at $b$,
-and therefore any state machines that are subsequently spawned will also have
-completed phase I at $b$. Each phase II instance $i$ operates just as in the
-Synod algorithm, starting with a broadcast of $\prop{i}{b}$ to which each node
-$a$ may respond with an acceptance $\acc{i}{a}{b}$ and once acceptances have
-been received from a quorum of nodes it follows that $\chosen{i}{b}$.
+past behaviour. Each phase II instance $i$ operates just as in the Synod
+algorithm, starting with a broadcast of $\prop{i}{b}$ to which each node $a$
+may respond with an acceptance $\acc{i}{a}{b}$ and once acceptances have been
+received from a quorum of nodes it follows that $\chosen{i}{b}$.
 
 There is a function $v_i : \mathbb B \to \mathbb V$ for each instance $i$
 giving a value to each ballot, and theorem \ref{paxos-safety-theorem} shows
@@ -710,71 +676,68 @@ v_i(b')$.
 \subsection{Configuration changes}\label{configuration-changes}
 
 Changes in the cluster configuration are handled with a sequence of numbered
-\textit{epochs} $1, 2, \ldots$ and configurations $Q_0, Q_1, Q_2, \ldots$
-satisfying $Q_{e-1} \frown Q_e$ and $Q_e \frown Q_e$ for all $e$.  This
-means $Q_{e-1}$ and $Q_e$ can be used for the phase-I and phase-II
-configurations of a Paxos instance respectively by the observation of
-\ref{per-phase-quorums} above, or alternatively $Q_e$ can be used for both
-phases.
+\textit{epochs} $1, 2, \ldots$ and configurations $Q^\textrm{I}_0,
+Q^\textrm{I}_1, Q^\textrm{I}_2, \ldots$ and $Q^\textrm{II}_0, Q^\textrm{II}_1,
+Q^\textrm{II}_2, \ldots$ satisfying $Q^\textrm{I}_{e-1} \frown Q^\textrm{II}_e$
+and $Q^\textrm{I}_e \frown Q^\textrm{II}_e$ for all $e$.  This means
+$Q^\textrm{I}_{e-1}$ and $Q^\textrm{I}_e$ can be used for the phase-I and
+phase-II configurations of a Paxos instance respectively by the observation of
+\ref{per-phase-quorums} above, or alternatively $Q^\textrm{I}_e$ and
+$Q^\textrm{II}_e$ can be used.
 
 There are also two nondecreasing functions, both written $e(\cdot)$, which
 respectively assign an epoch number $e(i)$ to each instance $i$, and an epoch
 number $e(b)$ to each ballot $b$. A node may emit $\prop{i}{b}$ if $e(b) \le
 e(i)$ and it has received promises for ballot $b$ in instance $i$ from a quorum
-in $Q_{e(b)}$. A node may decide $\chosen{i}{b}$ if ${e(i) \le e(b)+1}$ and it
-has received $\acc{i}{a}{b}$ from a quorum in $Q_{e(i)}$. Thus if
-$\chosen{i}{b}$ then ${e(b) \in \{ e(i)-1, e(i) \}}$ and hence $Q_{e(b)} \frown
-Q_{e(i)}$ as required. It is worth emphasising the subtle point that phase I
-uses the configuration $Q_{e(b)}$ corresponding to the ballot $b$ whereas phase
-II uses the configuration $Q_{e(i)}$ for the instance $i$, with extra
-conditions to ensure that $e(b) \le e(i) \le e(b) + 1$ and therefore that the
-epochs used in the two phases are close enough to ensure consistency.
+in $Q^\textrm{I}_{e(b)}$. A node may decide $\chosen{i}{b}$ if ${e(i) \le
+e(b)+1}$ and it has received $\acc{i}{a}{b}$ from a quorum in
+$Q^\textrm{II}_{e(i)}$. Thus if $\chosen{i}{b}$ then ${e(b) \in \{ e(i)-1, e(i)
+\}}$ and hence $Q^\textrm{I}_{e(b)} \frown Q^\textrm{II}_{e(i)}$ as required. It
+is worth emphasising the subtle point that phase I uses the configuration
+$Q^\textrm{I}_{e(b)}$ corresponding to the ballot $b$ whereas phase II uses the
+configuration $Q^\textrm{II}_{e(i)}$ for the instance $i$, with extra conditions
+to ensure that $e(b) \le e(i) \le e(b) + 1$ and therefore that the epochs used
+in the two phases are close enough to ensure consistency.
+
+Notice that the requirement for $e(\cdot)$ to be nondecreasing means that
+ballot numbers cannot be simple integers without limiting how many ballots may
+occur in each epoch. Instead one could, for example, let $\mathbb B = \mathbb N
+\times \mathbb N \times \mathbb A$ with the lexicographic order, where
+$e(\langle e, n, a\rangle) = e$ and $\owner{\langle e, n, a \rangle} = a$.
 
 \subsection{Dynamic configuration changes}
 
-As in Dynamic Paxos, the configurations $Q_0, Q_1, \ldots$ and epoch numbers
+As in Dynamic Paxos, the configurations $Q^\textrm{I}_0, Q^\textrm{I}_1,
+\ldots$ (resp. $Q^\textrm{II}_0, Q^\textrm{II}_1, \ldots$) and epoch numbers
 $e(i)$ are themselves chosen by Paxos. In more detail, configurations are
-tracked by a state machine whose state is the finite sequence $Q_0, \ldots,
-Q_{e_\mathrm{max}}$ and the epoch numbers of instances are tracked by a state
-machine whose state is the finite sequence $e(0), \ldots, e(i_\mathrm{max})$.
-Their transitions append one or more elements to these sequences, but do not
-change any existing elements, and the tracked sequences are always long enough
-to make progress: if $\chosen{i}{b}$ then the epoch-number state machine
-satisfies $i_\mathrm{max} > i+1$ and $e_\mathrm{max} \ge e(i_\mathrm{max})$ in
-the configuration-sequence state machine. Epoch numbers $e(b)$ for ballots
-$b$ are fixed in advance and not chosen by Paxos.
-
-Slightly more generally, if the system is being used to build a state machine
-that remains consistent even if some of its transitions are reordered then it
-may be desirable to be able to deduce $\chosen{i}{b}$ even if the chosen values
-of all previous instances are not yet known.  This can be done with a limit
-$\kappa > 0$ on how many instances may be chosen concurrently, and the
-epoch-number state machine then must satisfy $i_\mathrm{max} > i + \kappa$.
-Note carefully that this concurrency parameter $\kappa$ is different from the
-parameter $\alpha$ in the original Dynamic Paxos: there $\prop{i}{b}$ may not
-occur until all instances $\le i - \alpha$ have been chosen whereas here there
-is no limit on which proposals can be made and the only restriction is that
-$\chosen{i}{b}$ may not occur until all instances $\le i - \kappa$ are chosen.
-In the common case that the transitions may not be reordered, $\kappa = 1$ is
-sufficient.
+tracked by two state machines whose state is the finite sequence
+$Q^\textrm{I}_0, \ldots, Q^\textrm{I}_{e^\textrm{I}_\mathrm{max}}$ (and
+similarly for the phase II configurations) and the epoch numbers of instances
+are tracked by a state machine whose state is the finite sequence $e(0),
+\ldots, e(i_\mathrm{max})$.  Their transitions append one or more elements to
+these sequences, but do not change any existing elements, and the tracked
+sequences are always long enough to make progress: if $\chosen{i}{b}$ then they
+satisfy $i_\mathrm{max} > i+1$ and $e^\textrm{II}_\mathrm{max} \ge
+e(i_\mathrm{max})$ in the configuration-sequence state machine. Epoch numbers
+$e(b)$ for ballots $b$ are fixed in advance and not chosen by Paxos.
 
 In order for a node to decide whether it can send out $\prop{i}{b}$ it must
-check whether it has received promises from a quorum of nodes $q \in Q_{e(b)}$,
-for which it needs to know $Q_{e(b)}$. This can be achieved by simply requiring
-nodes not to emit $\prep{b}$ messages for which $Q_{e(b)}$ is not known. The
-node must also check that $e(b) \le e(i)$; if $e(i)$ is not known then
-$i_\mathrm{max} < i$, but $e$ is a nondecreasing function so $e(i_\mathrm{max})
-\le e(i)$ and it is therefore sufficient to check that $e(b) \le
-e(i_\mathrm{max})$.
+check whether it has received promises from a quorum of nodes $q \in
+Q^\textrm{I}_{e(b)}$, for which it needs to know $Q^\textrm{I}_{e(b)}$. This
+can be achieved by simply requiring nodes not to emit $\prep{b}$ messages for
+which $Q^\textrm{I}_{e(b)}$ is not known. The node must also check that $e(b)
+\le e(i)$; if $e(i)$ is not known then $i_\mathrm{max} < i$, but $e$ is a
+nondecreasing function so $e(i_\mathrm{max}) \le e(i)$ and it is therefore
+sufficient to check that $e(b) \le e(i_\mathrm{max})$.
 
 Similarly, in order to decide if $\chosen{i}{b}$ a node must check whether it
-has received acceptances from a quorum of nodes $q \in Q_{e(i)}$ and must
-therefore know the value of $Q_{e(i)}$. This will be known if the node has
-chosen all but the previous $\kappa$ instances, because if
-$\chosen{i-\kappa}{b'}$ then $i < i_\mathrm{max}$ and hence ${e(i) \le
-e(i_\mathrm{max}) \le e_\mathrm{max}}$ as required.
+has received acceptances from a quorum of nodes $q \in Q^\textrm{II}_{e(i)}$
+and must therefore know the value of $Q^\textrm{II}_{e(i)}$. This will be known
+if the node has chosen the previous instance, because if $\chosen{i-1}{b'}$
+then $i < i_\mathrm{max}$ and hence ${e(i) \le e(i_\mathrm{max}) \le
+e_\mathrm{max}}$ as required.
 
-\subsection{Jitter-free configuration changes}
+\subsection{Fully concurrent configuration changes}
 
 In normal running there is an instance $i_0$ and a ballot $b$ with ${e(b) =
 e(i_0) = e(i_\mathrm{max}) = e_\mathrm{max}}$ and the node $\owner{b}$ has
@@ -794,7 +757,7 @@ Since $e(i_c) = e(i_0) + 1 \le e(b) + 1$, instance $i_c$ and any other
 instances with the same epoch may be chosen even though phase I has not yet run
 for a ballot in this epoch. As long as $e(i_\mathrm{max})$ is not increased
 again, this means there is no limit on how many instances can be chosen without
-waiting for another phase I to run, which means the pipeline cannot stall.
+waiting for another phase I to run.
 
 At this point, the system is no longer in normal running as defined above
 because $e(b) = e_\mathrm{max} - 1$. In order to get back to normal running, a
@@ -814,24 +777,18 @@ following:
 %
 \begin{itemize}
 %
-\item This process runs without jitter as long as there are no failures.  If
-there is a failure then consistency and liveness are still preserved but there
-may be a performance impact. This is unavoidable in general.
-%
 \item The first part of this process requires that $e(i_\mathrm{max})$
 increases by at most $1$ before the new phase I has finished running. If
 $e(i_\mathrm{max})$ were increased by a larger amount then this would put a
-limit on how many instances can run in the old epoch, and if the limit were
-reached then the pipeline may stall until the corresponding phase I was
-completed.
+limit on how many instances can run in the old epoch, which preserves
+consistency but limits concurrency.
 %
 \item The second part of this process requires the existence of a node
 $\owner{b'}$ that has a casting vote. If $\owner{b} \ne \owner{b'}$ then this
-process includes an \textit{abdication}: the original leader $\owner{b}$ hands
-over the leadership of the cluster to $\owner{b'}$. As the current leader is
-responsible for proposing values, the system may need to take action to
-redirect its clients from the old leader to the new leader in order to fully
-avoid jitter.
+step includes an \textit{abdication}: the original leader $\owner{b}$ hands
+over the leadership of the cluster to $\owner{b'}$. If there is no node with a
+casting vote then the broadcast of $\prep{b'}$ will prevent further progress in
+epoch $e(b)$. Again, this preserves consistency but limits concurrency.
 %
 \end{itemize}
 
@@ -877,6 +834,11 @@ jitter.  As in Dynamic Paxos, to mitigate this risk the operator chooses an
 $\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i
 + \alpha$, effectively delaying the configuration change for $\alpha$ instances
 in the hope that this is long enough to have completed the new phase I.
+
+An alternative approach to changing from configuration $Q_{e(i)}$ to an
+unrelated configuration $Q'$ is to set $Q_{e(i)+2} = Q'$ as above and to set
+$Q_{e(i)+1}$ to be the \textit{joint configuration} of $Q_{e(i)}$ and $Q'$:
+\[Q_{e(i)+1} = \{ q \cup q' \mid q \in Q_{e(i)}, q' \in Q' \}.\]
 
 \subsection{Weight-based configurations} \label{weight-based-configurations}
 
@@ -960,13 +922,6 @@ is nondecreasing.
 there is a $b'$ with $\chosen{j}{b'}$, and \item there is a quorum $q \in
 Q_{e(i)}$ such that $\acc{i}{a}{b}$ has been received from every $a \in q$.
 \end{itemize}
-
-\subsubsection{Proposal identifiers} Recall that $\mathbb B$ requires a
-wellfounded total order $\prec$, a function $\mathrm{owner} : \mathbb B \to
-\mathbb A$ and a nondecreasing function $e : \mathbb B \to \mathbb N$. If
-$\mathbb A$ is also wellordered then one possible implementation is $\mathbb N
-\times \mathbb N \times \mathbb A$ with the lexicographic order, where
-$\owner{\langle e, n, a \rangle} = a$ and $e(\langle e, n, a\rangle) = e$.
 
 \section{Discussion}\label{discussion}
 
@@ -1075,6 +1030,8 @@ three: \texttt{ap-southeast-2}, \texttt{eu-west-1}, \texttt{sa-east-1} and
 (\texttt{us-central1}) has four zones and all the others have three zones.},
 particularly if the fourth zone is only required to ensure consistency in
 relatively rare periods of maintenance.
+
+
 
 % An example of a floating figure using the graphicx package.
 % Note that \label must occur AFTER (or within) \caption.
@@ -1265,8 +1222,10 @@ invariants.
 
 \begin{enumerate}
 
-\item\label{paxos-quorums} There is a sequence of configurations $Q_0, Q_1,
-\ldots$ where ${Q_e \frown Q_e \frown Q_{e+1}}$ for each $e$.
+\item\label{paxos-quorums} There are configurations $Q^\textrm{I}_0,
+Q^\textrm{I}_1, \ldots$ and $Q^\textrm{II}_0, Q^\textrm{II}_1, \ldots$ where
+${Q^\textrm{II}_e \frown Q^\textrm{I}_e \frown Q^\textrm{II}_{e+1}}$ for each
+$e$.
 
 \item\label{paxos-mprom} $\mprom{i}{a}{b}$ only if $\neg\acc{i'}{a}{b'}$ for
 all $i' \ge i$ and $b' \prec b$.
@@ -1280,7 +1239,7 @@ ballot, in the sense that $\neg \acc{i}{a}{b''}$ for all $b''$ having $b'
 \prec b'' \prec b$. \end{itemize}
 
 \item\label{paxos-prop} $\prop{i}{b}$ only if $e(b) \le e(i)$ and there is a
-quorum $q \in Q_{e(b)}$ such that
+quorum $q \in Q^\textrm{I}_{e(b)}$ such that
 \begin{itemize}
 \item for every $a \in q$ one of the following holds:
 %
@@ -1299,19 +1258,19 @@ quorum $q \in Q_{e(b)}$ such that
 
 \item \label{paxos-chosen} $\chosen{i}{b}$ only if \begin{itemize} \item for
 each $j \le i - \kappa$ there is a $b'$ with $\chosen{i-1}{b'}$, \item $e(i)
-\le e(b) + 1$, and \item there is a quorum $q \in Q_{e(i)}$ with
+\le e(b) + 1$, and \item there is a quorum $q \in Q^\textrm{II}_{e(i)}$ with
 $\acc{i}{a}{b}$ for every $a \in q$.  \end{itemize}
 
 \end{enumerate}
 
 \begin{lemma}\label{paxos-synod-quorum-invariant} For $b_1 \succ b_2 \in
-\mathbb B$, if $\prop{i}{b_1}$ and $\chosen{i}{b_2}$ then ${Q_{e(b_1)} \frown
-Q_{e(i)}}$.  \end{lemma}
+\mathbb B$, if $\prop{i}{b_1}$ and $\chosen{i}{b_2}$ then
+${Q^\textrm{I}_{e(b_1)} \frown Q^\textrm{II}_{e(i)}}$.  \end{lemma}
 
 \begin{proof} $e(i) \le e(b_2) + 1 \le e(b_1) + 1 \le e(i) + 1$ since
 $\chosen{i}{b_2}$, $e$ is nondecreasing, and $\prop{i}{b_1}$ respectively.
-Therefore $e(b_1) \in \{ e(i) - 1, e(i) \}$ and hence ${Q_{e(b_1)} \frown
-Q_{e(i)}}$ by invariant \ref{paxos-quorums}.  \end{proof}
+Therefore $e(b_1) \in \{ e(i) - 1, e(i) \}$ and hence ${Q^\textrm{I}_{e(b_1)}
+\frown Q^\textrm{II}_{e(i)}}$ by invariant \ref{paxos-quorums}.  \end{proof}
 
 \begin{theorem}\label{paxos-safety-theorem} If $\chosen{i}{b_1}$ and
 $\chosen{i}{b_2}$ then ${v_i(b_1) = v_i(b_2)}$.  \end{theorem}
@@ -1319,8 +1278,8 @@ $\chosen{i}{b_2}$ then ${v_i(b_1) = v_i(b_2)}$.  \end{theorem}
 \begin{proof} If $\chosen{i}{b_1}$ then the Paxos invariants imply the Synod
 invariants for instance $i$.  In more detail, let
 \[\begin{array}{rl}
-Q^\textrm{I}(b) &= Q_{e(b)}, \\
-Q^\textrm{II}(b) &= Q_{e(i)}, \\
+Q^\textrm{I}(b) &= Q^\textrm{I}_{e(b)}, \\
+Q^\textrm{II}(b) &= Q^\textrm{II}_{e(i)}, \\
 \fprom{}{a}{b} &= \fprom{i}{a}{b} \\
 & \ {}\vee \exists i' \le i. \mprom{i'}{a}{b}, \\
 \bprom{}{a}{b}{b'} &= \bprom{i}{a}{b}{b'}, \\
