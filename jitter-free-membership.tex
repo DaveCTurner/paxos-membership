@@ -684,22 +684,23 @@ $Q^\textrm{I}_{e-1} \frown Q^\textrm{II}_e$ and $Q^\textrm{I}_e \frown
 Q^\textrm{II}_e$ for all $e$.  This means $Q^\textrm{I}_{e-1}$ and
 $Q^\textrm{II}_e$ can be used for the phase-I and phase-II configurations of a
 Paxos instance respectively by the observation of \ref{per-phase-quorums}
-above, or alternatively $Q^\textrm{I}_e$ and $Q^\textrm{II}_e$ can be used.
+above, or alternatively $Q^\textrm{I}_e$ and $Q^\textrm{II}_e$ can be used. The
+integer subscript $e$ of a configuration is known as its \textit{era}.
 
 There are also two nondecreasing integer-valued functions, both written
-$e(\cdot)$, which respectively assign an era number $e(i) > 0$ to each
-instance $i$, and an era number $e(b)$ to each ballot $b$. A node may emit
-$\prop{i}{b}$ only if $e(b) \le e(i)$ and it has received promises for ballot
-$b$ in instance $i$ from a quorum in $Q^\textrm{I}_{e(b)}$. A node may decide
-$\chosen{i}{b}$ only if ${e(i) \le e(b)+1}$ and it has received $\acc{i}{a}{b}$
-from a quorum in $Q^\textrm{II}_{e(i)}$. Thus if $\chosen{i}{b}$ (and therefore
-$\prop{i}{b}$) then ${e(b) \in \{ e(i)-1, e(i) \}}$ and hence
-$Q^\textrm{I}_{e(b)} \frown Q^\textrm{II}_{e(i)}$ as required.  It is worth
-emphasising the subtle point that phase I uses the configuration
-$Q^\textrm{I}_{e(b)}$ corresponding to the ballot $b$ whereas phase II uses the
-configuration $Q^\textrm{II}_{e(i)}$ for the instance $i$, with extra
-conditions to ensure that $e(b) \le e(i) \le e(b) + 1$ and therefore that the
-eras used in the two phases are close enough to ensure consistency.
+$e(\cdot)$, which respectively assign an era $e(i) > 0$ to each instance $i$,
+and an era $e(b)$ to each ballot $b$. A node may emit $\prop{i}{b}$ only if
+$e(b) \le e(i)$ and it has received promises for ballot $b$ in instance $i$
+from a quorum in $Q^\textrm{I}_{e(b)}$. A node may decide $\chosen{i}{b}$ only
+if ${e(i) \le e(b)+1}$ and it has received $\acc{i}{a}{b}$ from a quorum in
+$Q^\textrm{II}_{e(i)}$. Thus if $\chosen{i}{b}$ (and therefore $\prop{i}{b}$)
+then ${e(b) \in \{ e(i)-1, e(i) \}}$ and hence $Q^\textrm{I}_{e(b)} \frown
+Q^\textrm{II}_{e(i)}$ as required.  It is worth emphasising the subtle point
+that phase I uses the configuration $Q^\textrm{I}_{e(b)}$ corresponding to the
+ballot $b$ whereas phase II uses the configuration $Q^\textrm{II}_{e(i)}$ for
+the instance $i$, with extra conditions to ensure that $e(b) \le e(i) \le e(b)
++ 1$ and therefore that the eras used in the two phases are close enough to
+ensure consistency.
 
 Notice that the requirement for $e(\cdot)$ to be nondecreasing means that
 ballot numbers cannot be simple integers without limiting how many ballots may
@@ -715,13 +716,13 @@ $e(i)$ are themselves chosen by Paxos. In more detail, configurations are
 tracked by state machines whose states are the finite sequence $Q^\textrm{I}_0,
 \ldots, Q^\textrm{I}_{e^\textrm{I}_\mathrm{max}}$ (and similarly for the phase
 II configurations) and the era numbers of instances are tracked by a state
-machine whose state is the finite sequence $e(0), \ldots, e(i_\mathrm{max})$.
-Their transitions append one or more elements to these sequences, but do not
-change any existing elements, and the tracked sequences are always long enough
-to make progress: if $\chosen{i}{b}$ then they satisfy $i_\mathrm{max} > i+1$
-and $e^\textrm{II}_\mathrm{max} \ge e(i_\mathrm{max})$ in the
-configuration-sequence state machine. Era numbers $e(b)$ for ballots $b$ are
-fixed in advance and not chosen by Paxos.
+machine whose state is the finite nondecreasing sequence $e(0), \ldots,
+e(i_\mathrm{max})$.  Their transitions append one or more elements to these
+sequences, but do not change any existing elements, and the tracked sequences
+are always long enough to make progress: if $\chosen{i}{b}$ then they satisfy
+$i_\mathrm{max} > i+1$ and $e^\textrm{II}_\mathrm{max} \ge e(i_\mathrm{max})$
+in the configuration-sequence state machine. Era numbers $e(b)$ for ballots $b$
+are fixed in advance and not chosen by Paxos.
 
 In order for a node to decide whether it can send out $\prop{i}{b}$ it must
 check whether it has received promises from a quorum of nodes $q \in
@@ -743,49 +744,54 @@ e_\mathrm{max}}$ as required.
 \subsection{Fully concurrent configuration changes}
 
 In normal running there is an instance $i_0$ and a ballot $b$ with ${e(b) =
-e(i_0) = e(i_\mathrm{max}) = e_\mathrm{max}}$ and the node $\owner{b}$ has
-received a quorum\footnote{TODO separate quorums by phase here} of promises
-$q^\textrm{I} \in Q_{e(b)}$ for ballot $b$ for all instances $i \ge i_0$. In
-this state, $\owner{b}$ may emit $\prop{i}{b}$ for any $i \ge i_0$, since $e(b)
-= e(i_0) \le e(i)$ as $e$ is nondecreasing.  The node $\owner{b}$ is known as
-the \textit{leader} and its proposals are normally accepted without undue delay
-by all other nodes.
+e(i_0) = e(i_\mathrm{max}) = e^\textrm{I}_\mathrm{max} =
+e^\textrm{II}_\mathrm{max}}$ and the node $\owner{b}$ has received a
+quorum\footnote{TODO separate quorums by phase here} of promises $q^\textrm{I}
+\in Q^\textrm{I}_{e(b)}$ for ballot $b$ for all instances $i \ge i_0$. In this
+state, $\owner{b}$ may emit $\prop{i}{b}$ for any $i \ge i_0$, since $e(b) =
+e(i_0) \le e(i)$ as $e$ is nondecreasing.  The node $\owner{b}$ is known as the
+\textit{leader} and its proposals are normally accepted without undue delay by
+all other nodes.
+
+\def\Qnew#1{Q^\textrm{#1}_\textrm{new}}
 
 When in this state, if an operator wishes to change the cluster configuration
-to $Q'$ where $Q_{e(b)} \frown Q' \frown Q'$ they must first arrange to append
-$Q'$ to the sequence of configurations, setting $Q_{e(b)+1} = Q'$ and
-$e_\mathrm{max} = e(b) + 1$, then pick a future instance $i_c > i_\mathrm{max}$
-at which the change should take effect and append values to the sequence of
-eras to set $e(i) = e(i_0)$ for $i_0 \le i < i_c$ and $e(i_c) = e(i_0) + 1$.
-Since $e(i_c) = e(i_0) + 1 \le e(b) + 1$, instance $i_c$ and any other
-instances with the same era may be chosen even though phase I has not yet run
-for a ballot in this era. As long as $e(i_\mathrm{max})$ is not increased
-again, this means there is no limit on how many instances can be chosen without
-waiting for another phase I to run.
+to $\langle \Qnew{I}, \Qnew{II} \rangle$ where $Q^\textrm{II}_{e(b)} \frown
+\Qnew{I} \frown \Qnew{II}$ they must first arrange to append $Q^\textrm{I}$ and
+$Q^\textrm{II}$ to their respective sequences of configurations, setting
+$Q^\textrm{I}_{e(b)+1} = \Qnew{I}$, $Q^\textrm{II}_{e(b)+1} = \Qnew{II}$ and
+$e^\textrm{I}_\mathrm{max} = e^\textrm{II}_\mathrm{max} = e(b) + 1$, then pick
+a future instance $i_c > i_\mathrm{max}$ at which the change should take effect
+and append values to the sequence of eras to set $e(i) = e(i_0)$ for $i_0 \le i
+< i_c$ and $e(i_c) = e(i_0) + 1$.  Since $e(i_c) = e(i_0) + 1 \le e(b) + 1$,
+instance $i_c$ and any future instances with the same era may be chosen even
+though phase I has not yet run for a ballot in this era. As long as
+$e(i_\mathrm{max})$ is not increased again, this means there is no limit on how
+many instances can be chosen without waiting for another phase I to run.
 
 At this point, the system is no longer in normal running as defined above
-because $e(b) = e_\mathrm{max} - 1$. In order to get back to normal running, a
-ballot $b'$ should be chosen with $e(b') = e(b) + 1$ and $\owner{b'}$ should
-try and obtain a quorum of promises for $b'$ without preventing progress in
-era $e(b)$. It can do this by dividing the cluster into two quorums in such a
-way that it has a \textit{casting vote} between the two quorums: it finds $q
-\in Q_{e(b)}$ and $q' \in Q_{e(b)+1}$ having $q \cap q' = \{\owner{b'}\}$ and
-broadcasts $\prep{b'}$ to all nodes in $q'$ except itself. While it is waiting
-for the promises to arrive in response to this broadcast, $\owner{b}$ continues
-to make progress choosing instances of ballot $b$ using the quorum $q \in
-Q_{e(b)}$.  Eventually when promises have arrived from every node in $q'$
-except $\owner{b'}$ itself, it can send itself a final promise, immediately
-complete phase I for ballot $b'$, and start broadcasting proposals
-$\prop{i}{b'}$.  This restores the system to normal running. Observe the
-following:
+because $e(b) = e_\mathrm{max} - 1$. In order to get back to normal running
+without limiting concurrency, a ballot $b'$ should be chosen with $e(b') = e(b)
++ 1$ and $\owner{b'}$ should try and obtain a quorum of promises for $b'$
+without preventing progress in era $e(b)$. It can do this by dividing the
+cluster into two quorums in such a way that it has a \textit{casting vote}
+between the two quorums: it finds $q \in Q_{e(b)}$ and $q' \in Q_{e(b)+1}$
+having $q \cap q' = \{\owner{b'}\}$ and broadcasts $\prep{b'}$ to all nodes in
+$q'$ except itself. While it is waiting for the promises to arrive in response
+to this broadcast, $\owner{b}$ continues to make progress choosing instances of
+ballot $b$ using the quorum $q \in Q_{e(b)}$.  Eventually when promises have
+arrived from every node in $q'$ except $\owner{b'}$ itself, it can send itself
+a final promise, immediately complete phase I for ballot $b'$, and start
+broadcasting proposals $\prop{i}{b'}$.  This restores the system to normal
+running. Observe the following:
 %
 \begin{itemize}
 %
 \item The first part of this process requires that $e(i_\mathrm{max})$
 increases by at most $1$ before the new phase I has finished running. If
 $e(i_\mathrm{max})$ were increased by a larger amount then this would put a
-limit on how many instances can run in the old era, which preserves
-consistency but limits concurrency.
+limit on how many instances can run in the old era, which preserves consistency
+but limits concurrency.
 %
 \item The second part of this process requires the existence of a node
 $\owner{b'}$ that has a casting vote. If $\owner{b} \ne \owner{b'}$ then this
@@ -798,8 +804,8 @@ era $e(b)$. Again, this preserves consistency but limits concurrency.
 
 \subsection{Examples}\label{types-of-configuration-change}
 
-In this section let $Q^\textrm{I}_e = Q^\textrm{II}_e$ throughout, and write
-simply $Q_e$ for both.
+For the sake of simplicity, in this section let $Q^\textrm{I}_e =
+Q^\textrm{II}_e$ throughout and write simply $Q_e$ for both.
 
 \def\maj#1{\mathbf{maj}(#1)}
 
@@ -808,10 +814,9 @@ arranging for each quorum in $Q_e$ to comprise a (weighted) majority subset of
 some finite set of nodes.  If $Q_{e-1}$ and $Q_e$ are nonempty then intuitively
 the condition that $Q_{e-1} \frown Q_e$ ensures that the configuration change
 from $Q_{e-1}$ to $Q_e$ is sufficiently small that phase I need not re-run when
-moving from era $e-1$ to era $e$.  For instance, if $Q_{e-1} \frown
-Q_{e-1}$ then the trivial configuration change, having $Q_e = Q_{e-1}$,
-certainly satisfies $Q_{e-1} \frown Q_e \frown Q_e$ and is therefore
-sufficiently small.
+moving from era $e-1$ to era $e$.  For instance, if $Q_{e-1} \frown Q_{e-1}$
+then the trivial configuration change, having $Q_e = Q_{e-1}$, certainly
+satisfies $Q_{e-1} \frown Q_e \frown Q_e$ and is therefore sufficiently small.
 %
 For a less trivial example, let \[\maj{s} = \{ q \subseteq s \mid 2 |q| > |s|
 \}\] comprise all majority subsets of a finite set $s \subseteq \mathbb A$, and
@@ -821,42 +826,18 @@ ${\maj{s_3} \frown \maj{s_4}}$ and ${\maj{s_4} \frown \maj{s_5}}$ but
 ${\maj{s_3} \not\frown \maj{s_5}}$ because $\{a_1, a_2\} \in \maj{s_3}$ and
 $\{a_3, a_4, a_5\} \in \maj{s_5}$ do not intersect. Thus the majority subsets
 of $s_3$ and $s_4$ are sufficiently similar to be consecutive configurations,
-but those of $s_3$ and $s_5$ are not.
-
-The intuition that $Q_{e-1} \frown Q_e$ captures that $Q_{e-1}$ and $Q_e$ are
-similar breaks down if either is empty because $\varnothing \frown Q$ vacuously
-for all configurations $Q$. Clearly if there is an instance $j$ such that
-$Q_{e(j)} = \varnothing$ then no value can ever be chosen for $j$, but an era
-may be skipped at instance $i$ by letting $e(i) = e(i-1) + 2$.  This recovers
-the ability to perform arbitrary configuration changes in a single step as in
-Dynamic Paxos: if the system is currently using configuration $Q_{e(i)}$ and an
-operator wishes to change to an unrelated configuration $Q'$ (i.e.  $Q_{e(i)}
-\not\frown Q' \frown Q'$) then they can set $Q_{e(i)+1} = \varnothing$ and
-$Q_{e(i)+2} = Q'$, which satisfies that \[Q_{e(i)} \frown Q_{e(i) + 1} \frown
-Q_{e(i)+1} \frown Q_{e(i) + 2} \frown Q_{e(i) + 2}\] as desired. However,
-re-running phase I can only be avoided if the era increases by $1$ and in
-this situation the era increases by $2$, so the new phase I must be complete
-before any new phase II instances can be started which reintroduces the risk of
-jitter.  As in Dynamic Paxos, to mitigate this risk the operator chooses an
-$\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i
-+ \alpha$, effectively delaying the configuration change for $\alpha$ instances
-in the hope that this is long enough to have completed the new phase I.
-
-An alternative approach to changing from configuration $Q_{e(i)}$ to an
-unrelated configuration $Q'$ is to set $Q_{e(i)+2} = Q'$ as above and to set
-$Q_{e(i)+1}$ to be the \textit{joint configuration} of $Q_{e(i)}$ and $Q'$:
-\[Q_{e(i)+1} = \{ q \cup q' \mid q \in Q_{e(i)}, q' \in Q' \}.\]
-
-\subsection{Weight-based configurations} \label{weight-based-configurations}
-
-Let a \textit{weight} function be a function $w : \mathbb A \to \mathbb N$ that
-only takes finitely many nonzero values. This can be used to define a
-configuration $M(w)$ by \textit{majority}: \[M(w) = \left\{ q \;\middle|\;
-\sum_{a \in q} 2 w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] If $w(a) = 0$
-for all $a$ then $w$ is said to be \textit{weightless} and $M(w) =
+but those of $s_3$ and $s_5$ are not. In general if quorums are defined to be
+the majority subsets of a finite set of nodes then adding or removing a single
+node is always a sufficiently small reconfiguration.
+More
+generally, let a \textit{weight} function be a function $w : \mathbb A \to
+\mathbb N$ that only takes finitely many nonzero values. This can be used to
+define a configuration $M(w)$ by \textit{majority}: \[M(w) = \left\{ q
+\;\middle|\; \sum_{a \in q} 2 w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] If
+$w(a) = 0$ for all $a$ then $w$ is said to be \textit{weightless} and $M(w) =
 \varnothing$.  Corollary \ref{weights-equal} shows that $M(w) \frown M(w)$ for
 any weight function $w$.
-
+%
 A sequence $w_0, w_1, \ldots$ of weight functions can be used to define the
 sequence of configurations $M(w_0), M(w_1), \ldots$ used by a cluster, which
 must satisfy $M(w_{e-1}) \frown M(w_e)$ for all $e$.  There are three simple
@@ -877,7 +858,43 @@ holds.
 \end{enumerate}
 %
 Theorem \ref{weights-nearly-equal} is reminiscent of the amoeba analogy in
-\cite{cheap-paxos}.
+\cite{cheap-paxos}. Raft's configurations are effectively weight functions
+which take values in $\{0,1\}$ and therefore the reconfigurations permitted by
+the Raft protocol are supported here too.
+
+Early versions of Raft supported more general reconfigurations using a
+technique known as \textit{joint configurations}. To change from configuration
+$Q_{e(i)}$ to an unrelated configuration $Q'$ it is possible to set $Q_{e(i)+2}
+= Q'$ and in the interim set $Q_{e(i)+1}$ to be the \textit{joint
+configuration} of $Q_{e(i)}$ and $Q'$: \[Q_{e(i)+1} = \{ q \cup q' \mid q \in
+Q_{e(i)}, q' \in Q' \}.\] Intuitively, while this interim configuration is in
+use all decisions must be agreed by quorums of both the old and new
+configuration. Certainly this satisfies that \[Q_{e(i)} \frown Q_{e(i) + 1}
+\frown Q_{e(i)+1} \frown Q_{e(i) + 2} \frown Q_{e(i) + 2}\] as required to
+preserve consistency.
+
+The intuition that $Q_{e-1} \frown Q_e$ captures that $Q_{e-1}$ and $Q_e$ are
+similar breaks down if either is empty because $\varnothing \frown Q$ vacuously
+for all configurations $Q$. Clearly if there is an instance $j$ such that
+$Q_{e(j)} = \varnothing$ then no value can ever be chosen for $j$ so this
+makes it possible to stop\footnote{TODO cite} a Paxos cluster at a particular
+instance.
+
+There is no requirement for the eras of consecutive instances to differ by at
+most one: an era may be skipped at instance $i$ by letting $e(i) = e(i-1) + 2$.
+This recovers the ability to perform arbitrary configuration changes in a
+single step as in Dynamic Paxos: if the system is currently using configuration
+$Q_{e(i)}$ and an operator wishes to change to an unrelated configuration $Q'$
+(i.e.  $Q_{e(i)} \not\frown Q' \frown Q'$) then they can set $Q_{e(i)+1} =
+\varnothing$ and $Q_{e(i)+2} = Q'$, which satisfies that \[Q_{e(i)} \frown
+Q_{e(i) + 1} \frown Q_{e(i)+1} \frown Q_{e(i) + 2} \frown Q_{e(i) + 2}\] as
+desired. However, re-running phase I can only be delayed if the era increases
+by $1$ and in this situation the era increases by $2$, so the new phase I must
+be complete before any new phase II instances can be started.  As in Dynamic
+Paxos, to mitigate this risk the operator chooses an $\alpha > 0$ and sets
+$e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i + \alpha$,
+effectively delaying the configuration change for $\alpha$ instances in the
+hope that this is long enough to have completed the new phase I.
 
 \subsection{Preserving invariants}
 
@@ -929,6 +946,33 @@ is nondecreasing.
 there is a $b'$ with $\chosen{j}{b'}$, and \item there is a quorum $q \in
 Q_{e(i)}$ such that $\acc{i}{a}{b}$ has been received from every $a \in q$.
 \end{itemize}
+
+\subsection{Liveness}
+
+In order to show that this algorithm does not get stuck it is sufficient to
+show that for every instance $i$ every non-failed node eventually learns
+$\chosen{i}{\cdot}$, which proceeds by induction on the instances.  Therefore
+assume that every non-failed node has learned $\chosen{j}{\cdot}$ for all
+instances $j<i$ and show that they all eventually learn $\chosen{i}{\cdot}$ as
+follows.
+
+If the cluster has suffered at most $f$ failures then (via some unspecified
+external mechanism) it is eventually possible to choose a distinguished
+\textit{leader} node $\ell$ which can communicate reliably with the set $P \ni
+\ell$ of all non-failed nodes all of which ignore prepare messages sent by
+nodes other than $\ell$, and the system is quiescent in the sense that all sent
+messages (and their responses) have been delivered or dropped permanently.
+Additionally, there are quorums $q^\textrm{I} \in Q^\textrm{I}_{e(i)}$ and
+$q^\textrm{II} \in Q^\textrm{II}_{e(i)}$ having $q^\textrm{I} \cup
+q^\textrm{II} \subseteq P$.
+
+The leader must first choose a ballot $b$ having $e(b) = e(i)$ and $\owner{b} =
+\ell$ which is sufficiently large that every node in $P$ can emit
+$\acc{i}{a}{b}$ and a promise for $b$ and also $\acc{i}{a}{b}$. Notice that if
+$\fprom{i}{a}{b}$ or $\bprom{i}{a}{b}{b'}$ or $\mprom{j}{a}{b}$ for some $j \le
+i$ then $e(b) \le e(i)$\footnote{TODO why?} so such a $b$ exists.
+
+It emits $\prep{b}$ and receives promises from all nodes in $P$ in response.
 
 \section{Discussion}\label{discussion}
 
