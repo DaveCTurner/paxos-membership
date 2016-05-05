@@ -449,8 +449,8 @@ requests have completed) but typically limits the length of the pipeline to
 ensure safety during reconfiguration. Raft imposes no such limit on concurrent
 requests and preserves safety by insisting on sufficient similarity between the
 configurations before and after the reconfiguration. It is shown that Paxos can
-be elegantly extended to support reconfiguration without limiting concurrency
-in much the same way as is done in Raft.\end{abstract}
+be extended to support reconfiguration without limiting concurrency in much the
+same way as is done in Raft.\end{abstract}
 
 % Note that keywords are not normally used for peerreview papers.
 %\begin{IEEEkeywords} TODO???
@@ -510,12 +510,12 @@ consistency is nontrivial: a value may only be proposed once a quorum of nodes
 are ready for it, but whether a set of nodes is a quorum or not may change as
 earlier values are chosen. Paxos typically solves this problem by limiting the
 length of the pipeline to some $\alpha > 0$ so that if a configuration change
-is chosen at instance $i$ then its effects are delayed until instance $i +
-\alpha$. Raft imposes no such limit on the number of concurrently-running
-instances and instead ensures consistency by only allowing certain
-reconfigurations to take place, and then performs sequences of these restricted
-reconfigurations in order to achieve an arbitrary reconfiguration without
-compromising consistency.
+is chosen at instance $i$ then consistency is preserved if its effects are
+delayed until instance $i + \alpha$. Raft imposes no such limit on the number
+of concurrently-running instances and instead ensures consistency by only
+allowing certain reconfigurations to take place, and then performs sequences of
+these restricted reconfigurations in order to achieve an arbitrary
+reconfiguration.
 
 The choice of the pipeline length parameter $\alpha$ is a little delicate: too
 small and the system may suffer from poor performance due to lack of
@@ -530,7 +530,7 @@ Here it is shown that Paxos can also support an unlimited-length pipeline by
 allowing phase II to start using a new configuration without re-running phase
 I; this is shown to preserve consistency as long as the configuration change is
 sufficiently small (in a sense which is made precise in section
-\ref{types-of-configuration-change} below.) In particular, this approach neatly
+\ref{types-of-configuration-change} below.) In particular, this approach
 unifies and generalises the reconfigurations supported by both Raft and Dynamic
 Paxos.
 
@@ -642,11 +642,13 @@ phase-I and phase-II quorums for ballot $b$ respectively.
 In the original presentation of the Synod algorithm any (weighted) majority of
 the nodes could be used as a quorum, so that $Q^\textrm{I}(b_1) \frown
 Q^\textrm{II}(b_2)$ for all $b_1$ and $b_2$ since all majorities intersect.
-This intersection property is stronger than needed: the proof of theorem
-\ref{synod-safety-theorem} in appendix \ref{synod-safety} is a generalisation
-of the original one to demonstrate that consistency still holds even under the
-weaker assumption that $Q^\textrm{I}(b_1) \frown Q^\textrm{II}(b_2)$ only when
-$\prop{}{b_1}$, $\chosen{}{b_2}$ and $b_1 \succ b_2$.
+This intersection property is stronger than needed and other
+presentations\footnote{TODO cite} relax it in various ways. The proof of
+theorem \ref{synod-safety-theorem} in appendix \ref{synod-safety} is a
+generalisation of the original one to demonstrate that consistency still holds
+even under the weaker assumption that $Q^\textrm{I}(b_1) \frown
+Q^\textrm{II}(b_2)$ only when $\prop{}{b_1}$, $\chosen{}{b_2}$ and $b_1 \succ
+b_2$.
 
 \section{The Paxos algorithm}
 
@@ -680,7 +682,7 @@ Changes in the cluster configuration are handled with a sequence of numbered
 Q^\textrm{I}_1, Q^\textrm{I}_2, \ldots$ and $Q^\textrm{II}_0, Q^\textrm{II}_1,
 Q^\textrm{II}_2, \ldots$ satisfying $Q^\textrm{I}_{e-1} \frown Q^\textrm{II}_e$
 and $Q^\textrm{I}_e \frown Q^\textrm{II}_e$ for all $e$.  This means
-$Q^\textrm{I}_{e-1}$ and $Q^\textrm{I}_e$ can be used for the phase-I and
+$Q^\textrm{I}_{e-1}$ and $Q^\textrm{II}_e$ can be used for the phase-I and
 phase-II configurations of a Paxos instance respectively by the observation of
 \ref{per-phase-quorums} above, or alternatively $Q^\textrm{I}_e$ and
 $Q^\textrm{II}_e$ can be used.
@@ -710,16 +712,16 @@ $e(\langle e, n, a\rangle) = e$ and $\owner{\langle e, n, a \rangle} = a$.
 As in Dynamic Paxos, the configurations $Q^\textrm{I}_0, Q^\textrm{I}_1,
 \ldots$ (resp. $Q^\textrm{II}_0, Q^\textrm{II}_1, \ldots$) and epoch numbers
 $e(i)$ are themselves chosen by Paxos. In more detail, configurations are
-tracked by two state machines whose state is the finite sequence
-$Q^\textrm{I}_0, \ldots, Q^\textrm{I}_{e^\textrm{I}_\mathrm{max}}$ (and
-similarly for the phase II configurations) and the epoch numbers of instances
-are tracked by a state machine whose state is the finite sequence $e(0),
-\ldots, e(i_\mathrm{max})$.  Their transitions append one or more elements to
-these sequences, but do not change any existing elements, and the tracked
-sequences are always long enough to make progress: if $\chosen{i}{b}$ then they
-satisfy $i_\mathrm{max} > i+1$ and $e^\textrm{II}_\mathrm{max} \ge
-e(i_\mathrm{max})$ in the configuration-sequence state machine. Epoch numbers
-$e(b)$ for ballots $b$ are fixed in advance and not chosen by Paxos.
+tracked by state machines whose states are the finite sequence $Q^\textrm{I}_0,
+\ldots, Q^\textrm{I}_{e^\textrm{I}_\mathrm{max}}$ (and similarly for the phase
+II configurations) and the epoch numbers of instances are tracked by a state
+machine whose state is the finite sequence $e(0), \ldots, e(i_\mathrm{max})$.
+Their transitions append one or more elements to these sequences, but do not
+change any existing elements, and the tracked sequences are always long enough
+to make progress: if $\chosen{i}{b}$ then they satisfy $i_\mathrm{max} > i+1$
+and $e^\textrm{II}_\mathrm{max} \ge e(i_\mathrm{max})$ in the
+configuration-sequence state machine. Epoch numbers $e(b)$ for ballots $b$ are
+fixed in advance and not chosen by Paxos.
 
 In order for a node to decide whether it can send out $\prop{i}{b}$ it must
 check whether it has received promises from a quorum of nodes $q \in
@@ -741,11 +743,12 @@ e_\mathrm{max}}$ as required.
 
 In normal running there is an instance $i_0$ and a ballot $b$ with ${e(b) =
 e(i_0) = e(i_\mathrm{max}) = e_\mathrm{max}}$ and the node $\owner{b}$ has
-received a quorum of promises $q^\textrm{I} \in Q_{e(b)}$ for ballot $b$ for
-all instances $i \ge i_0$. In this state, $\owner{b}$ may emit $\prop{i}{b}$
-for any $i \ge i_0$, since $e(b) = e(i_0) \le e(i)$ as $e$ is nondecreasing.
-The node $\owner{b}$ is known as the \textit{leader} and its proposals are
-normally accepted without undue delay by all other nodes.
+received a quorum\footnote{TODO separate quorums by phase here} of promises
+$q^\textrm{I} \in Q_{e(b)}$ for ballot $b$ for all instances $i \ge i_0$. In
+this state, $\owner{b}$ may emit $\prop{i}{b}$ for any $i \ge i_0$, since $e(b)
+= e(i_0) \le e(i)$ as $e$ is nondecreasing.  The node $\owner{b}$ is known as
+the \textit{leader} and its proposals are normally accepted without undue delay
+by all other nodes.
 
 When in this state, if an operator wishes to change the cluster configuration
 to $Q'$ where $Q_{e(b)} \frown Q' \frown Q'$ they must first arrange to append
@@ -793,6 +796,9 @@ epoch $e(b)$. Again, this preserves consistency but limits concurrency.
 \end{itemize}
 
 \subsection{Examples}\label{types-of-configuration-change}
+
+In this section let $Q^\textrm{I}_e = Q^\textrm{II}_e$ throughout, and write
+simply $Q_e$ for both.
 
 \def\maj#1{\mathbf{maj}(#1)}
 
