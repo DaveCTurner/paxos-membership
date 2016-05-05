@@ -446,11 +446,12 @@ support dynamic reconfiguration in order to be able to replace failed
 components and perform other administrative tasks. Paxos can achieve high
 performance by pipelining (starting work on new requests before existing
 requests have completed) but typically limits the length of the pipeline to
-ensure safety during reconfiguration. Raft imposes no such limit on concurrent
-requests and preserves safety by insisting on sufficient similarity between the
-configurations before and after the reconfiguration. It is shown that Paxos can
-be extended to support reconfiguration without limiting concurrency in much the
-same way as is done in Raft.\end{abstract}
+ensure consistency during reconfiguration. Raft also supports pipelining and
+imposes no such limit on concurrent requests, preserving consistency instead by
+restricting which reconfigurations may be performed. It is shown that Paxos can
+be extended to support a more general form of reconfiguration which subsumes
+the original limited-pipeline approach as well as Raft-like fully-concurrent
+reconfigurations and more besides.\end{abstract}
 
 % Note that keywords are not normally used for peerreview papers.
 %\begin{IEEEkeywords} TODO???
@@ -647,8 +648,7 @@ presentations\footnote{TODO cite} relax it in various ways. The proof of
 theorem \ref{synod-safety-theorem} in appendix \ref{synod-safety} is a
 generalisation of the original one to demonstrate that consistency still holds
 even under the weaker assumption that $Q^\textrm{I}(b_1) \frown
-Q^\textrm{II}(b_2)$ only when $\prop{}{b_1}$, $\chosen{}{b_2}$ and $b_1 \succ
-b_2$.
+Q^\textrm{II}(b_2)$ when $\prop{}{b_1}$, $\chosen{}{b_2}$ and $b_1 \succ b_2$.
 
 \section{The Paxos algorithm}
 
@@ -689,17 +689,18 @@ $Q^\textrm{II}_e$ can be used.
 
 There are also two nondecreasing functions, both written $e(\cdot)$, which
 respectively assign an epoch number $e(i)$ to each instance $i$, and an epoch
-number $e(b)$ to each ballot $b$. A node may emit $\prop{i}{b}$ if $e(b) \le
-e(i)$ and it has received promises for ballot $b$ in instance $i$ from a quorum
-in $Q^\textrm{I}_{e(b)}$. A node may decide $\chosen{i}{b}$ if ${e(i) \le
-e(b)+1}$ and it has received $\acc{i}{a}{b}$ from a quorum in
-$Q^\textrm{II}_{e(i)}$. Thus if $\chosen{i}{b}$ then ${e(b) \in \{ e(i)-1, e(i)
-\}}$ and hence $Q^\textrm{I}_{e(b)} \frown Q^\textrm{II}_{e(i)}$ as required. It
-is worth emphasising the subtle point that phase I uses the configuration
-$Q^\textrm{I}_{e(b)}$ corresponding to the ballot $b$ whereas phase II uses the
-configuration $Q^\textrm{II}_{e(i)}$ for the instance $i$, with extra conditions
-to ensure that $e(b) \le e(i) \le e(b) + 1$ and therefore that the epochs used
-in the two phases are close enough to ensure consistency.
+number $e(b)$ to each ballot $b$. A node may emit $\prop{i}{b}$ only if $e(b)
+\le e(i)$ and it has received promises for ballot $b$ in instance $i$ from a
+quorum in $Q^\textrm{I}_{e(b)}$. A node may decide $\chosen{i}{b}$ only if
+${e(i) \le e(b)+1}$ and it has received $\acc{i}{a}{b}$ from a quorum in
+$Q^\textrm{II}_{e(i)}$. Thus if $\chosen{i}{b}$ (and therefore $\prop{i}{b}$)
+then ${e(b) \in \{ e(i)-1, e(i) \}}$ and hence $Q^\textrm{I}_{e(b)} \frown
+Q^\textrm{II}_{e(i)}$ as required.  It is worth emphasising the subtle point
+that phase I uses the configuration $Q^\textrm{I}_{e(b)}$ corresponding to the
+ballot $b$ whereas phase II uses the configuration $Q^\textrm{II}_{e(i)}$ for
+the instance $i$, with extra conditions to ensure that $e(b) \le e(i) \le e(b)
++ 1$ and therefore that the epochs used in the two phases are close enough to
+ensure consistency.
 
 Notice that the requirement for $e(\cdot)$ to be nondecreasing means that
 ballot numbers cannot be simple integers without limiting how many ballots may
@@ -727,10 +728,11 @@ In order for a node to decide whether it can send out $\prop{i}{b}$ it must
 check whether it has received promises from a quorum of nodes $q \in
 Q^\textrm{I}_{e(b)}$, for which it needs to know $Q^\textrm{I}_{e(b)}$. This
 can be achieved by simply requiring nodes not to emit $\prep{b}$ messages for
-which $Q^\textrm{I}_{e(b)}$ is not known. The node must also check that $e(b)
-\le e(i)$; if $e(i)$ is not known then $i_\mathrm{max} < i$, but $e$ is a
-nondecreasing function so $e(i_\mathrm{max}) \le e(i)$ and it is therefore
-sufficient to check that $e(b) \le e(i_\mathrm{max})$.
+which $Q^\textrm{I}_{e(b)}$ is not known, i.e. where $e^\textrm{I}_\mathrm{max}
+< e(b)$. The node must also check that $e(b) \le e(i)$; if $e(i)$ is not known
+then $i_\mathrm{max} < i$, but $e$ is a nondecreasing function so
+$e(i_\mathrm{max}) \le e(i)$ and it is therefore sufficient to check that $e(b)
+\le e(i_\mathrm{max})$.
 
 Similarly, in order to decide if $\chosen{i}{b}$ a node must check whether it
 has received acceptances from a quorum of nodes $q \in Q^\textrm{II}_{e(i)}$
