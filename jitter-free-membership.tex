@@ -677,30 +677,29 @@ v_i(b')$.
 
 \subsection{Configuration changes}\label{configuration-changes}
 
-Changes in the cluster configuration are handled with a sequence of numbered
-\textit{epochs} $1, 2, \ldots$ and configurations $Q^\textrm{I}_0,
-Q^\textrm{I}_1, Q^\textrm{I}_2, \ldots$ and $Q^\textrm{II}_0, Q^\textrm{II}_1,
-Q^\textrm{II}_2, \ldots$ satisfying $Q^\textrm{I}_{e-1} \frown Q^\textrm{II}_e$
-and $Q^\textrm{I}_e \frown Q^\textrm{II}_e$ for all $e$.  This means
-$Q^\textrm{I}_{e-1}$ and $Q^\textrm{II}_e$ can be used for the phase-I and
-phase-II configurations of a Paxos instance respectively by the observation of
-\ref{per-phase-quorums} above, or alternatively $Q^\textrm{I}_e$ and
-$Q^\textrm{II}_e$ can be used.
+Changes in the cluster configuration are handled with sequences of
+configurations $Q^\textrm{I}_0, Q^\textrm{I}_1, Q^\textrm{I}_2, \ldots$ and
+$Q^\textrm{II}_0, Q^\textrm{II}_1, Q^\textrm{II}_2, \ldots$ satisfying
+$Q^\textrm{I}_{e-1} \frown Q^\textrm{II}_e$ and $Q^\textrm{I}_e \frown
+Q^\textrm{II}_e$ for all $e$.  This means $Q^\textrm{I}_{e-1}$ and
+$Q^\textrm{II}_e$ can be used for the phase-I and phase-II configurations of a
+Paxos instance respectively by the observation of \ref{per-phase-quorums}
+above, or alternatively $Q^\textrm{I}_e$ and $Q^\textrm{II}_e$ can be used.
 
-There are also two nondecreasing functions, both written $e(\cdot)$, which
-respectively assign an epoch number $e(i)$ to each instance $i$, and an epoch
-number $e(b)$ to each ballot $b$. A node may emit $\prop{i}{b}$ only if $e(b)
-\le e(i)$ and it has received promises for ballot $b$ in instance $i$ from a
-quorum in $Q^\textrm{I}_{e(b)}$. A node may decide $\chosen{i}{b}$ only if
-${e(i) \le e(b)+1}$ and it has received $\acc{i}{a}{b}$ from a quorum in
-$Q^\textrm{II}_{e(i)}$. Thus if $\chosen{i}{b}$ (and therefore $\prop{i}{b}$)
-then ${e(b) \in \{ e(i)-1, e(i) \}}$ and hence $Q^\textrm{I}_{e(b)} \frown
-Q^\textrm{II}_{e(i)}$ as required.  It is worth emphasising the subtle point
-that phase I uses the configuration $Q^\textrm{I}_{e(b)}$ corresponding to the
-ballot $b$ whereas phase II uses the configuration $Q^\textrm{II}_{e(i)}$ for
-the instance $i$, with extra conditions to ensure that $e(b) \le e(i) \le e(b)
-+ 1$ and therefore that the epochs used in the two phases are close enough to
-ensure consistency.
+There are also two nondecreasing integer-valued functions, both written
+$e(\cdot)$, which respectively assign an epoch number $e(i) > 0$ to each
+instance $i$, and an epoch number $e(b)$ to each ballot $b$. A node may emit
+$\prop{i}{b}$ only if $e(b) \le e(i)$ and it has received promises for ballot
+$b$ in instance $i$ from a quorum in $Q^\textrm{I}_{e(b)}$. A node may decide
+$\chosen{i}{b}$ only if ${e(i) \le e(b)+1}$ and it has received $\acc{i}{a}{b}$
+from a quorum in $Q^\textrm{II}_{e(i)}$. Thus if $\chosen{i}{b}$ (and therefore
+$\prop{i}{b}$) then ${e(b) \in \{ e(i)-1, e(i) \}}$ and hence
+$Q^\textrm{I}_{e(b)} \frown Q^\textrm{II}_{e(i)}$ as required.  It is worth
+emphasising the subtle point that phase I uses the configuration
+$Q^\textrm{I}_{e(b)}$ corresponding to the ballot $b$ whereas phase II uses the
+configuration $Q^\textrm{II}_{e(i)}$ for the instance $i$, with extra
+conditions to ensure that $e(b) \le e(i) \le e(b) + 1$ and therefore that the
+epochs used in the two phases are close enough to ensure consistency.
 
 Notice that the requirement for $e(\cdot)$ to be nondecreasing means that
 ballot numbers cannot be simple integers without limiting how many ballots may
