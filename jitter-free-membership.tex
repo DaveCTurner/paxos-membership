@@ -687,8 +687,8 @@ Paxos instance respectively by the observation of \ref{per-phase-quorums}
 above, or alternatively $Q^\textrm{I}_e$ and $Q^\textrm{II}_e$ can be used.
 
 There are also two nondecreasing integer-valued functions, both written
-$e(\cdot)$, which respectively assign an epoch number $e(i) > 0$ to each
-instance $i$, and an epoch number $e(b)$ to each ballot $b$. A node may emit
+$e(\cdot)$, which respectively assign an era number $e(i) > 0$ to each
+instance $i$, and an era number $e(b)$ to each ballot $b$. A node may emit
 $\prop{i}{b}$ only if $e(b) \le e(i)$ and it has received promises for ballot
 $b$ in instance $i$ from a quorum in $Q^\textrm{I}_{e(b)}$. A node may decide
 $\chosen{i}{b}$ only if ${e(i) \le e(b)+1}$ and it has received $\acc{i}{a}{b}$
@@ -699,28 +699,28 @@ emphasising the subtle point that phase I uses the configuration
 $Q^\textrm{I}_{e(b)}$ corresponding to the ballot $b$ whereas phase II uses the
 configuration $Q^\textrm{II}_{e(i)}$ for the instance $i$, with extra
 conditions to ensure that $e(b) \le e(i) \le e(b) + 1$ and therefore that the
-epochs used in the two phases are close enough to ensure consistency.
+eras used in the two phases are close enough to ensure consistency.
 
 Notice that the requirement for $e(\cdot)$ to be nondecreasing means that
 ballot numbers cannot be simple integers without limiting how many ballots may
-occur in each epoch. Instead one could, for example, let $\mathbb B = \mathbb N
+occur in each era. Instead one could, for example, let $\mathbb B = \mathbb N
 \times \mathbb N \times \mathbb A$ with the lexicographic order, where
 $e(\langle e, n, a\rangle) = e$ and $\owner{\langle e, n, a \rangle} = a$.
 
 \subsection{Dynamic configuration changes}
 
 As in Dynamic Paxos, the configurations $Q^\textrm{I}_0, Q^\textrm{I}_1,
-\ldots$ (resp. $Q^\textrm{II}_0, Q^\textrm{II}_1, \ldots$) and epoch numbers
+\ldots$ (resp. $Q^\textrm{II}_0, Q^\textrm{II}_1, \ldots$) and era numbers
 $e(i)$ are themselves chosen by Paxos. In more detail, configurations are
 tracked by state machines whose states are the finite sequence $Q^\textrm{I}_0,
 \ldots, Q^\textrm{I}_{e^\textrm{I}_\mathrm{max}}$ (and similarly for the phase
-II configurations) and the epoch numbers of instances are tracked by a state
+II configurations) and the era numbers of instances are tracked by a state
 machine whose state is the finite sequence $e(0), \ldots, e(i_\mathrm{max})$.
 Their transitions append one or more elements to these sequences, but do not
 change any existing elements, and the tracked sequences are always long enough
 to make progress: if $\chosen{i}{b}$ then they satisfy $i_\mathrm{max} > i+1$
 and $e^\textrm{II}_\mathrm{max} \ge e(i_\mathrm{max})$ in the
-configuration-sequence state machine. Epoch numbers $e(b)$ for ballots $b$ are
+configuration-sequence state machine. Era numbers $e(b)$ for ballots $b$ are
 fixed in advance and not chosen by Paxos.
 
 In order for a node to decide whether it can send out $\prop{i}{b}$ it must
@@ -756,10 +756,10 @@ to $Q'$ where $Q_{e(b)} \frown Q' \frown Q'$ they must first arrange to append
 $Q'$ to the sequence of configurations, setting $Q_{e(b)+1} = Q'$ and
 $e_\mathrm{max} = e(b) + 1$, then pick a future instance $i_c > i_\mathrm{max}$
 at which the change should take effect and append values to the sequence of
-epochs to set $e(i) = e(i_0)$ for $i_0 \le i < i_c$ and $e(i_c) = e(i_0) + 1$.
+eras to set $e(i) = e(i_0)$ for $i_0 \le i < i_c$ and $e(i_c) = e(i_0) + 1$.
 Since $e(i_c) = e(i_0) + 1 \le e(b) + 1$, instance $i_c$ and any other
-instances with the same epoch may be chosen even though phase I has not yet run
-for a ballot in this epoch. As long as $e(i_\mathrm{max})$ is not increased
+instances with the same era may be chosen even though phase I has not yet run
+for a ballot in this era. As long as $e(i_\mathrm{max})$ is not increased
 again, this means there is no limit on how many instances can be chosen without
 waiting for another phase I to run.
 
@@ -767,7 +767,7 @@ At this point, the system is no longer in normal running as defined above
 because $e(b) = e_\mathrm{max} - 1$. In order to get back to normal running, a
 ballot $b'$ should be chosen with $e(b') = e(b) + 1$ and $\owner{b'}$ should
 try and obtain a quorum of promises for $b'$ without preventing progress in
-epoch $e(b)$. It can do this by dividing the cluster into two quorums in such a
+era $e(b)$. It can do this by dividing the cluster into two quorums in such a
 way that it has a \textit{casting vote} between the two quorums: it finds $q
 \in Q_{e(b)}$ and $q' \in Q_{e(b)+1}$ having $q \cap q' = \{\owner{b'}\}$ and
 broadcasts $\prep{b'}$ to all nodes in $q'$ except itself. While it is waiting
@@ -784,7 +784,7 @@ following:
 \item The first part of this process requires that $e(i_\mathrm{max})$
 increases by at most $1$ before the new phase I has finished running. If
 $e(i_\mathrm{max})$ were increased by a larger amount then this would put a
-limit on how many instances can run in the old epoch, which preserves
+limit on how many instances can run in the old era, which preserves
 consistency but limits concurrency.
 %
 \item The second part of this process requires the existence of a node
@@ -792,7 +792,7 @@ $\owner{b'}$ that has a casting vote. If $\owner{b} \ne \owner{b'}$ then this
 step includes an \textit{abdication}: the original leader $\owner{b}$ hands
 over the leadership of the cluster to $\owner{b'}$. If there is no node with a
 casting vote then the broadcast of $\prep{b'}$ will prevent further progress in
-epoch $e(b)$. Again, this preserves consistency but limits concurrency.
+era $e(b)$. Again, this preserves consistency but limits concurrency.
 %
 \end{itemize}
 
@@ -808,7 +808,7 @@ arranging for each quorum in $Q_e$ to comprise a (weighted) majority subset of
 some finite set of nodes.  If $Q_{e-1}$ and $Q_e$ are nonempty then intuitively
 the condition that $Q_{e-1} \frown Q_e$ ensures that the configuration change
 from $Q_{e-1}$ to $Q_e$ is sufficiently small that phase I need not re-run when
-moving from epoch $e-1$ to epoch $e$.  For instance, if $Q_{e-1} \frown
+moving from era $e-1$ to era $e$.  For instance, if $Q_{e-1} \frown
 Q_{e-1}$ then the trivial configuration change, having $Q_e = Q_{e-1}$,
 certainly satisfies $Q_{e-1} \frown Q_e \frown Q_e$ and is therefore
 sufficiently small.
@@ -826,7 +826,7 @@ but those of $s_3$ and $s_5$ are not.
 The intuition that $Q_{e-1} \frown Q_e$ captures that $Q_{e-1}$ and $Q_e$ are
 similar breaks down if either is empty because $\varnothing \frown Q$ vacuously
 for all configurations $Q$. Clearly if there is an instance $j$ such that
-$Q_{e(j)} = \varnothing$ then no value can ever be chosen for $j$, but an epoch
+$Q_{e(j)} = \varnothing$ then no value can ever be chosen for $j$, but an era
 may be skipped at instance $i$ by letting $e(i) = e(i-1) + 2$.  This recovers
 the ability to perform arbitrary configuration changes in a single step as in
 Dynamic Paxos: if the system is currently using configuration $Q_{e(i)}$ and an
@@ -834,8 +834,8 @@ operator wishes to change to an unrelated configuration $Q'$ (i.e.  $Q_{e(i)}
 \not\frown Q' \frown Q'$) then they can set $Q_{e(i)+1} = \varnothing$ and
 $Q_{e(i)+2} = Q'$, which satisfies that \[Q_{e(i)} \frown Q_{e(i) + 1} \frown
 Q_{e(i)+1} \frown Q_{e(i) + 2} \frown Q_{e(i) + 2}\] as desired. However,
-re-running phase I can only be avoided if the epoch increases by $1$ and in
-this situation the epoch increases by $2$, so the new phase I must be complete
+re-running phase I can only be avoided if the era increases by $1$ and in
+this situation the era increases by $2$, so the new phase I must be complete
 before any new phase II instances can be started which reintroduces the risk of
 jitter.  As in Dynamic Paxos, to mitigate this risk the operator chooses an
 $\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i
@@ -959,7 +959,7 @@ node. However, a cluster of four equally-weighted nodes has no nodes with a
 casting vote, so instead two of the nodes must have weight $1$ and the other
 two have weight $2$, and then the sequence of weights used for this maintenance
 procedure is as follows, with maintenance on $a_{\textrm{maint}}$ occurring
-during epoch ${e+1}$:
+during era ${e+1}$:
 \[\begin{array}{rcccc}
 \textrm{node}&a_{\textrm{maint}}&a_1&a_2&a_3 \\
 w_e&1&1&2&2\\
@@ -1301,7 +1301,7 @@ Synod's invariant \ref{synod-quorums} follows from lemma
 show so by theorem \ref{synod-safety-theorem} it follows that $v_i(b_1) =
 v_i(b_2)$ as required.  \end{proof}
 
-\section{Consecutive epochs using weight-based configurations}
+\section{Consecutive eras using weight-based configurations}
 
 \begin{theorem} \label{weights-nearly-equal} If $w, w' : \mathbb A \to \mathbb
 N$ are weight functions such that $\sum_{a \in \mathbb A} |w'(a) - w(a)| \le 1$
