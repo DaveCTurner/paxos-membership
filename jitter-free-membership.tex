@@ -482,18 +482,20 @@ fault-tolerant fashion~\cite{part-time-parliament}. They guarantee system-wide
 equal across the whole system even in the presence of failures. They typically
 run on a cluster of $2f+1$ nodes, where $f$ is the number of faulty nodes that
 should be tolerated, and consensus is achieved on a value $v_i \in \mathbb V$
-when $\ge f+1$ (i.e. a majority) of the nodes agree. More generally, if
-$\mathbb A$ is the set of all nodes then there is a set $Q \subseteq \mathcal P
-\mathbb A$ of \textit{quorums}, and a value is chosen when all nodes $a \in q$
-agree for some quorum $q \in Q$. The set of quorums $Q$ is called the
-\textit{configuration} of the cluster.
+when $\ge f+1$ (i.e. a majority) of the nodes agree. The sets of nodes involved
+in reaching consensus are known as \textit{quorums} and the set of quorums
+in use is known as the \textit{configuration} of the cluster.
 
-It is normally necessary to be able to add or remove nodes from the cluster,
-which amounts to the ability to change the configuration while the cluster is
-running. It is crucial that all participating nodes agree on the cluster
-configuration, and this can be achieved by tracking the configuration with a
-state machine whose transitions occur when particular values in the sequence
-are chosen.
+%More generally, if $\mathbb A$ is the set of all nodes then there is a set $Q
+%\subseteq \mathcal P \mathbb A$ of \textit{quorums}, and a value is chosen
+%when all nodes $a \in q$ agree for some quorum $q \in Q$. The set of quorums
+%$Q$ is called the \textit{configuration} of the cluster.
+
+It is normally necessary to be able to add or remove nodes from the cluster
+while the cluster is running. It is crucial that all participating nodes agree
+on the cluster configuration, and this can be achieved by tracking the
+configuration within the cluster itself, using a state machine whose
+transitions occur when particular values in the sequence are chosen.
 
 In Paxos, each value $v_i \in \mathbb V$ is chosen using a separate instance
 $i$ of a two-phase consensus protocol known as \textit{Synod}. The full Paxos
