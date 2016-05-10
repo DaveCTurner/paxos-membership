@@ -492,10 +492,10 @@ in use is known as the \textit{configuration} of the cluster.
 %$Q$ is called the \textit{configuration} of the cluster.
 
 It is normally necessary to be able to add or remove nodes from the cluster
-while the cluster is running. It is crucial that all participating nodes agree
-on the cluster configuration, and this can be achieved by tracking the
-configuration within the cluster itself, using a state machine whose
-transitions occur when particular values in the sequence are chosen.
+while it is running. It is crucial that all participating nodes agree on the
+cluster configuration, and this can be achieved by tracking the configuration
+using the consensus algorithm itself using a state machine whose transitions
+occur when particular values in the sequence are chosen.
 
 In Paxos, each value $v_i \in \mathbb V$ is chosen using a separate instance
 $i$ of a two-phase consensus protocol known as \textit{Synod}. The full Paxos
@@ -512,13 +512,12 @@ proposed before earlier ones have been chosen. To ensure that this preserves
 consistency is nontrivial: a value may only be proposed once a quorum of nodes
 are ready for it, but whether a set of nodes is a quorum or not may change as
 earlier values are chosen. Paxos typically solves this problem by limiting the
-length of the pipeline to some $\alpha > 0$ so that if a configuration change
-is chosen at instance $i$ then consistency is preserved if its effects are
-delayed until instance $i + \alpha$. Raft imposes no such limit on the number
-of concurrently-running instances and instead ensures consistency by only
-allowing certain reconfigurations to take place, and then performs sequences of
-these restricted reconfigurations in order to achieve an arbitrary
-reconfiguration.
+length of the pipeline to some $\alpha > 0$ and requiring that a configuration
+change chosen at instance $i$ does not take effect until at least instance $i +
+\alpha$.  Raft imposes no such limit on the number of concurrently-running
+instances and instead ensures consistency by only allowing certain
+reconfigurations to take place, and then performs sequences of these restricted
+reconfigurations in order to achieve an arbitrary reconfiguration.
 
 The choice of the pipeline length parameter $\alpha$ is a little delicate: too
 small and the system may suffer from poor performance due to lack of
@@ -633,24 +632,29 @@ be acceptable, which could allow for further optimisations.
 
 \subsection{Per-phase quorums}\label{per-phase-quorums}
 
+\def\I#1#2{{#1}^\textrm{I}_{#2}}
+\def\II#1#2{{#1}^\textrm{II}_{#2}}
+\def\QI#1{\I{Q}{#1}}
+\def\QII#1{\II{Q}{#1}}
+
 The heart of the consistency property of the Synod algorithm is that the set of
 nodes involved in completing phase I must always intersect the set of nodes
 involved in completing phase II, so that there is at least one node to carry
 information between the two phases. Write $Q_1 \frown Q_2$ to indicate that
 every element of $Q_1$ intersects every element of $Q_2$: more formally $Q_1
 \frown Q_2$ iff every $q_1 \in Q_1$ and $q_2 \in Q_2$ have ${q_1 \cap q_2 \ne
-\varnothing}$. Write $Q^\textrm{I}(b)$ and $Q^\textrm{II}(b)$ for the sets of
+\varnothing}$. Write $\QI{}(b)$ and $\QII{}(b)$ for the sets of
 phase-I and phase-II quorums for ballot $b$ respectively.
 
 In the original presentation of the Synod algorithm any (weighted) majority of
-the nodes could be used as a quorum, so that $Q^\textrm{I}(b_1) \frown
-Q^\textrm{II}(b_2)$ for all $b_1$ and $b_2$ since all majorities intersect.
-This intersection property is stronger than needed and other
-presentations\footnote{TODO cite} relax it in various ways. The proof of
-theorem \ref{synod-safety-theorem} in appendix \ref{synod-safety} is a
-generalisation of the original one to demonstrate that consistency still holds
-even under the weaker assumption that $Q^\textrm{I}(b_1) \frown
-Q^\textrm{II}(b_2)$ when $\prop{}{b_1}$, $\chosen{}{b_2}$ and $b_1 \succ b_2$.
+the nodes could be used as a quorum, so that $\QI{}(b_1) \frown \QII{}(b_2)$
+for all $b_1$ and $b_2$ since all majorities intersect.  This intersection
+property is stronger than needed and other presentations\footnote{TODO cite}
+relax it in various ways. The proof of theorem \ref{synod-safety-theorem} in
+appendix \ref{synod-safety} is a generalisation of the original one to
+demonstrate that consistency still holds even under the weaker assumption that
+$\QI{}(b_1) \frown \QII(b_2)$ when $\prop{}{b_1}$, $\chosen{}{b_2}$ and $b_1
+\succ b_2$.
 
 \section{The Paxos algorithm}
 
@@ -679,30 +683,28 @@ v_i(b')$.
 
 \subsection{Configuration changes}\label{configuration-changes}
 
-Changes in the cluster configuration are handled with sequences of
-configurations $Q^\textrm{I}_0, Q^\textrm{I}_1, Q^\textrm{I}_2, \ldots$ and
-$Q^\textrm{II}_0, Q^\textrm{II}_1, Q^\textrm{II}_2, \ldots$ satisfying
-$Q^\textrm{I}_{e-1} \frown Q^\textrm{II}_e$ and $Q^\textrm{I}_e \frown
-Q^\textrm{II}_e$ for all $e$.  This means $Q^\textrm{I}_{e-1}$ and
-$Q^\textrm{II}_e$ can be used for the phase-I and phase-II configurations of a
-Paxos instance respectively by the observation of \ref{per-phase-quorums}
-above, or alternatively $Q^\textrm{I}_e$ and $Q^\textrm{II}_e$ can be used. The
-integer subscript $e$ of a configuration is known as its \textit{era}.
+Changing the cluster configuration is performed using a sequence $\langle
+\QI{0}, \QII{0} \rangle, \langle \QI{1}, \QII{1} \rangle, \ldots$ of pairs of
+sets of quorums satisfying $\QI{e-1} \frown \QII{e}$ and $\QI{e} \frown
+\QII{e}$ for all $e$.  This means $\QI{e-1}$ and $\QII{e}$ can be used for the
+phase-I and phase-II configurations of a Paxos instance respectively by the
+observation of \ref{per-phase-quorums} above, or alternatively $\QI{e}$ and
+$\QII{e}$ can be used. The integer subscript $e$ of a configuration is known as
+its \textit{era}.
 
 There are also two nondecreasing integer-valued functions, both written
 $e(\cdot)$, which respectively assign an era $e(i) > 0$ to each instance $i$,
 and an era $e(b)$ to each ballot $b$. A node may emit $\prop{i}{b}$ only if
 $e(b) \le e(i)$ and it has received promises for ballot $b$ in instance $i$
-from a quorum in $Q^\textrm{I}_{e(b)}$. A node may decide $\chosen{i}{b}$ only
-if ${e(i) \le e(b)+1}$ and it has received $\acc{i}{a}{b}$ from a quorum in
-$Q^\textrm{II}_{e(i)}$. Thus if $\chosen{i}{b}$ (and therefore $\prop{i}{b}$)
-then ${e(b) \in \{ e(i)-1, e(i) \}}$ and hence $Q^\textrm{I}_{e(b)} \frown
-Q^\textrm{II}_{e(i)}$ as required.  It is worth emphasising the subtle point
-that phase I uses the configuration $Q^\textrm{I}_{e(b)}$ corresponding to the
-ballot $b$ whereas phase II uses the configuration $Q^\textrm{II}_{e(i)}$ for
-the instance $i$, with extra conditions to ensure that $e(b) \le e(i) \le e(b)
-+ 1$ and therefore that the eras used in the two phases are close enough to
-ensure consistency.
+from a quorum in $\QI{e(b)}$. A node may decide $\chosen{i}{b}$ only if ${e(i)
+\le e(b)+1}$ and it has received $\acc{i}{a}{b}$ from a quorum in $\QII{e(i)}$.
+Thus if $\chosen{i}{b}$ (and therefore $\prop{i}{b}$) then ${e(b) \in \{
+e(i)-1, e(i) \}}$ and hence $\QI{e(b)} \frown \QII{e(i)}$ as required.  It is
+worth emphasising the subtle point that phase I uses the configuration
+$\QI{e(b)}$ corresponding to the ballot $b$ whereas phase II uses the
+configuration $\QII{e(i)}$ for the instance $i$, with extra conditions to
+ensure that $e(b) \le e(i) \le e(b) + 1$ and therefore that the eras used in
+the two phases are close enough to ensure consistency.
 
 Notice that the requirement for $e(\cdot)$ to be nondecreasing means that
 ballot numbers cannot be simple integers without limiting how many ballots may
@@ -712,33 +714,32 @@ $e(\langle e, n, a\rangle) = e$ and $\owner{\langle e, n, a \rangle} = a$.
 
 \subsection{Dynamic configuration changes}
 
-As in Dynamic Paxos, the configurations $Q^\textrm{I}_0, Q^\textrm{I}_1,
-\ldots$ (resp. $Q^\textrm{II}_0, Q^\textrm{II}_1, \ldots$) and era numbers
-$e(i)$ are themselves chosen by Paxos. In more detail, configurations are
-tracked by state machines whose states are the finite sequence $Q^\textrm{I}_0,
-\ldots, Q^\textrm{I}_{e^\textrm{I}_\mathrm{max}}$ (and similarly for the phase
-II configurations) and the era numbers of instances are tracked by a state
-machine whose state is the finite nondecreasing sequence $e(0), \ldots,
-e(i_\mathrm{max})$.  Their transitions append one or more elements to these
-sequences, but do not change any existing elements, and the tracked sequences
-are always long enough to make progress: if $\chosen{i}{b}$ then they satisfy
-$i_\mathrm{max} > i+1$ and $e^\textrm{II}_\mathrm{max} \ge e(i_\mathrm{max})$
-in the configuration-sequence state machine. Era numbers $e(b)$ for ballots $b$
-are fixed in advance and not chosen by Paxos.
+As in Dynamic Paxos, the configurations $\langle \QI{0}, \QII{0} \rangle,
+\langle \QI{1}, \QII{1} \rangle, \ldots$ and era numbers $e(i)$ are themselves
+chosen by Paxos. In more detail, configurations are tracked by a state machine
+whose state is the finite sequence $\langle \QI{0}, \QII{0} \rangle, \ldots,
+\langle \QI{e_\mathrm{max}}, \QII{e_\mathrm{max}} \rangle$ and the era numbers
+of instances are tracked by a state machine whose state is the finite
+nondecreasing sequence $e(0), \ldots, e(i_\mathrm{max})$.  Their transitions
+append one or more elements to these sequences, but do not change any existing
+elements, and the tracked sequences are always long enough to make progress: if
+$\chosen{i}{b}$ then they satisfy $i_\mathrm{max} > i+1$ and $e_\mathrm{max}
+\ge e(i_\mathrm{max})$ in the configuration-sequence state machine. Era numbers
+$e(b)$ for ballots $b$ are fixed in advance and not chosen by Paxos.
 
 In order for a node to decide whether it can send out $\prop{i}{b}$ it must
 check whether it has received promises from a quorum of nodes $q \in
-Q^\textrm{I}_{e(b)}$, for which it needs to know $Q^\textrm{I}_{e(b)}$. This
+\QI{e(b)}$, for which it needs to know $\QI{e(b)}$. This
 can be achieved by simply requiring nodes not to emit $\prep{b}$ messages for
-which $Q^\textrm{I}_{e(b)}$ is not known, i.e. where $e^\textrm{I}_\mathrm{max}
+which $\QI{e(b)}$ is not known, i.e. where $e_\mathrm{max}
 < e(b)$. The node must also check that $e(b) \le e(i)$; if $e(i)$ is not known
 then $i_\mathrm{max} < i$, but $e$ is a nondecreasing function so
 $e(i_\mathrm{max}) \le e(i)$ and it is therefore sufficient to check that $e(b)
 \le e(i_\mathrm{max})$.
 
 Similarly, in order to decide if $\chosen{i}{b}$ a node must check whether it
-has received acceptances from a quorum of nodes $q \in Q^\textrm{II}_{e(i)}$
-and must therefore know the value of $Q^\textrm{II}_{e(i)}$. This will be known
+has received acceptances from a quorum of nodes $q \in \QII{e(i)}$
+and must therefore know the value of $\QII{e(i)}$. This will be known
 if the node has chosen the previous instance, because if $\chosen{i-1}{b'}$
 then $i < i_\mathrm{max}$ and hence ${e(i) \le e(i_\mathrm{max}) \le
 e_\mathrm{max}}$ as required.
@@ -746,30 +747,28 @@ e_\mathrm{max}}$ as required.
 \subsection{Fully concurrent configuration changes}
 
 In normal running there is an instance $i_0$ and a ballot $b$ with ${e(b) =
-e(i_0) = e(i_\mathrm{max}) = e^\textrm{I}_\mathrm{max} =
-e^\textrm{II}_\mathrm{max}}$ and the node $\owner{b}$ has received a
-quorum\footnote{TODO separate quorums by phase here} of promises $q^\textrm{I}
-\in Q^\textrm{I}_{e(b)}$ for ballot $b$ for all instances $i \ge i_0$. In this
-state, $\owner{b}$ may emit $\prop{i}{b}$ for any $i \ge i_0$, since $e(b) =
-e(i_0) \le e(i)$ as $e$ is nondecreasing.  The node $\owner{b}$ is known as the
-\textit{leader} and its proposals are normally accepted without undue delay by
-all other nodes.
+e(i_0) = e(i_\mathrm{max}) = e_\mathrm{max}}$ and the node $\owner{b}$ has
+received a quorum of promises $q^\textrm{I} \in \QI{e(b)}$ for ballot $b$ for
+all instances $i \ge i_0$. In this state, $\owner{b}$ may emit $\prop{i}{b}$
+for any $i \ge i_0$, since $e(b) = e(i_0) \le e(i)$ as $e$ is nondecreasing.
+The node $\owner{b}$ is known as the \textit{leader} and its proposals are
+normally accepted without undue delay by all other nodes.
 
 \def\Qnew#1{Q^\textrm{#1}_\textrm{new}}
 
 When in this state, if an operator wishes to change the cluster configuration
-to $\langle \Qnew{I}, \Qnew{II} \rangle$ where $Q^\textrm{II}_{e(b)} \frown
-\Qnew{I} \frown \Qnew{II}$ they must first arrange to append $Q^\textrm{I}$ and
-$Q^\textrm{II}$ to their respective sequences of configurations, setting
-$Q^\textrm{I}_{e(b)+1} = \Qnew{I}$, $Q^\textrm{II}_{e(b)+1} = \Qnew{II}$ and
-$e^\textrm{I}_\mathrm{max} = e^\textrm{II}_\mathrm{max} = e(b) + 1$, then pick
-a future instance $i_c > i_\mathrm{max}$ at which the change should take effect
-and append values to the sequence of eras to set $e(i) = e(i_0)$ for $i_0 \le i
-< i_c$ and $e(i_c) = e(i_0) + 1$.  Since $e(i_c) = e(i_0) + 1 \le e(b) + 1$,
-instance $i_c$ and any future instances with the same era may be chosen even
-though phase I has not yet run for a ballot in this era. As long as
-$e(i_\mathrm{max})$ is not increased again, this means there is no limit on how
-many instances can be chosen without waiting for another phase I to run.
+to $\langle \Qnew{I}, \Qnew{II} \rangle$ where $\QII{e(b)} \frown \Qnew{I}
+\frown \Qnew{II}$ they must first arrange to append $\langle \Qnew{I},
+\Qnew{II} \rangle$ to the sequence of configurations, setting $\langle
+\QI{e(b)+1}, \QII{e(b)+1} \rangle = \langle \Qnew{I}, \Qnew{II} \rangle$ and
+$e_\mathrm{max} = e(b) + 1$, then pick a future instance $i_c > i_\mathrm{max}$
+at which the change should take effect and append values to the sequence of
+eras to set $e(i) = e(i_0)$ for $i_0 \le i < i_c$ and $e(i_c) = e(i_0) + 1$.
+Since $e(i_c) = e(i_0) + 1 \le e(b) + 1$, instance $i_c$ and any future
+instances with the same era may be chosen even though phase I has not yet run
+for a ballot in this era.  As long as $e(i_\mathrm{max})$ is not increased
+again, this means there is no limit on how many instances can be chosen without
+waiting for another phase I to run.
 
 At this point, the system is no longer in normal running as defined above
 because $e(b) = e_\mathrm{max} - 1$. In order to get back to normal running
@@ -966,8 +965,8 @@ external mechanism) it is eventually possible to choose a distinguished
 \ell$ of all non-failed nodes all of which ignore prepare messages sent by
 nodes other than $\ell$, and the system is quiescent in the sense that all sent
 messages (and their responses) have been delivered or dropped permanently.
-Additionally, there are quorums $q^\textrm{I} \in Q^\textrm{I}_{e(i)}$ and
-$q^\textrm{II} \in Q^\textrm{II}_{e(i)}$ having $q^\textrm{I} \cup
+Additionally, there are quorums $q^\textrm{I} \in \QI{e(i)}$ and
+$q^\textrm{II} \in \QII{e(i)}$ having $q^\textrm{I} \cup
 q^\textrm{II} \subseteq P$.
 
 The leader must first choose a ballot $b$ having $e(b) = e(i)$ and $\owner{b} =
@@ -1279,7 +1278,7 @@ invariants.
 
 \item\label{paxos-quorums} There are configurations $Q^\textrm{I}_0,
 Q^\textrm{I}_1, \ldots$ and $Q^\textrm{II}_0, Q^\textrm{II}_1, \ldots$ where
-${Q^\textrm{II}_e \frown Q^\textrm{I}_e \frown Q^\textrm{II}_{e+1}}$ for each
+${Q^\textrm{II}_e \frown Q^\textrm{I}_e \frown \QII{e+1}}$ for each
 $e$.
 
 \item\label{paxos-mprom} $\mprom{i}{a}{b}$ only if $\neg\acc{i'}{a}{b'}$ for
@@ -1294,7 +1293,7 @@ ballot, in the sense that $\neg \acc{i}{a}{b''}$ for all $b''$ having $b'
 \prec b'' \prec b$. \end{itemize}
 
 \item\label{paxos-prop} $\prop{i}{b}$ only if $e(b) \le e(i)$ and there is a
-quorum $q \in Q^\textrm{I}_{e(b)}$ such that
+quorum $q \in \QI{e(b)}$ such that
 \begin{itemize}
 \item for every $a \in q$ one of the following holds:
 %
@@ -1313,19 +1312,19 @@ quorum $q \in Q^\textrm{I}_{e(b)}$ such that
 
 \item \label{paxos-chosen} $\chosen{i}{b}$ only if \begin{itemize} \item for
 each $j \le i - \kappa$ there is a $b'$ with $\chosen{i-1}{b'}$, \item $e(i)
-\le e(b) + 1$, and \item there is a quorum $q \in Q^\textrm{II}_{e(i)}$ with
+\le e(b) + 1$, and \item there is a quorum $q \in \QII{e(i)}$ with
 $\acc{i}{a}{b}$ for every $a \in q$.  \end{itemize}
 
 \end{enumerate}
 
 \begin{lemma}\label{paxos-synod-quorum-invariant} For $b_1 \succ b_2 \in
 \mathbb B$, if $\prop{i}{b_1}$ and $\chosen{i}{b_2}$ then
-${Q^\textrm{I}_{e(b_1)} \frown Q^\textrm{II}_{e(i)}}$.  \end{lemma}
+${\QI{e(b_1)} \frown \QII{e(i)}}$.  \end{lemma}
 
 \begin{proof} $e(i) \le e(b_2) + 1 \le e(b_1) + 1 \le e(i) + 1$ since
 $\chosen{i}{b_2}$, $e$ is nondecreasing, and $\prop{i}{b_1}$ respectively.
-Therefore $e(b_1) \in \{ e(i) - 1, e(i) \}$ and hence ${Q^\textrm{I}_{e(b_1)}
-\frown Q^\textrm{II}_{e(i)}}$ by invariant \ref{paxos-quorums}.  \end{proof}
+Therefore $e(b_1) \in \{ e(i) - 1, e(i) \}$ and hence ${\QI{e(b_1)}
+\frown \QII{e(i)}}$ by invariant \ref{paxos-quorums}.  \end{proof}
 
 \begin{theorem}\label{paxos-safety-theorem} If $\chosen{i}{b_1}$ and
 $\chosen{i}{b_2}$ then ${v_i(b_1) = v_i(b_2)}$.  \end{theorem}
@@ -1333,8 +1332,8 @@ $\chosen{i}{b_2}$ then ${v_i(b_1) = v_i(b_2)}$.  \end{theorem}
 \begin{proof} If $\chosen{i}{b_1}$ then the Paxos invariants imply the Synod
 invariants for instance $i$.  In more detail, let
 \[\begin{array}{rl}
-Q^\textrm{I}(b) &= Q^\textrm{I}_{e(b)}, \\
-Q^\textrm{II}(b) &= Q^\textrm{II}_{e(i)}, \\
+Q^\textrm{I}(b) &= \QI{e(b)}, \\
+Q^\textrm{II}(b) &= \QII{e(i)}, \\
 \fprom{}{a}{b} &= \fprom{i}{a}{b} \\
 & \ {}\vee \exists i' \le i. \mprom{i'}{a}{b}, \\
 \bprom{}{a}{b}{b'} &= \bprom{i}{a}{b}{b'}, \\
