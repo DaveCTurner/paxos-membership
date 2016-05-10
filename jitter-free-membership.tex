@@ -691,13 +691,13 @@ configuration. Intuitively the cluster is ``in era $e$'' for an extended period
 when the configuration is constant and instances are chosen using $\langle
 \QI{e}, \QII{e}\rangle$ (i.e. using quorums from $\QI{e}$ and $\QII{e}$ for
 phase I and phase II respectively). While a change from era $e$ to $e+1$ is in
-progress some instances may use $\langle \QI{e}, \QII{e+1} \rangle$ and once
-the change to era $e+1$ is complete instances will use $\langle \QI{e+1},
-\QII{e+1} \rangle$. Since $\QII{e} \frown \QI{e} \frown \QII{e+1} \frown
-\QI{e+1}$ it follows that consistency is preserved throughout by the
-observation of \ref{per-phase-quorums} above, and there need be no limit on the
-number of concurrently-running instances since the phase-I and phase-II quorums
-can change era independently.
+progress some instances may use the interim configuration $\langle \QI{e},
+\QII{e+1} \rangle$ and once the change to era $e+1$ is complete instances will
+use $\langle \QI{e+1}, \QII{e+1} \rangle$. Since $\QII{e} \frown \QI{e} \frown
+\QII{e+1} \frown \QI{e+1}$ it follows that consistency is preserved throughout
+by the observation of \ref{per-phase-quorums} above, and there need be no limit
+on the number of concurrently-running instances since the phase-I and phase-II
+quorums can change era independently.
 
 To achieve this there are also two nondecreasing integer-valued functions, both
 written $e(\cdot)$, which respectively assign an era $e(i) > 0$ to each
