@@ -482,9 +482,9 @@ fault-tolerant fashion~\cite{part-time-parliament}. They guarantee system-wide
 equal across the whole system even in the presence of failures. They typically
 run on a cluster of $2f+1$ nodes, where $f$ is the number of faulty nodes that
 should be tolerated, and consensus is achieved on a value $v_i \in \mathbb V$
-when $\ge f+1$ (i.e. a majority) of the nodes agree. The sets of nodes involved
-in reaching consensus are known as \textit{quorums} and the set of quorums
-in use is known as the \textit{configuration} of the cluster.
+when $\ge f+1$ (i.e. a majority) of the nodes agree. The (nonempty) sets of
+nodes involved in reaching consensus are known as \textit{quorums} and the set
+of quorums in use is known as the \textit{configuration} of the cluster.
 
 %More generally, if $\mathbb A$ is the set of all nodes then there is a set $Q
 %\subseteq \mathcal P \mathbb A$ of \textit{quorums}, and a value is chosen
@@ -683,27 +683,38 @@ v_i(b')$.
 
 \subsection{Configuration changes}\label{configuration-changes}
 
-Changing the cluster configuration is performed using a sequence $\langle
-\QI{0}, \QII{0} \rangle, \langle \QI{1}, \QII{1} \rangle, \ldots$ of pairs of
-sets of quorums satisfying $\QI{e-1} \frown \QII{e}$ and $\QI{e} \frown
-\QII{e}$ for all $e$. The integer $e$ is known as the \textit{era} of a
-configuration. Most Paxos instances will use $\QI{e}$ and $\QII{e}$ for their
-phase-I and phase-II quorums respectively, but instances may also use
-$\QI{e-1}$ and $\QII{e}$ by the observation of \ref{per-phase-quorums} above.
+Tracking changes to the cluster configuration is performed using a sequence
+$\langle \QI{0}, \QII{0} \rangle, \langle \QI{1}, \QII{1} \rangle, \ldots$ of
+pairs of sets of quorums satisfying $\QI{e} \frown \QII{e}$ and $\QI{e} \frown
+\QII{e+1}$ for all $e$. The integer $e$ is known as the \textit{era} of a
+configuration. Intuitively the cluster is ``in era $e$'' for an extended period
+when the configuration is constant and instances are chosen using $\langle
+\QI{e}, \QII{e}\rangle$ (i.e. using quorums from $\QI{e}$ and $\QII{e}$ for
+phase I and phase II respectively). While a change from era $e$ to $e+1$ is in
+progress some instances may use $\langle \QI{e}, \QII{e+1} \rangle$ and once
+the change to era $e+1$ is complete instances will use $\langle \QI{e+1},
+\QII{e+1} \rangle$. Since $\QII{e} \frown \QI{e} \frown \QII{e+1} \frown
+\QI{e+1}$ it follows that consistency is preserved throughout by the
+observation of \ref{per-phase-quorums} above, and there need be no limit on the
+number of concurrently-running instances since the phase-I and phase-II quorums
+can change era independently.
 
-There are also two nondecreasing integer-valued functions, both written
-$e(\cdot)$, which respectively assign an era $e(i) > 0$ to each instance $i$,
-and an era $e(b)$ to each ballot $b$. A node may emit $\prop{i}{b}$ only if
-$e(b) \le e(i)$ and it has received promises for ballot $b$ in instance $i$
-from a quorum in $\QI{e(b)}$. A node may decide $\chosen{i}{b}$ only if ${e(i)
-\le e(b)+1}$ and it has received $\acc{i}{a}{b}$ from a quorum in $\QII{e(i)}$.
-Thus if $\chosen{i}{b}$ (and therefore $\prop{i}{b}$) then ${e(b) \in \{
-e(i)-1, e(i) \}}$ and hence $\QI{e(b)} \frown \QII{e(i)}$ as required.  It is
-worth emphasising the subtle point that phase I uses the configuration
-$\QI{e(b)}$ corresponding to the ballot $b$ whereas phase II uses the
-configuration $\QII{e(i)}$ for the instance $i$, with extra conditions to
-ensure that $e(b) \le e(i) \le e(b) + 1$ and therefore that the eras used in
-the two phases are close enough to ensure consistency.
+To achieve this there are also two nondecreasing integer-valued functions, both
+written $e(\cdot)$, which respectively assign an era $e(i) > 0$ to each
+instance $i$, and an era $e(b)$ to each ballot $b$. Intuitively $e(b)$ records
+which phase-I quorums were used to decide that $\prop{i}{b}$ could be sent,
+which in turn limits which phase-II quorums can be used to decide that
+$\chosen{i}{b}$. More formally, a node may emit $\prop{i}{b}$ only if $e(b) \le
+e(i)$ and it has received promises for ballot $b$ in instance $i$ from a quorum
+in $\QI{e(b)}$. A node may decide $\chosen{i}{b}$ only if ${e(i) \le e(b)+1}$
+and it has received $\acc{i}{a}{b}$ from a quorum in $\QII{e(i)}$.  Thus if
+$\chosen{i}{b}$ (and therefore $\prop{i}{b}$) then ${e(i) \in \{ e(b), e(b)+1
+\}}$ and hence $\QI{e(b)} \frown \QII{e(i)}$ as required.  It is worth
+emphasising the subtle point that phase I uses the configuration $\QI{e(b)}$
+corresponding to the ballot $b$ whereas phase II uses the configuration
+$\QII{e(i)}$ for the instance $i$, with extra conditions to ensure that $e(b)
+\le e(i) \le e(b) + 1$ and therefore that the eras used in the two phases are
+close enough to ensure consistency.
 
 Notice that the requirement for $e(\cdot)$ to be nondecreasing means that
 ballot numbers cannot be simple integers without limiting how many ballots may
@@ -810,13 +821,13 @@ Q^\textrm{II}_e$ throughout and write simply $Q_e$ for both.
 \def\maj#1{\mathbf{maj}(#1)}
 
 Implementations can ensure $Q_e \frown Q_e$ for each $e$ by, for instance,
-arranging for each quorum in $Q_e$ to comprise a (weighted) majority subset of
-some finite set of nodes.  If $Q_{e-1}$ and $Q_e$ are nonempty then intuitively
-the condition that $Q_{e-1} \frown Q_e$ ensures that the configuration change
-from $Q_{e-1}$ to $Q_e$ is sufficiently small that phase I need not re-run when
-moving from era $e-1$ to era $e$.  For instance, if $Q_{e-1} \frown Q_{e-1}$
-then the trivial configuration change, having $Q_e = Q_{e-1}$, certainly
-satisfies $Q_{e-1} \frown Q_e \frown Q_e$ and is therefore sufficiently small.
+arranging for each quorum in $Q_e$ to comprise a majority subset of some finite
+set of nodes.  If $Q_e$ and $Q_{e+1}$ are nonempty then intuitively the
+condition that $Q_e \frown Q_{e+1}$ ensures that the configuration change from
+$Q_e$ to $Q_{e+1}$ is sufficiently small that phase I need not re-run when
+moving from era $e-1$ to era $e$.  For instance, if $Q_e \frown Q_e$ then the
+trivial configuration change, having $Q_{e+1} = Q_e$, certainly satisfies $Q_e
+\frown Q_{e+1} \frown Q_{e+1}$ and is therefore sufficiently small.
 %
 For a less trivial example, let \[\maj{s} = \{ q \subseteq s \mid 2 |q| > |s|
 \}\] comprise all majority subsets of a finite set $s \subseteq \mathbb A$, and
@@ -828,39 +839,38 @@ $\{a_3, a_4, a_5\} \in \maj{s_5}$ do not intersect. Thus the majority subsets
 of $s_3$ and $s_4$ are sufficiently similar to be consecutive configurations,
 but those of $s_3$ and $s_5$ are not. In general if quorums are defined to be
 the majority subsets of a finite set of nodes then adding or removing a single
-node is always a sufficiently small reconfiguration.
-More
-generally, let a \textit{weight} function be a function $w : \mathbb A \to
-\mathbb N$ that only takes finitely many nonzero values. This can be used to
-define a configuration $M(w)$ by \textit{majority}: \[M(w) = \left\{ q
-\;\middle|\; \sum_{a \in q} 2 w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] If
-$w(a) = 0$ for all $a$ then $w$ is said to be \textit{weightless} and $M(w) =
-\varnothing$.  Corollary \ref{weights-equal} shows that $M(w) \frown M(w)$ for
-any weight function $w$.
+node is always a sufficiently small reconfiguration.  More generally, let a
+\textit{weight} function be a function $w : \mathbb A \to \mathbb N$ that only
+takes finitely many nonzero values. This can be used to define a configuration
+$M(w)$ by \textit{weighted majority}: \[M(w) = \left\{ q \;\middle|\; \sum_{a
+\in q} 2 w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] If $w(a) = 0$ for all
+$a$ then $w$ is said to be \textit{weightless} and $M(w) = \varnothing$.
+Corollary \ref{weights-equal} shows that $M(w) \frown M(w)$ for any weight
+function $w$.
 %
 A sequence $w_0, w_1, \ldots$ of weight functions can be used to define the
-sequence of configurations $M(w_0), M(w_1), \ldots$ used by a cluster, which
-must satisfy $M(w_{e-1}) \frown M(w_e)$ for all $e$.  There are three simple
-ways to ensure this:
+sequence of configurations $\langle M(w_0), M(w_0) \rangle, \langle M(w_1),
+M(w_1) \rangle, \ldots$ used by a cluster, which must satisfy $M(w_e) \frown
+M(w_{e+1})$ for all $e$.  There are three simple ways to ensure this:
 
 \begin{enumerate}
 
-\item If $w_{e-1}$ and $w_e$ differ by a constant factor, in the sense that
-there are positive integers $m$ and $n$ such that $m w_{e-1}(a) = n w_e(a)$ for
-all $a$, then clearly ${M(w_{e-1}) = M(w_e)}$ and hence the property holds.
+\item If $w_e$ and $w_{e+1}$ differ by a constant factor, in the sense that
+there are positive integers $m$ and $n$ such that $m w_e(a) = n w_{e+1}(a)$ for
+all $a$, then clearly ${M(w_e) = M(w_{e+1})}$ and hence the property holds.
 
-\item By theorem \ref{weights-nearly-equal} if $w_{e-1}$ and $w_e$ are equal
+\item By theorem \ref{weights-nearly-equal} if $w_e$ and $w_{e+1}$ are equal
 except perhaps at a single node at which they differ by $1$ then the property
 holds.
 
-\item Finally, if $w_{e-1}$ is weightless then the property holds vacuously.
+\item Finally, if $w_{e+1}$ is weightless then the property holds vacuously.
 
 \end{enumerate}
 %
 Theorem \ref{weights-nearly-equal} is reminiscent of the amoeba analogy in
 \cite{cheap-paxos}. Raft's configurations are effectively weight functions
 which take values in $\{0,1\}$ and therefore the reconfigurations permitted by
-the Raft protocol are supported here too.
+the Raft protocol are a special case of those described here.
 
 Early versions of Raft supported more general reconfigurations using a
 technique known as \textit{joint configurations}. To change from configuration
@@ -873,7 +883,7 @@ configuration. Certainly this satisfies that \[Q_{e(i)} \frown Q_{e(i) + 1}
 \frown Q_{e(i)+1} \frown Q_{e(i) + 2} \frown Q_{e(i) + 2}\] as required to
 preserve consistency.
 
-The intuition that $Q_{e-1} \frown Q_e$ captures that $Q_{e-1}$ and $Q_e$ are
+The intuition that $Q_e \frown Q_{e+1}$ captures that $Q_e$ and $Q_{e+1}$ are
 similar breaks down if either is empty because $\varnothing \frown Q$ vacuously
 for all configurations $Q$. Clearly if there is an instance $j$ such that
 $Q_{e(j)} = \varnothing$ then no value can ever be chosen for $j$ so this
@@ -885,13 +895,14 @@ most one: an era may be skipped at instance $i$ by letting $e(i) = e(i-1) + 2$.
 This recovers the ability to perform arbitrary configuration changes in a
 single step as in Dynamic Paxos: if the system is currently using configuration
 $Q_{e(i)}$ and an operator wishes to change to an unrelated configuration $Q'$
-(i.e.  $Q_{e(i)} \not\frown Q' \frown Q'$) then they can set $Q_{e(i)+1} =
-\varnothing$ and $Q_{e(i)+2} = Q'$, which satisfies that \[Q_{e(i)} \frown
-Q_{e(i) + 1} \frown Q_{e(i)+1} \frown Q_{e(i) + 2} \frown Q_{e(i) + 2}\] as
-desired. However, re-running phase I can only be delayed if the era increases
-by $1$ and in this situation the era increases by $2$, so the new phase I must
-be complete before any new phase II instances can be started.  As in Dynamic
-Paxos, to mitigate this risk the operator chooses an $\alpha > 0$ and sets
+(i.e.  $Q_{e(i)} \not\frown Q' \frown Q'$) then they can set $Q_{e(i)+2} = Q'$
+and pick an appropriate $Q_{e(i)+1}$ which satisfies that \[Q_{e(i)} \frown
+Q_{e(i) + 1} \frown Q_{e(i)+1} \frown Q_{e(i) + 2} \frown Q_{e(i) + 2}.\] For
+instance $Q_{e(i)+1}$ could be $\varnothing$ or could be the joint
+configuration of $Q_{e(i)}$ and $Q'$.  However, re-running phase I can only be
+delayed if the era increases by $1$ and in this situation the era increases by
+$2$, so the new phase I must be complete before any new phase II instances can
+be started.  As in Dynamic Paxos the operator chooses an $\alpha > 0$ and sets
 $e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i + \alpha$,
 effectively delaying the configuration change for $\alpha$ instances in the
 hope that this is long enough to have completed the new phase I.
@@ -911,17 +922,21 @@ and focuses only on safety.
 consistency.
 
 \subsubsection{Promises and acceptances} The node $a$ may emit promises
-$\fprom{i}{a}{b}$ etc. and acceptances $\acc{i}{a}{b}$ where they do not
-conflict with previously-sent messages. In more detail: \begin{itemize} \item
-It may emit $\mprom{i}{a}{b}$ if it has previously sent no $\acc{i'}{a}{b'}$
-for any $b'$ and any $i' \le i$. \item It may emit $\fprom{i}{a}{b}$ if it has
-previously sent no $\acc{i}{a}{b'}$ for any $b'$. \item It may emit
-$\bprom{i}{a}{b}{b'}$ if $\acc{i}{a}{b'}$, $b' \prec b$ and $b'$ is the
-greatest such ballot. \item It may emit $\acc{i}{a}{b}$ as long as
+$\fprom{i}{a}{b}$ etc. and acceptances $\acc{i}{a}{b}$ where $e(b) \le e(i)$
+and they do not conflict with previously-sent messages. In more detail:
+\begin{itemize} \item It may emit $\mprom{i}{a}{b}$ if it has previously sent
+no $\acc{i'}{a}{b'}$ for any $b'$ and any $i' \ge i$. \item It may emit
+$\fprom{i}{a}{b}$ if it has previously sent no $\acc{i}{a}{b'}$ for any $b'$.
+\item It may emit $\bprom{i}{a}{b}{b'}$ if $\acc{i}{a}{b'}$, $b' \prec b$ and
+$b'$ is the greatest such ballot. \item It may emit $\acc{i}{a}{b}$ as long as
 $\prop{i}{b}$ and it does not violate any previously-made promises, in the
 sense that whenever \begin{itemize} \item $\mprom{i'}{a}{b'}$ for any $i' \le
 i$, or \item $\fprom{i}{a}{b'}$, or \item $\bprom{i}{a}{b'}{b''}$\end{itemize}
 it is the case that $b' \preceq b$. \end{itemize}
+
+If $i > i_\mathrm{max}$ then $e(i)$ is not known. In this case in order to
+ensure $e(b) \le e(i)$ it is sufficient to check that $e(b) \le
+e(i_\mathrm{max})$ because $e$ is nondecreasing.
 
 \subsubsection{Proposing values} From the discussion in \ref{value-function}
 above the value $v_i(b)$ of ballot $b$ in instance $i$ may be changed without
@@ -933,16 +948,13 @@ may not change the value $v_i(b)$ but if desired it may send out $\prop{b}{i}$
 again, since messages may be duplicated. On the other hand if it has not sent
 out $\prop{b}{i}$ then it may change $v_i(b)$ freely. Once it has received
 promises for $b$ in instance $i$ from every node in a quorum $q \in Q_{e(b)}$
-where $e(b) \le e(i)$ then it may send out $\prop{b}{i}$. If any of the
-promises from nodes in $q$ is of the form $\bprom{i}{a}{b}{b'}$ then it must
-first set \[v_i(b) = v_i\bigl(\mathrm{max} \{b' \mid \bprom{i}{a}{b}{b'}
-\textrm{ received}, a \in q \}\bigr).\] If $i > i_\mathrm{max}$ so the value of
-$e(i)$ is not known then it is sufficient to find an earlier instance $i' < i$
-and ballot $b'$ such that $\chosen{i'}{b'}$ and $e(b) \le e(i')$ because $e$
-is nondecreasing.
+it may send out $\prop{b}{i}$. If any of the promises from nodes in $q$ is of
+the form $\bprom{i}{a}{b}{b'}$ then it must first set \[v_i(b) =
+v_i\bigl(\mathrm{max} \{b' \mid \bprom{i}{a}{b}{b'} \textrm{ received}, a \in q
+\}\bigr).\]
 
 \subsubsection{Choosing values} Any node may deduce $\chosen{b}{i}$ if
-\begin{itemize} \item $e(i) \le e(b) + 1$, \item for each $j \le i - \kappa$
+\begin{itemize} \item $e(i) \le e(b) + 1$, \item for each $j < i$
 there is a $b'$ with $\chosen{j}{b'}$, and \item there is a quorum $q \in
 Q_{e(i)}$ such that $\acc{i}{a}{b}$ has been received from every $a \in q$.
 \end{itemize}
@@ -1275,24 +1287,23 @@ invariants.
 
 \begin{enumerate}
 
-\item\label{paxos-quorums} There are configurations $Q^\textrm{I}_0,
+\item\label{paxos-quorums} There are sets of quorums $Q^\textrm{I}_0,
 Q^\textrm{I}_1, \ldots$ and $Q^\textrm{II}_0, Q^\textrm{II}_1, \ldots$ where
-${Q^\textrm{II}_e \frown Q^\textrm{I}_e \frown \QII{e+1}}$ for each
-$e$.
+${Q^\textrm{II}_e \frown Q^\textrm{I}_e \frown \QII{e+1}}$ for each $e$.
 
 \item\label{paxos-mprom} $\mprom{i}{a}{b}$ only if $\neg\acc{i'}{a}{b'}$ for
-all $i' \ge i$ and $b' \prec b$.
+all $i' \ge i$ and $b' \prec b$, and $e(b) \le e(i)$.
 
 \item\label{paxos-fprom} $\fprom{i}{a}{b}$ only if $\neg\acc{i}{a}{b'}$ for all
-$b' \prec b$.
+$b' \prec b$, and $e(b) \le e(i)$.
 
 \item\label{paxos-bprom} $\bprom{i}{a}{b}{b'}$ only if \begin{itemize} \item
-$b' \prec b$ \item $\acc{i}{a}{b'}$, and \item $b'$ is the greatest such
-ballot, in the sense that $\neg \acc{i}{a}{b''}$ for all $b''$ having $b'
-\prec b'' \prec b$. \end{itemize}
+$e(b) \le e(i)$, \item $b' \prec b$, \item $\acc{i}{a}{b'}$, and \item $b'$ is
+the greatest such ballot, in the sense that $\neg \acc{i}{a}{b''}$ for all
+$b''$ having $b' \prec b'' \prec b$. \end{itemize}
 
-\item\label{paxos-prop} $\prop{i}{b}$ only if $e(b) \le e(i)$ and there is a
-quorum $q \in \QI{e(b)}$ such that
+\item\label{paxos-prop} $\prop{i}{b}$ only if there is a $q \in \QI{e(b)}$ such
+that
 \begin{itemize}
 \item for every $a \in q$ one of the following holds:
 %
@@ -1310,9 +1321,9 @@ quorum $q \in \QI{e(b)}$ such that
 \item \label{paxos-acc} $\acc{i}{a}{b}$ only if $\prop{i}{b}$.
 
 \item \label{paxos-chosen} $\chosen{i}{b}$ only if \begin{itemize} \item for
-each $j \le i - \kappa$ there is a $b'$ with $\chosen{i-1}{b'}$, \item $e(i)
-\le e(b) + 1$, and \item there is a quorum $q \in \QII{e(i)}$ with
-$\acc{i}{a}{b}$ for every $a \in q$.  \end{itemize}
+each $j < i$ there is a $b'$ with $\chosen{i-1}{b'}$, \item $e(i) \le e(b) +
+1$, and \item there is a quorum $q \in \QII{e(i)}$ with $\acc{i}{a}{b}$ for
+every $a \in q$.  \end{itemize}
 
 \end{enumerate}
 
@@ -1320,10 +1331,12 @@ $\acc{i}{a}{b}$ for every $a \in q$.  \end{itemize}
 \mathbb B$, if $\prop{i}{b_1}$ and $\chosen{i}{b_2}$ then
 ${\QI{e(b_1)} \frown \QII{e(i)}}$.  \end{lemma}
 
-\begin{proof} $e(i) \le e(b_2) + 1 \le e(b_1) + 1 \le e(i) + 1$ since
-$\chosen{i}{b_2}$, $e$ is nondecreasing, and $\prop{i}{b_1}$ respectively.
-Therefore $e(b_1) \in \{ e(i) - 1, e(i) \}$ and hence ${\QI{e(b_1)}
-\frown \QII{e(i)}}$ by invariant \ref{paxos-quorums}.  \end{proof}
+\begin{proof} $\prop{i}{b_1}$ implies that $\mprom{i'}{a}{b_1}$ or
+$\fprom{i'}{a}{b_1}$ or $\bprom{i'}{a}{b_1}{b'}$ for some node $a$ and $i' \le
+i$. Therefore $e(i) \le e(b_2) + 1 \le e(b_1) + 1 \le e(i') + 1 \le e(i) + 1$
+since $\chosen{i}{b_2}$ and $e$ is nondecreasing.  Therefore $e(i) \in \{ e(b),
+e(b) + 1 \}$ and hence ${\QI{e(b_1)} \frown \QII{e(i)}}$ by invariant
+\ref{paxos-quorums}.  \end{proof}
 
 \begin{theorem}\label{paxos-safety-theorem} If $\chosen{i}{b_1}$ and
 $\chosen{i}{b_2}$ then ${v_i(b_1) = v_i(b_2)}$.  \end{theorem}
@@ -1412,10 +1425,11 @@ weight function then \[M(w) \frown M(w).\]  \end{corollary}
 where $w' = w$.  \end{proof}
 
 % use section* for acknowledgment
-%\section*{Acknowledgment} TODO
+\section*{Acknowledgment}
 
+The author would like to thank Dahlia Malkhi and Leander Nikolaus Jehl for
+their advice and comments on earlier drafts of this paper.
 
-%The authors would like to thank...
 
 
 % Can use something like this to put references on a page
