@@ -686,11 +686,10 @@ v_i(b')$.
 Changing the cluster configuration is performed using a sequence $\langle
 \QI{0}, \QII{0} \rangle, \langle \QI{1}, \QII{1} \rangle, \ldots$ of pairs of
 sets of quorums satisfying $\QI{e-1} \frown \QII{e}$ and $\QI{e} \frown
-\QII{e}$ for all $e$.  This means $\QI{e-1}$ and $\QII{e}$ can be used for the
-phase-I and phase-II configurations of a Paxos instance respectively by the
-observation of \ref{per-phase-quorums} above, or alternatively $\QI{e}$ and
-$\QII{e}$ can be used. The integer subscript $e$ of a configuration is known as
-its \textit{era}.
+\QII{e}$ for all $e$. The integer $e$ is known as the \textit{era} of a
+configuration. Most Paxos instances will use $\QI{e}$ and $\QII{e}$ for their
+phase-I and phase-II quorums respectively, but instances may also use
+$\QI{e-1}$ and $\QII{e}$ by the observation of \ref{per-phase-quorums} above.
 
 There are also two nondecreasing integer-valued functions, both written
 $e(\cdot)$, which respectively assign an era $e(i) > 0$ to each instance $i$,
