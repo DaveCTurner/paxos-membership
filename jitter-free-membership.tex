@@ -702,12 +702,12 @@ can change era independently.
 To achieve this there are also two nondecreasing integer-valued functions, both
 written $e(\cdot)$, which respectively assign an era $e(i) > 0$ to each
 instance $i$, and an era $e(b)$ to each ballot $b$. Intuitively $e(b)$ records
-which phase-I quorums were used to decide that $\prop{i}{b}$ could be sent,
-which in turn limits which phase-II quorums can be used to decide that
-$\chosen{i}{b}$. More formally, a node may emit $\prop{i}{b}$ only if $e(b) \le
-e(i)$ and it has received promises for ballot $b$ in instance $i$ from a quorum
-in $\QI{e(b)}$. A node may decide $\chosen{i}{b}$ only if ${e(i) \le e(b)+1}$
-and it has received $\acc{i}{a}{b}$ from a quorum in $\QII{e(i)}$.  Thus if
+which quorums may be used to decide that $\prop{i}{b}$ can be sent in phase I
+and $e(i)$ records which quorums may be used to decide that $\chosen{i}{b}$ in
+phase II.  More formally, a node may emit $\prop{i}{b}$ only if $e(b) \le e(i)$
+and it has received promises for ballot $b$ in instance $i$ from a quorum in
+$\QI{e(b)}$. A node may decide $\chosen{i}{b}$ only if ${e(i) \le e(b)+1}$ and
+it has received $\acc{i}{a}{b}$ from a quorum in $\QII{e(i)}$.  Thus if
 $\chosen{i}{b}$ (and therefore $\prop{i}{b}$) then ${e(i) \in \{ e(b), e(b)+1
 \}}$ and hence $\QI{e(b)} \frown \QII{e(i)}$ as required.  It is worth
 emphasising the subtle point that phase I uses the configuration $\QI{e(b)}$
