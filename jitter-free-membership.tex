@@ -704,17 +704,13 @@ written $e(\cdot)$, which respectively assign an era $e(i) > 0$ to each
 instance $i$, and an era $e(b)$ to each ballot $b$. Intuitively $e(b)$ records
 which quorums may be used to decide that $\prop{i}{b}$ can be sent in phase I
 and $e(i)$ records which quorums may be used to decide that $\chosen{i}{b}$ in
-phase II.  More formally, a node may emit $\prop{i}{b}$ only if $e(b) \le e(i)$
-and it has received promises for ballot $b$ in instance $i$ from a quorum in
-$\QI{e(b)}$. A node may decide $\chosen{i}{b}$ only if ${e(i) \le e(b)+1}$ and
-it has received $\acc{i}{a}{b}$ from a quorum in $\QII{e(i)}$.  Thus if
-$\chosen{i}{b}$ (and therefore $\prop{i}{b}$) then ${e(i) \in \{ e(b), e(b)+1
-\}}$ and hence $\QI{e(b)} \frown \QII{e(i)}$ as required.  It is worth
-emphasising the subtle point that phase I uses the configuration $\QI{e(b)}$
-corresponding to the ballot $b$ whereas phase II uses the configuration
-$\QII{e(i)}$ for the instance $i$, with extra conditions to ensure that $e(b)
-\le e(i) \le e(b) + 1$ and therefore that the eras used in the two phases are
-close enough to ensure consistency.
+phase II, with extra conditions to ensure that ${e(b) \le e(i) \le e(b)+1}$ and
+therefore that ${e(i) \in \{ e(b), e(b)+1 \}}$ and hence $\QI{e(b)} \frown
+\QII{e(i)}$ as required to ensure consistency.  More formally, a node may emit
+$\prop{i}{b}$ only if $e(b) \le e(i)$ and it has received promises for ballot
+$b$ in instance $i$ from a quorum in $\QI{e(b)}$. A node may decide
+$\chosen{i}{b}$ only if ${e(i) \le e(b)+1}$ and it has received $\acc{i}{a}{b}$
+from a quorum in $\QII{e(i)}$.
 
 Notice that the requirement for $e(\cdot)$ to be nondecreasing means that
 ballot numbers cannot be simple integers without limiting how many ballots may
