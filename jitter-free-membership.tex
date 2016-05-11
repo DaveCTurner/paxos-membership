@@ -747,9 +747,10 @@ here liveness can be guaranteed if a distinguished node $\ell$ is selected as
 the only one that may emit $\prep{b}$ messages. The original liveness proof
 then proceeded by having $\ell$ emit $\prep{b}$ for some $b$ that is chosen to
 be large enough to achieve consensus as long as enough other nodes could
-respond in a timely fashion. More precisely, it was required that for each
-ballot $b$ and each node $a$ there was a ballot $b' \succ b$ having $\owner{b'}
-= a$. It was clear that there was no upper bound on suitable values for $b$.
+respond in a timely fashion. To ensure this was possible, it was required that
+for each ballot $b$ and each node $a$ there was a ballot $b' \succ b$ having
+$\owner{b'} = a$. It was clear that there was no upper bound on suitable values
+for $b$.
 
 However, here if $e(b) > e(i)$ then $\prop{i}{b}$ may never be sent and nor may
 $\prop{i}{b'}$ for any $b' \succ b$ since $e(\cdot)$ is nondecreasing.
