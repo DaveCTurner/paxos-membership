@@ -356,6 +356,7 @@
 \hyphenation{op-tical net-works semi-conduc-tor}
 
 \def\mytitle{Unlimited pipelining in dynamic Paxos}
+\include{inc}
 
 \begin{document}
 %
@@ -382,9 +383,7 @@
 Tracsis plc, 103 Clarendon Road, Leeds LS2 9DF, United Kingdom (email:
 d.turner@tracsis.com)
 }% <-this % stops a space
-\thanks{Unpublished draft version
-0000000000000000000000000000000000000000
-}%
+\thanks{Unpublished draft of \pubdate, version \gitid.}%
 %\thanks{Manuscript received April 19, 2005; revised August 26, 2015.}} TODO
 }
 
@@ -528,7 +527,8 @@ $\alpha$ as the system is running rather than having to choose it up-front, but
 needing such a limit at all seems inelegant\cite{reconfiguring-a-state-machine}
 when compared with Raft's approach.
 
-Here it is shown that Paxos can also support an unlimited-length pipeline by
+Here it is shown that the value of $\alpha$ can indeed be varied as the system
+is running, and that Paxos also supports an unlimited-length pipeline by
 allowing phase II to start using a new configuration without re-running phase
 I; this is shown to preserve consistency as long as the configuration change
 satisfies certain conditions as described in section
