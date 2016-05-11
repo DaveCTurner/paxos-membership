@@ -933,18 +933,17 @@ single step as in Dynamic Paxos: if the system is currently using configuration
 $Q_{e(i)}$ and an operator wishes to change to an unrelated configuration $Q'$
 (i.e.  $Q_{e(i)} \not\frown Q' \frown Q'$) then they can set $Q_{e(i)+2} = Q'$
 and pick an appropriate $Q_{e(i)+1}$ which satisfies that \[Q_{e(i)} \frown
-Q_{e(i) + 1} \frown Q_{e(i)+1} \frown Q_{e(i) + 2} \frown Q_{e(i) + 2}.\] For
-instance $Q_{e(i)+1}$ could be $\varnothing$ or could be the joint
-configuration of $Q_{e(i)}$ and $Q'$.  However, re-running phase I can only be
-delayed if the era increases by $1$ and in this situation the era increases by
-$2$, so the new phase I must be complete before any new phase II instances can
-be started.  As in Dynamic Paxos the operator chooses an $\alpha > 0$ and sets
-$e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i + \alpha$,
-effectively delaying the configuration change for $\alpha$ instances in the
-hope that this is long enough to have completed the new phase I. Unlike in
-Dynamic Paxos there is only a need to limit the pipeline length while a
-configuration change is in progress, and different changes may use different
-limits if required.
+Q_{e(i) + 1} \frown Q_{e(i)+1} \frown Q'.\] For instance $Q_{e(i)+1}$ could be
+$\varnothing$ or could be the joint configuration of $Q_{e(i)}$ and $Q'$.
+However, re-running phase I can only be delayed if the era increases by $1$ and
+in this situation the era increases by $2$, so the new phase I must be complete
+before any new phase II instances can be started.  As in Dynamic Paxos the
+operator chooses an $\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and $e(j) =
+e(i)$ for $i < j \le i + \alpha$, effectively delaying the configuration change
+for $\alpha$ instances in the hope that this is long enough to have completed
+the new phase I. Unlike in Dynamic Paxos there is only a need to limit the
+pipeline length while a configuration change is in progress, and different
+changes may use different limits if required.
 
 \subsection{Preserving invariants}
 
