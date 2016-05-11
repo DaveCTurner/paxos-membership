@@ -619,15 +619,26 @@ can prove that $\neg\prop{}{b}$ and therefore freely modify $v(b)$.
 
 It is also important for liveness that the implementation of $v$ is resilient
 to the same failure modes as the rest of the system. Since the value of each
-ballot $b$ has at most one writer, $\owner{b}$, it is possible to think of
-$v$ as an insert-only set of pairs ${\{ \langle b, v(b) \rangle \mid \prop{}{b}
-\}}$ which is an example of a convergent replicated data type\cite{crdts}.
-From this viewpoint, including values in all messages ensures convergence
-occurs as quickly as possible, and replicating this set across all ${2f+1}$
-nodes ensures $v$ may be resilient to as many as $2f$ failures. Cheap Paxos
-improves on this by replicating $v$ itself across just the ${f+1}$ primary
-processors, with the $f$ auxiliary processors storing just the hashes of values
-to ensure integrity.
+ballot $b$ has at most one writer, $\owner{b}$, it is possible to think of $v$
+as an insert-only set of pairs ${\{ \langle b, v(b) \rangle \mid \prop{}{b}
+\}}$ which is an example of a convergent replicated data type\cite{crdts} and
+can therefore be implemented robustly in a distributed system. Indeed the
+original presentation can be seen as containing such an implementation, where
+the inclusion of values in all messages ensures convergence occurs as quickly
+as possible, and replicating this set across all ${2f+1}$ nodes ensures $v$
+itself may be resilient to as many as $2f$ failures. Cheap Paxos is cheaper
+partly because it replicates $v$ across just the ${f+1}$ primary processors,
+with the $f$ auxiliary processors storing just the hashes of values to ensure
+integrity.
+
+It is also worth comparing this approach to that of Vertical
+Paxos\footnote{TODO cite} which takes care to ensure that the system state is
+completely transferred between nodes before they start to participate fully in
+the cluster, with certain optimisations which are needed since this state
+transfer could be an expensive and time-consuming operation. However if the
+implementation of $v$ is separated out from the consensus algorithm itself then
+the amount of data that must be transferred between nodes becomes small enough
+that it needs no such special treatment.
 
 \subsection{Per-phase quorums}\label{per-phase-quorums}
 
@@ -652,7 +663,7 @@ property is stronger than needed and other presentations\footnote{TODO cite}
 relax it in various ways. The proof of theorem \ref{synod-safety-theorem} in
 appendix \ref{synod-safety} is a generalisation of the original one to
 demonstrate that consistency still holds even under the weaker assumption that
-$\QI{}(b_1) \frown \QII(b_2)$ when $\prop{}{b_1}$, $\chosen{}{b_2}$ and $b_1
+$\QI{}(b_1) \frown \QII{}(b_2)$ when $\prop{}{b_1}$, $\chosen{}{b_2}$ and $b_1
 \succ b_2$.
 
 \section{The Paxos algorithm}
@@ -805,7 +816,8 @@ normally accepted without undue delay by all other nodes.
 When in this state, if an operator wishes to change the cluster configuration
 to $\langle \Qnew{I}, \Qnew{II} \rangle$ where $\QI{e(b)} \frown \Qnew{II}
 \frown \Qnew{I}$ they must first arrange to append $\langle \Qnew{I}, \Qnew{II}
-\rangle$ to the sequence of configurations, setting $\langle \QI{e(b)+1},
+\rangle$ to the sequence of configurations\footnote{TODO have changed the
+sequence of configurations - bring this in line}, setting $\langle \QI{e(b)+1},
 \QII{e(b)+1} \rangle = \langle \Qnew{I}, \Qnew{II} \rangle$ and $e_\mathrm{max}
 = e(b) + 1$, then pick a future instance $i_c > i_\mathrm{max}$ at which the
 change should take effect and append values to the sequence of eras to set
@@ -861,28 +873,24 @@ arranging for each quorum in $Q_e$ to comprise a majority subset of some finite
 set of nodes.  If $Q_e$ and $Q_{e+1}$ are nonempty then intuitively the
 condition that $Q_e \frown Q_{e+1}$ ensures that the configuration change from
 $Q_e$ to $Q_{e+1}$ is sufficiently small that phase I need not re-run when
-moving from era $e-1$ to era $e$.  For instance, if $Q_e \frown Q_e$ then the
-trivial configuration change, having $Q_{e+1} = Q_e$, certainly satisfies $Q_e
-\frown Q_{e+1} \frown Q_{e+1}$ and is therefore sufficiently small.
-%
-For a less trivial example, let \[\maj{s} = \{ q \subseteq s \mid 2 |q| > |s|
-\}\] comprise all majority subsets of a finite set $s \subseteq \mathbb A$, and
-note that $\maj{s} \frown \maj{s}$ for all such $s$.  If $\mathbb A = \{ a_1,
-a_2, \ldots \}$ then let $s_n = \{a_1, \ldots, a_n\}$ and observe that
-${\maj{s_3} \frown \maj{s_4}}$ and ${\maj{s_4} \frown \maj{s_5}}$ but
-${\maj{s_3} \not\frown \maj{s_5}}$ because $\{a_1, a_2\} \in \maj{s_3}$ and
-$\{a_3, a_4, a_5\} \in \maj{s_5}$ do not intersect. Thus the majority subsets
-of $s_3$ and $s_4$ are sufficiently similar to be consecutive configurations,
-but those of $s_3$ and $s_5$ are not. In general if quorums are defined to be
-the majority subsets of a finite set of nodes then adding or removing a single
-node is always a sufficiently small reconfiguration.  More generally, let a
-\textit{weight} function be a function $w : \mathbb A \to \mathbb N$ that only
-takes finitely many nonzero values. This can be used to define a configuration
-$M(w)$ by \textit{weighted majority}: \[M(w) = \left\{ q \;\middle|\; \sum_{a
-\in q} 2 w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] If $w(a) = 0$ for all
-$a$ then $w$ is said to be \textit{weightless} and $M(w) = \varnothing$.
-Corollary \ref{weights-equal} shows that $M(w) \frown M(w)$ for any weight
-function $w$.
+moving from era $e-1$ to era $e$. For instance, let \[\maj{s} = \{ q \subseteq
+s \mid 2 |q| > |s| \}\] comprise all majority subsets of a finite set $s
+\subseteq \mathbb A$, and note that $\maj{s} \frown \maj{s}$ for all such $s$.
+If $\mathbb A = \{ a_1, a_2, \ldots \}$ then let $s_n = \{a_1, \ldots, a_n\}$
+and observe that ${\maj{s_3} \frown \maj{s_4}}$ and ${\maj{s_4} \frown
+\maj{s_5}}$ but ${\maj{s_3} \not\frown \maj{s_5}}$ because $\{a_1, a_2\} \in
+\maj{s_3}$ and $\{a_3, a_4, a_5\} \in \maj{s_5}$ do not intersect. Thus the
+majority subsets of $s_3$ and $s_4$ are sufficiently similar to be consecutive
+configurations, but those of $s_3$ and $s_5$ are not. In general if quorums are
+defined to be the majority subsets of a finite set of nodes then adding or
+removing a single node is always a sufficiently small reconfiguration.  More
+generally, let a \textit{weight} function be a function $w : \mathbb A \to
+\mathbb N$ that only takes finitely many nonzero values. This can be used to
+define a configuration $M(w)$ by \textit{weighted majority}: \[M(w) = \left\{ q
+\;\middle|\; \sum_{a \in q} 2 w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] If
+$w(a) = 0$ for all $a$ then $w$ is said to be \textit{weightless} and $M(w) =
+\varnothing$.  Corollary \ref{weights-equal} shows that $M(w) \frown M(w)$ for
+any weight function $w$.
 %
 A sequence $w_0, w_1, \ldots$ of weight functions can be used to define the
 sequence of configurations $\langle M(w_0), M(w_0) \rangle, \langle M(w_1),
@@ -904,10 +912,12 @@ holds.
 \end{enumerate}
 %
 Theorem \ref{weights-nearly-equal} is reminiscent of the amoeba analogy in
-\cite{cheap-paxos}. Raft's configurations are effectively weight functions
+\cite{cheap-paxos}.
+
+Raft's configurations are effectively weight functions
 which take values in $\{0,1\}$ and therefore the reconfigurations permitted by
 the Raft protocol are a special case of those described here.
-
+%
 Early versions of Raft supported more general reconfigurations using a
 technique known as \textit{joint configurations}. To change from configuration
 $Q_{e(i)}$ to an unrelated configuration $Q'$ it is possible to set $Q_{e(i)+2}
@@ -946,6 +956,10 @@ pipeline length while a configuration change is in progress, and different
 changes may use different limits if required.
 
 \subsection{Preserving invariants}
+
+TODO\footnote{TODO just say that the invariants in the appendix look familiar
+except for conditions on the eras of instances and ballots, and note that the
+invariants related to promises also restrict the acceptances.}
 
 In order to ensure consistency, a running Paxos cluster must satisfy all the
 invariants listed in appendix \ref{paxos-invariants} at all times. If no
