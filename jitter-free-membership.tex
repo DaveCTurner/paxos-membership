@@ -691,6 +691,13 @@ giving a value to each ballot, and theorem \ref{paxos-safety-theorem} shows
 that whenever $\chosen{i}{b}$ and $\chosen{i}{b'}$ it follows that $v_i(b) =
 v_i(b')$.
 
+The invariants listed in appendix \ref{paxos-invariants} are roughly the same
+as for many other presentations of Paxos with the addition of constraints on
+the eras of instances and ballots as discussed above. Note that invariants
+\ref{paxos-mprom}, \ref{paxos-fprom} and \ref{paxos-bprom} limit the
+acceptances that can be sent as well as the promises, so there is no need to
+define other invariants concerning the sending of acceptances.
+
 \subsection{Configuration changes}\label{configuration-changes}
 
 A fixed cluster configuration is a pair $\langle \QI{}, \QII{} \rangle$ of sets
@@ -950,267 +957,39 @@ consecutive configurations.
 Early versions of Raft supported more general reconfigurations using a
 technique known as \textit{joint configurations}. To change from configuration
 $Q_{e}$ to an unrelated configuration $Q'$ it is possible to set $Q_{e+2} = Q'$
-and in the interim set $Q_{e+1}$ to be the \textit{joint configuration} of
-$Q_{e}$ and $Q'$: \[Q_{e+1} = \{ q \cup q' \mid q \in Q_{e}, q' \in Q' \}.\]
-Intuitively, while this interim configuration is in use all decisions must be
-agreed by quorums of both the old and new configuration. Certainly this
-satisfies that \[Q_{e} \frown Q_{e + 1} \frown Q_{e+1} \frown Q_{e + 2} \frown
-Q_{e + 2}\] as required.
+and set $Q_{e+1}$ to be the \textit{joint configuration} of $Q_{e}$ and $Q'$:
+\[Q_{e+1} = \{ q \cup q' \mid q \in Q_{e}, q' \in Q' \}.\] Intuitively, while
+this joint configuration is in use all decisions must be agreed by quorums of
+both the old and new configuration. Certainly this satisfies that \[Q_{e}
+\frown Q_{e + 1} \frown Q_{e+1} \frown Q_{e + 2} \frown Q_{e + 2}\] as
+required.
 
-\pagebreak
-
-
-the
-majority subsets of $s_3$ and $s_4$ are sufficiently similar to be consecutive
-configurations, but those of $s_3$ and $s_5$ are not.
-
-If $w(a) = 0$ for all
-$a$ then $w$ is said to be \textit{weightless} and $M(w) = \varnothing$.
-
-
-Here it is demonstrated that the configuration changes supported by this
-technique generalise those of Raft and of Dynamic Paxos, and can also be used
-to stop a running cluster.
-
-
-  If $Q_e$ and $Q_{e+1}$ are nonempty then intuitively the
-condition that $Q_e \frown Q_{e+1}$ ensures that the configuration change from
-$Q_e$ to $Q_{e+1}$ is sufficiently small that phase I need not re-run when
-moving from era $e-1$ to era $e$. For instance, let \[\maj{s} = \{ q \subseteq
-s \mid 2 |q| > |s| \}\] comprise all majority subsets of a finite set $s
-\subseteq \mathbb A$, and note that $\maj{s} \frown \maj{s}$ for all such $s$.
-If $\mathbb A = \{ a_1, a_2, \ldots \}$ then let $s_n = \{a_1, \ldots, a_n\}$
-and observe that ${\maj{s_3} \frown \maj{s_4}}$ and ${\maj{s_4} \frown
-\maj{s_5}}$ but ${\maj{s_3} \not\frown \maj{s_5}}$ because $\{a_1, a_2\} \in
-\maj{s_3}$ and $\{a_3, a_4, a_5\} \in \maj{s_5}$ do not intersect. Thus the
-majority subsets of $s_3$ and $s_4$ are sufficiently similar to be consecutive
-configurations, but those of $s_3$ and $s_5$ are not. In general if quorums are
-defined to be the majority subsets of a finite set of nodes then adding or
-removing a single node is always a sufficiently small reconfiguration.  %
-A sequence $w_0, w_1, \ldots$ of weight functions can be used to define the
-sequence of configurations $\langle M(w_0), M(w_0) \rangle, \langle M(w_1),
-M(w_1) \rangle, \ldots$ used by a cluster, which must satisfy $M(w_e) \frown
-M(w_{e+1})$ for all $e$.  There are three simple ways to ensure this:
-
-\begin{enumerate}
-
-\item If $w_e$ and $w_{e+1}$ differ by a constant factor, in the sense that
-there are positive integers $m$ and $n$ such that $m w_e(a) = n w_{e+1}(a)$ for
-all $a$, then clearly ${M(w_e) = M(w_{e+1})}$ and hence the property holds.
-
-\item By theorem \ref{weights-nearly-equal} if $w_e$ and $w_{e+1}$ are equal
-except perhaps at a single node at which they differ by $1$ then the property
-holds.
-
-\item Finally, if $w_{e+1}$ is weightless then the property holds vacuously.
-
-\end{enumerate}
-%
-
-Raft's configurations are effectively weight functions
-which take values in $\{0,1\}$ and therefore the reconfigurations permitted by
-the Raft protocol are a special case of those described here.
-%
-Early versions of Raft supported more general reconfigurations using a
-technique known as \textit{joint configurations}. To change from configuration
-$Q_{e(i)}$ to an unrelated configuration $Q'$ it is possible to set $Q_{e(i)+2}
-= Q'$ and in the interim set $Q_{e(i)+1}$ to be the \textit{joint
-configuration} of $Q_{e(i)}$ and $Q'$: \[Q_{e(i)+1} = \{ q \cup q' \mid q \in
-Q_{e(i)}, q' \in Q' \}.\] Intuitively, while this interim configuration is in
-use all decisions must be agreed by quorums of both the old and new
-configuration. Certainly this satisfies that \[Q_{e(i)} \frown Q_{e(i) + 1}
-\frown Q_{e(i)+1} \frown Q_{e(i) + 2} \frown Q_{e(i) + 2}\] as required to
-preserve consistency.
-
-The intuition that $Q_e \frown Q_{e+1}$ captures that $Q_e$ and $Q_{e+1}$ are
-similar breaks down if either is empty because $\varnothing \frown Q$ vacuously
-for all configurations $Q$. Clearly if there is an instance $j$ such that
-$Q_{e(j)} = \varnothing$ then no value can ever be chosen for $j$ so this
-makes it possible to stop\footnote{TODO cite} a Paxos cluster at a particular
-instance.
+If $w(a) = 0$ for all $a$ then $w$ is said to be \textit{weightless} and $M(w)
+= \varnothing$. Clearly if there is an instance $i$ such that $Q_{e(i)} =
+\varnothing$ then no value can ever be chosen for $i$. On the other hand $Q
+\frown \varnothing$ for all $Q$ so changing to a weightless configuration is
+always permitted, and this has the effect of stopping \footnote{TODO cite} a
+Paxos cluster at a particular instance.
 
 There is no requirement for the eras of consecutive instances to differ by at
 most one: an era may be skipped at instance $i$ by letting $e(i) = e(i-1) + 2$.
 This recovers the ability to perform arbitrary configuration changes in a
 single step as in Dynamic Paxos: if the system is currently using configuration
-$Q_{e(i)}$ and an operator wishes to change to an unrelated configuration $Q'$
-(i.e.  $Q_{e(i)} \not\frown Q' \frown Q'$) then they can set $Q_{e(i)+2} = Q'$
-and pick an appropriate $Q_{e(i)+1}$ which satisfies that \[Q_{e(i)} \frown
-Q_{e(i) + 1} \frown Q_{e(i)+1} \frown Q'.\] For instance $Q_{e(i)+1}$ could be
-$\varnothing$ or could be the joint configuration of $Q_{e(i)}$ and $Q'$.
-However, re-running phase I can only be delayed if the era increases by $1$ and
-in this situation the era increases by $2$, so the new phase I must be complete
-before any new phase II instances can be started.  As in Dynamic Paxos the
-operator chooses an $\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and $e(j) =
-e(i)$ for $i < j \le i + \alpha$, effectively delaying the configuration change
-for $\alpha$ instances in the hope that this is long enough to have completed
-the new phase I. Unlike in Dynamic Paxos there is only a need to limit the
-pipeline length while a configuration change is in progress, and different
-changes may use different limits if required.
+$Q_{e}$ and an operator wishes to change to an unrelated configuration $Q'$
+(i.e.  $Q_{e} \not\frown Q' \frown Q'$) then they can set $Q_{e+2} = Q'$ and
+pick an appropriate $Q_{e+1}$ which satisfies that \[Q_{e} \frown Q_{e + 1}
+\frown Q_{e+1} \frown Q'.\] For instance $Q_{e+1}$ could be $\varnothing$ or
+could be the joint configuration of $Q_{e}$ and $Q'$.  However, re-running
+phase I can only be delayed if the era increases by $1$ and in this situation
+the era increases by $2$, so the new phase I must be complete before any new
+phase II instances can be started.  As in Dynamic Paxos the operator chooses an
+$\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i
++ \alpha$, effectively delaying the configuration change for $\alpha$ instances
+in the hope that this is long enough to have completed the new phase I. Unlike
+in Dynamic Paxos there is only a need to limit the pipeline length while a
+configuration change is in progress, and different changes may use different
+limits if required.
 
-\subsection{Preserving invariants}
-
-TODO\footnote{TODO just say that the invariants in the appendix look familiar
-except for conditions on the eras of instances and ballots, and note that the
-invariants related to promises also restrict the acceptances.}
-
-In order to ensure consistency, a running Paxos cluster must satisfy all the
-invariants listed in appendix \ref{paxos-invariants} at all times. If no
-messages have been sent then the invariants all certainly hold, so as long as
-each message that each node sends preserves them then they will always hold by
-induction. Notice that all the invariants limit which messages may be sent but
-do not insist that any messages are sent at all: this section ignores liveness
-and focuses only on safety.
-
-\subsubsection{Prepare messages} Since $\prep{b}$ is not mentioned in appendix
-\ref{paxos-invariants} any node may send a $\prep{b}$ message without affecting
-consistency.
-
-\subsubsection{Promises and acceptances} The node $a$ may emit promises
-$\fprom{i}{a}{b}$ etc. and acceptances $\acc{i}{a}{b}$ where $e(b) \le e(i)$
-and they do not conflict with previously-sent messages. In more detail:
-\begin{itemize} \item It may emit $\mprom{i}{a}{b}$ if it has previously sent
-no $\acc{i'}{a}{b'}$ for any $b'$ and any $i' \ge i$. \item It may emit
-$\fprom{i}{a}{b}$ if it has previously sent no $\acc{i}{a}{b'}$ for any $b'$.
-\item It may emit $\bprom{i}{a}{b}{b'}$ if $\acc{i}{a}{b'}$, $b' \prec b$ and
-$b'$ is the greatest such ballot. \item It may emit $\acc{i}{a}{b}$ as long as
-$\prop{i}{b}$ and it does not violate any previously-made promises, in the
-sense that whenever \begin{itemize} \item $\mprom{i'}{a}{b'}$ for any $i' \le
-i$, or \item $\fprom{i}{a}{b'}$, or \item $\bprom{i}{a}{b'}{b''}$\end{itemize}
-it is the case that $b' \preceq b$. \end{itemize}
-
-If $i > i_\mathrm{max}$ then $e(i)$ is not known. In this case in order to
-ensure $e(b) \le e(i)$ it is sufficient to check that $e(b) \le
-e(i_\mathrm{max})$ because $e$ is nondecreasing.
-
-\subsubsection{Proposing values} From the discussion in \ref{value-function}
-above the value $v_i(b)$ of ballot $b$ in instance $i$ may be changed without
-affecting any invariants as long as $\neg\prop{b}{i}$. So as to ensure this,
-each ballot $b$ has a unique node $\owner{b}$ which is the only one that may
-send out $\prop{b}{i}$ and which is therefore responsible for the value
-$v_i(b)$ for each $i$. If $\owner{b}$ has already sent $\prop{b}{i}$ then it
-may not change the value $v_i(b)$ but if desired it may send out $\prop{b}{i}$
-again, since messages may be duplicated. On the other hand if it has not sent
-out $\prop{b}{i}$ then it may change $v_i(b)$ freely. Once it has received
-promises for $b$ in instance $i$ from every node in a quorum $q \in Q_{e(b)}$
-it may send out $\prop{b}{i}$. If any of the promises from nodes in $q$ is of
-the form $\bprom{i}{a}{b}{b'}$ then it must first set \[v_i(b) =
-v_i\bigl(\mathrm{max} \{b' \mid \bprom{i}{a}{b}{b'} \textrm{ received}, a \in q
-\}\bigr).\]
-
-\subsubsection{Choosing values} Any node may deduce $\chosen{b}{i}$ if
-\begin{itemize} \item $e(i) \le e(b) + 1$, \item for each $j < i$
-there is a $b'$ with $\chosen{j}{b'}$, and \item there is a quorum $q \in
-Q_{e(i)}$ such that $\acc{i}{a}{b}$ has been received from every $a \in q$.
-\end{itemize}
-
-\section{Discussion}\label{discussion}
-
-Typically the nodes in a system must be taken offline for maintenance from time
-to time. Since Paxos is designed to be resilient to failures of nodes, a simple
-approach is to treat offline nodes just as if they have failed. By taking each
-node offline in turn, the system can remain available even while maintenance is
-being performed.
-
-However, a na\"ive approach to this puts the system at risk during the upgrade:
-in a cluster of three equally-weighted nodes if one of the nodes is taken
-offline then the failure of another node would render the system unavailable.
-More generally, if the system is to be resilient to $\le f$ failures then a
-node $a_{\textrm{maint}}$ may be safely taken offline if all other nodes have
-weight $< \sum_{a \in \mathbb A} \frac{w(a)}{2f} - w(a_{\textrm{maint}})$. For
-example, if $f = 1$ and all nodes have equal weights then the smallest cluster
-in which a node may be safely taken offline for maintenance has five nodes.
-Assuming that the cost of operating a cluster is proportional to the number of
-nodes, this represents a significant overhead simply to cover relatively rare
-periods of maintenance: if maintenance is ignored then only three nodes are
-required.
-
-The required number of nodes can be reduced using a configuration change as
-follows. A cluster of four equally-weighted nodes can only tolerate a single
-failure, but by reducing the weight of node $a_{\textrm{maint}}$ to zero before
-taking it offline, the remaining three nodes can tolerate the loss of another
-node. However, a cluster of four equally-weighted nodes has no nodes with a
-casting vote, so instead two of the nodes must have weight $1$ and the other
-two have weight $2$, and then the sequence of weights used for this maintenance
-procedure is as follows, with maintenance on $a_{\textrm{maint}}$ occurring
-during era ${e+1}$:
-\[\begin{array}{rcccc}
-\textrm{node}&a_{\textrm{maint}}&a_1&a_2&a_3 \\
-w_e&1&1&2&2\\
-w_{e+1}&0&1&2&2\\
-w_{e+2}&1&1&2&2\\
-\end{array}\]
-Since each step changes the weight of a single node by $1$ this sequence
-satisfies $M(w_e) \frown M(w_{e+1}) \frown M(w_{e+2})$, and $a_3$ has a casting
-vote in each configuration, so this sequence is jitter-free.  If $a_3$ required
-maintenance then its casting vote could be moved to $a_1$ first as follows:
-\[\begin{array}{rcccc}
-\textrm{node}&a_0&a_1&a_2&a_3 \\
-w_e&1&1&2&2\\
-w_{e+1}&1&2&2&2\\
-w_{e+2}&1&2&2&1\\
-\end{array}\]
-Here $a_2$ has a casting vote throughout so this is also jitter-free.
-
-In many situations it is feasible simply to replace a node $a_{\textrm{old}}$
-with a new node $a_{\textrm{new}}$ rather than to maintain it in-situ. This
-technique is known as a \textit{migration}.  If $a_{\textrm{new}}$ is brought
-online before $a_{\textrm{old}}$ is taken offline then the system is not put at
-risk, requiring four nodes to perform maintenance but only three in normal
-operation:
-\[\begin{array}{rcccc}
-\textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
-w_e&1&0&2&2\\
-w_{e+1}&1&1&2&2\\
-w_{e+2}&0&1&2&2\\
-\end{array}\]
-Again, each step changes the weight of a single node by $1$ so this sequence
-satisfies $M(w_e) \frown M(w_{e+1}) \frown M(w_{e+2})$ and $a_2$ has a casting
-vote throughout so this sequence is jitter-free. As above, the casting vote can
-be moved from $a_2$ to $a_0$ using the following sequence:
-\[\begin{array}{rcccc}
-\textrm{node}&a_0&a_1&a_2 \\
-w_e&1&2&2\\
-w_{e+1}&2&2&2\\
-w_{e+2}&2&2&1\\
-\end{array}\]
-It may be more usual to run a cluster of three nodes with equal weights as in
-$w_{e+1}$ above. If the weights are all equal to $k \ne 2$, recall that
-changing the weights of all nodes by a constant factor does not change the
-cluster configuration, so multiplying by $\frac{2}{k}$ has the desired effect:
-\[\begin{array}{rcccc}
-\textrm{node}&a_0&a_1&a_2 \\
-w_e&k&k&k\\
-w_{e+1}&2&2&2\\
-\end{array}\]
-
-Assuming that node failures are independent, the probability of a cluster-wide
-failure can appear to be extremely small. However, in a real-world system node
-failures are not always independent: certain sets of nodes may share critical
-infrastructure such as power or network connectivity, and a failure of this
-infrastructure would cause a simultaneous failure of all the dependent nodes.
-To control this sitation, the cluster may be divided into \textit{zones}, where
-the nodes within a single zone may share infrastructure but failures in
-different zones can be considered to be independent. In a traditional data
-centre environment, individual racks are often assumed to be independent, so
-each rack could be a separate zone. If geographical redundancy is considered
-then the cluster will be separated across multiple data centres, each of which
-is an independent zone, and many cloud environments also divide their services
-into zones in this way.  For the system to be resilient to simultaneous
-zone-wide failures of $f_z > 0$ zones, it must have nodes running in at least
-$2f_z + 1 \ge 3$ zones.
-
-The replacement process described above requires a minimal three zones
-throughout as it is safe to have $a_\mathrm{old}$ and $a_\mathrm{new}$ in the
-same zone. This is important as in many operating environments it may be too
-expensive or complicated to arrange for four independent zones\footnote{For
-instance, at time of writing, only one Amazon Web Services region
-(\texttt{us-east-1}) has four independent zones, whereas four of them have
-three: \texttt{ap-southeast-2}, \texttt{eu-west-1}, \texttt{sa-east-1} and
-\texttt{us-west-2}. Similarly, only one Google Cloud Platform region
-(\texttt{us-central1}) has four zones and all the others have three zones.},
-particularly if the fourth zone is only required to ensure consistency in
-relatively rare periods of maintenance.
 
 
 
