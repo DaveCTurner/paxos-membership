@@ -913,8 +913,9 @@ w_{e+2}&0&1&1&1\\
 %
 However to be resilient to infrastructure failures this requires all four nodes
 to rely on independent infrastructure, because it can only handle a single node
-failure throughout. It also has no node with a casting voite in era $e+1$. On the
-other hand the following sequence requires only three separate sets of infrastructure:
+failure throughout. It also has no node with a casting voite in era $e+1$. On
+the other hand the following sequence requires only three separate sets of
+infrastructure and both $a_1$ and $a_2$ have casting votes throughout:
 \[\begin{array}{rcccc}
 %
 \textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
@@ -931,7 +932,32 @@ w_{e+4}&0&2&2&2\\
 %
 \end{array}\]
 %
+This is important as in many operating environments it may be too expensive or
+complicated to arrange for four independent infrastructures\footnote{For
+instance, at time of writing, only one Amazon Web Services region
+(\texttt{us-east-1}) has four independent zones, whereas four of them have
+three: \texttt{ap-southeast-2}, \texttt{eu-west-1}, \texttt{sa-east-1} and
+\texttt{us-west-2}. Similarly, only one Google Cloud Platform region
+(\texttt{us-central1}) has four zones and all the others have three zones.}
+particularly if the fourth is only required to ensure consistency in relatively
+rare periods of maintenance.
 
+Notice also that if $w$ and $w'$ differ by a constant factor, in the sense that
+there are positive integers $k$ and $k'$ such that $k w(a) = k' w'(a)$ for all
+$a$, then clearly ${M(w) = M(w')}$ and hence $w$ and $w'$ can be used to define
+consecutive configurations.
+
+Early versions of Raft supported more general reconfigurations using a
+technique known as \textit{joint configurations}. To change from configuration
+$Q_{e}$ to an unrelated configuration $Q'$ it is possible to set $Q_{e+2} = Q'$
+and in the interim set $Q_{e+1}$ to be the \textit{joint configuration} of
+$Q_{e}$ and $Q'$: \[Q_{e+1} = \{ q \cup q' \mid q \in Q_{e}, q' \in Q' \}.\]
+Intuitively, while this interim configuration is in use all decisions must be
+agreed by quorums of both the old and new configuration. Certainly this
+satisfies that \[Q_{e} \frown Q_{e + 1} \frown Q_{e+1} \frown Q_{e + 2} \frown
+Q_{e + 2}\] as required.
+
+\pagebreak
 
 
 the
