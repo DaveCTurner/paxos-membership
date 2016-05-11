@@ -627,8 +627,7 @@ occurs as quickly as possible, and replicating this set across all ${2f+1}$
 nodes ensures $v$ may be resilient to as many as $2f$ failures. Cheap Paxos
 improves on this by replicating $v$ itself across just the ${f+1}$ primary
 processors, with the $f$ auxiliary processors storing just the hashes of values
-to ensure integrity.  In other situations even weaker liveness properties may
-be acceptable, which could allow for further optimisations.
+to ensure integrity.
 
 \subsection{Per-phase quorums}\label{per-phase-quorums}
 
@@ -683,15 +682,18 @@ v_i(b')$.
 
 \subsection{Configuration changes}\label{configuration-changes}
 
-Tracking changes to the cluster configuration is performed using a sequence
-$\langle \QI{0}, \QII{0} \rangle, \langle \QI{1}, \QII{1} \rangle, \ldots$ of
-pairs of sets of quorums satisfying $\QI{e} \frown \QII{e}$ and $\QI{e} \frown
-\QII{e+1}$ for all $e$. The integer $e$ is known as the \textit{era} of a
-configuration. Intuitively the cluster is ``in era $e$'' for an extended period
-when the configuration is constant and instances are chosen using $\langle
-\QI{e}, \QII{e}\rangle$ (i.e. using quorums from $\QI{e}$ and $\QII{e}$ for
-phase I and phase II respectively). While a change from era $e$ to $e+1$ is in
-progress some instances may use the interim configuration $\langle \QI{e},
+A fixed cluster configuration is a pair $\langle \QI{}, \QII{} \rangle$ of sets
+of quorums satisfying $\QI{} \frown \QII{}$, where $\QI{}$ and $\QII{}$ are
+respectively the sets of phase-I and phase-II quorums in use.  Changes to the
+cluster configuration are modelled by a sequence of configurations $ \langle
+\QI{0}, \QII{0} \rangle, \langle \QI{0}, \QII{1} \rangle, \langle \QI{1},
+\QII{1} \rangle, \langle \QI{1}, \QII{2} \rangle, \ldots$ or equivalently
+sequences of sets of quorums $\QI{0}, \QI{1}, \ldots$ and $\QII{0}, \QII{1},
+\ldots$ satisfying $\QI{e} \frown \QII{e}$ and $\QI{e} \frown \QII{e+1}$ for
+all $e$.  The integer subscript is called the \textit{era} of a configuration.
+Intuitively the cluster is ``in era $e$'' while instances are being chosen
+using $\langle \QI{e}, \QII{e}\rangle$. While a change from era $e$ to $e+1$ is
+in progress some instances may use the interim configuration $\langle \QI{e},
 \QII{e+1} \rangle$ and once the change to era $e+1$ is complete instances will
 use $\langle \QI{e+1}, \QII{e+1} \rangle$. Since $\QII{e} \frown \QI{e} \frown
 \QII{e+1} \frown \QI{e+1}$ it follows that consistency is preserved throughout
@@ -712,12 +714,6 @@ $b$ in instance $i$ from a quorum in $\QI{e(b)}$. A node may decide
 $\chosen{i}{b}$ only if ${e(i) \le e(b)+1}$ and it has received $\acc{i}{a}{b}$
 from a quorum in $\QII{e(i)}$.
 
-Notice that the requirement for $e(\cdot)$ to be nondecreasing means that
-ballot numbers cannot be simple integers without limiting how many ballots may
-occur in each era. Instead one could, for example, let $\mathbb B = \mathbb N
-\times \mathbb N \times \mathbb A$ with the lexicographic order, where
-$e(\langle e, n, a\rangle) = e$ and $\owner{\langle e, n, a \rangle} = a$.
-
 \subsection{Dynamic configuration changes}
 
 As in Dynamic Paxos, the configurations $\langle \QI{0}, \QII{0} \rangle,
@@ -729,26 +725,70 @@ of instances are tracked by a state machine whose state is the finite
 nondecreasing sequence $e(0), \ldots, e(i_\mathrm{max})$.  Their transitions
 append one or more elements to these sequences, but do not change any existing
 elements, and the tracked sequences are always long enough to make progress: if
-$\chosen{i}{b}$ then they satisfy $i_\mathrm{max} > i+1$ and $e_\mathrm{max}
-\ge e(i_\mathrm{max})$ in the configuration-sequence state machine. Era numbers
+$\chosen{i}{b}$ then they satisfy $i_\mathrm{max} > i$ and $e_\mathrm{max} \ge
+e(i_\mathrm{max})$ in the configuration-sequence state machine. Era numbers
 $e(b)$ for ballots $b$ are fixed in advance and not chosen by Paxos.
 
-In order for a node to decide whether it can send out $\prop{i}{b}$ it must
-check whether it has received promises from a quorum of nodes $q \in
-\QI{e(b)}$, for which it needs to know $\QI{e(b)}$. This
-can be achieved by simply requiring nodes not to emit $\prep{b}$ messages for
-which $\QI{e(b)}$ is not known, i.e. where $e_\mathrm{max}
-< e(b)$. The node must also check that $e(b) \le e(i)$; if $e(i)$ is not known
-then $i_\mathrm{max} < i$, but $e$ is a nondecreasing function so
-$e(i_\mathrm{max}) \le e(i)$ and it is therefore sufficient to check that $e(b)
-\le e(i_\mathrm{max})$.
+\subsection{Liveness}
 
-Similarly, in order to decide if $\chosen{i}{b}$ a node must check whether it
-has received acceptances from a quorum of nodes $q \in \QII{e(i)}$
-and must therefore know the value of $\QII{e(i)}$. This will be known
-if the node has chosen the previous instance, because if $\chosen{i-1}{b'}$
-then $i < i_\mathrm{max}$ and hence ${e(i) \le e(i_\mathrm{max}) \le
-e_\mathrm{max}}$ as required.
+As with earlier presentations of Paxos\footnote{TODO cite Paxos Made Simple},
+here liveness can be guaranteed if a distinguished node $\ell$ is selected as
+the only one that may emit $\prep{b}$ messages. The original liveness proof
+then proceeded by having $\ell$ emit $\prep{b}$ for some $b$ that is chosen to
+be large enough to achieve consensus as long as enough other nodes could
+respond in a timely fashion. More precisely, it was required that for each
+ballot $b$ and each node $a$ there was a ballot $b' \succ b$ having $\owner{b'}
+= a$. It was clear that there was no upper bound on suitable values for $b$.
+
+However, here if $e(b) > e(i)$ then $\prop{i}{b}$ may never be sent and nor may
+$\prop{i}{b'}$ for any $b' \succ b$ since $e(\cdot)$ is nondecreasing.
+Therefore $\ell$ must be able to choose a sufficiently large ballot in a
+sufficiently small era. More precisely, this requires that for each ballot $b$,
+each era $e \ge e(b)$ and each node $a$ there must be a ballot $b' \succ b$
+having $e(b') = e$ and $\owner{b'} = a$. This means that ballot numbers cannot
+be simple integers, because this would imply that all but one era has only
+finitely many ballots.  Instead one could, for example, let $\mathbb B =
+\mathbb N \times \mathbb N \times \mathbb A$ with the lexicographic order,
+where $e(\langle e, n, a\rangle) = e$ and $\owner{\langle e, n, a \rangle} =
+a$.
+
+It is also necessary to limit the promises made to only those where $e(b) \le
+e(i)$: if this were not done then nodes could effectively promise to accept no
+ballots in the current era; as changes to the current era are themselves agreed
+by Paxos this would prevent any further progress from being made.
+
+With these two modifications the proof of liveness runs much as in the original
+presentation:
+
+\begin{theorem}[Liveness] Given that there is eventually a non-faulty
+distinguished node $\ell$ which is the only node that may emit messages of the
+form $\prep{b}$, and given that for every instance there is eventually at least
+one value to propose, eventually a value is chosen for every instance.
+\end{theorem}
+
+\begin{proof} The proof runs by induction over the instances, so suppose that
+$\chosen{j}{b_j}$ for all $j < i$ and show that eventually $\chosen{i}{b_i}$ as
+follows.
+
+Firstly note that $i \le i_{\mathrm{max}}$ since either $i = 0$ or
+$\chosen{i-1}{b_{i-1}}$ and hence that $e(i)$ is known to $\ell$. Recall also
+that $e(i_{\mathrm{max}}) \le e_{\mathrm{max}}$ and hence that $\QI{e(i)-1}$,
+$\QI{e(i)}$ and $\QII{e(i)}$ are known to $\ell$.
+
+The distinguished node $\ell$ first chooses a ballot $b_i$ having $e(b_i) \in
+\{ e(i) - 1, e(i) \}$ and $\owner{b_i} = \ell$ and such that enough nodes can
+emit $\acc{i}{a}{b_i}$ without breaking any promises. Such a $b_i$ exists as
+noted above.
+
+If $\ell$ has not yet received enough promises for $b_i$ at instance $i$ then
+it broadcasts $\prep{b_i}$ and waits to receive promises from a quorum of nodes
+in $\QI{e(b_i)}$.
+
+Then, if $\ell$ has not yet emitted $\prop{i}{b_i}$ then it it chooses one of
+the values for instance $i$ (which eventually exists), modifies $v_i(b_i)$ as
+appropriate, broadcasts $\prop{i}{b_i}$ and waits to receive acceptances from a
+quorum of nodes in $\QI{e(i)}$. When enough acceptances have been received, it
+may decide $\chosen{i}{b_i}$ as required. \end{proof}
 
 \subsection{Fully concurrent configuration changes}
 
@@ -763,18 +803,18 @@ normally accepted without undue delay by all other nodes.
 \def\Qnew#1{Q^\textrm{#1}_\textrm{new}}
 
 When in this state, if an operator wishes to change the cluster configuration
-to $\langle \Qnew{I}, \Qnew{II} \rangle$ where $\QII{e(b)} \frown \Qnew{I}
-\frown \Qnew{II}$ they must first arrange to append $\langle \Qnew{I},
-\Qnew{II} \rangle$ to the sequence of configurations, setting $\langle
-\QI{e(b)+1}, \QII{e(b)+1} \rangle = \langle \Qnew{I}, \Qnew{II} \rangle$ and
-$e_\mathrm{max} = e(b) + 1$, then pick a future instance $i_c > i_\mathrm{max}$
-at which the change should take effect and append values to the sequence of
-eras to set $e(i) = e(i_0)$ for $i_0 \le i < i_c$ and $e(i_c) = e(i_0) + 1$.
-Since $e(i_c) = e(i_0) + 1 \le e(b) + 1$, instance $i_c$ and any future
-instances with the same era may be chosen even though phase I has not yet run
-for a ballot in this era.  As long as $e(i_\mathrm{max})$ is not increased
-again, this means there is no limit on how many instances can be chosen without
-waiting for another phase I to run.
+to $\langle \Qnew{I}, \Qnew{II} \rangle$ where $\QI{e(b)} \frown \Qnew{II}
+\frown \Qnew{I}$ they must first arrange to append $\langle \Qnew{I}, \Qnew{II}
+\rangle$ to the sequence of configurations, setting $\langle \QI{e(b)+1},
+\QII{e(b)+1} \rangle = \langle \Qnew{I}, \Qnew{II} \rangle$ and $e_\mathrm{max}
+= e(b) + 1$, then pick a future instance $i_c > i_\mathrm{max}$ at which the
+change should take effect and append values to the sequence of eras to set
+$e(i) = e(i_0)$ for $i_0 \le i < i_c$ and $e(i_c) = e(i_0) + 1$.  Since $e(i_c)
+= e(i_0) + 1 \le e(b) + 1$, instance $i_c$ and any future instances with the
+same era may be chosen even though phase I has not yet run for a ballot in this
+era.  As long as $e(i_\mathrm{max})$ is not increased again, this means there
+is no limit on how many instances can be chosen without waiting for another
+phase I to run.
 
 At this point, the system is no longer in normal running as defined above
 because $e(b) = e_\mathrm{max} - 1$. In order to get back to normal running
@@ -901,7 +941,10 @@ $2$, so the new phase I must be complete before any new phase II instances can
 be started.  As in Dynamic Paxos the operator chooses an $\alpha > 0$ and sets
 $e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i + \alpha$,
 effectively delaying the configuration change for $\alpha$ instances in the
-hope that this is long enough to have completed the new phase I.
+hope that this is long enough to have completed the new phase I. Unlike in
+Dynamic Paxos there is only a need to limit the pipeline length while a
+configuration change is in progress, and different changes may use different
+limits if required.
 
 \subsection{Preserving invariants}
 
@@ -954,35 +997,6 @@ v_i\bigl(\mathrm{max} \{b' \mid \bprom{i}{a}{b}{b'} \textrm{ received}, a \in q
 there is a $b'$ with $\chosen{j}{b'}$, and \item there is a quorum $q \in
 Q_{e(i)}$ such that $\acc{i}{a}{b}$ has been received from every $a \in q$.
 \end{itemize}
-
-\pagebreak
-
-\subsection{Liveness}
-
-In order to show that this algorithm does not get stuck it is sufficient to
-show that for every instance $i$ every non-failed node eventually learns
-$\chosen{i}{\cdot}$, which proceeds by induction on the instances.  Therefore
-assume that every non-failed node has learned $\chosen{j}{\cdot}$ for all
-instances $j<i$ and show that they all eventually learn $\chosen{i}{\cdot}$ as
-follows.
-
-If the cluster has suffered at most $f$ failures then (via some unspecified
-external mechanism) it is eventually possible to choose a distinguished
-\textit{leader} node $\ell$ which can communicate reliably with the set $P \ni
-\ell$ of all non-failed nodes all of which ignore prepare messages sent by
-nodes other than $\ell$, and the system is quiescent in the sense that all sent
-messages (and their responses) have been delivered or dropped permanently.
-Additionally, there are quorums $q^\textrm{I} \in \QI{e(i)}$ and
-$q^\textrm{II} \in \QII{e(i)}$ having $q^\textrm{I} \cup
-q^\textrm{II} \subseteq P$.
-
-The leader must first choose a ballot $b$ having $e(b) = e(i)$ and $\owner{b} =
-\ell$ which is sufficiently large that every node in $P$ can emit
-$\acc{i}{a}{b}$ and a promise for $b$ and also $\acc{i}{a}{b}$. Notice that if
-$\fprom{i}{a}{b}$ or $\bprom{i}{a}{b}{b'}$ or $\mprom{j}{a}{b}$ for some $j \le
-i$ then $e(b) \le e(i)$\footnote{TODO why?} so such a $b$ exists.
-
-It emits $\prep{b}$ and receives promises from all nodes in $P$ in response.
 
 \section{Discussion}\label{discussion}
 
@@ -1423,8 +1437,8 @@ where $w' = w$.  \end{proof}
 % use section* for acknowledgment
 \section*{Acknowledgment}
 
-The author would like to thank Dahlia Malkhi and Leander Nikolaus Jehl for
-their advice and comments on earlier drafts of this paper.
+The author would like to thank Leslie Lamport, Dahlia Malkhi and Leander
+Nikolaus Jehl for their advice and comments on earlier drafts of this paper.
 
 
 
