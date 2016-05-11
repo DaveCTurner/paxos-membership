@@ -355,6 +355,7 @@
 % correct bad hyphenation here
 \hyphenation{op-tical net-works semi-conduc-tor}
 
+\def\mytitle{Unlimited pipelining in dynamic Paxos}
 
 \begin{document}
 %
@@ -364,7 +365,7 @@
 % not capitalized unless they are the first or last word of the title.
 % Linebreaks \\ can be used within to get better formatting as desired.
 % Do not put math or special symbols in the title.
-\title{Fully concurrent Dynamic Paxos}
+\title{\mytitle}
 %
 %
 % author names and IEEE memberships
@@ -409,7 +410,7 @@ d.turner@tracsis.com)
 
 % The paper headers
 \markboth{}%TODO Journal of \LaTeX\ Class Files,~Vol.~14, No.~8, August~2015}%
-{Turner: Fully concurrent Dynamic Paxos}
+{Turner: \mytitle}
 % The only time the second header will appear is for the odd numbered pages
 % after the title page when using the twoside option.
 % 
@@ -522,11 +523,10 @@ reconfigurations in order to achieve an arbitrary reconfiguration.
 The choice of the pipeline length parameter $\alpha$ is a little delicate: too
 small and the system may suffer from poor performance due to lack of
 parallelism, but too large and configuration changes can take an unreasonably
-long time to complete. The pipeline length $\alpha$ may be allowed to vary
-while the system is running, so it is certainly possible to design a mechanism
-for choosing a reasonably suitable value and adapting it to changing system
-conditions, although this seems inelegant\cite{reconfiguring-a-state-machine}
-particularly when compared with Raft's approach.
+long time to complete. It would be better to be able to vary the value of
+$\alpha$ as the system is running rather than having to choose it up-front, but
+needing such a limit at all seems inelegant\cite{reconfiguring-a-state-machine}
+when compared with Raft's approach.
 
 Here it is shown that Paxos can also support an unlimited-length pipeline by
 allowing phase II to start using a new configuration without re-running phase
@@ -992,10 +992,38 @@ limits if required.
 
 \section{Related Work}
 
-As discussed above, the approach described here generalises Dynamic Paxos and
-certain flavours of Stoppable Paxos, and supports Raft-like configuration
-changes too.
+As discussed above, the approach described here generalises Dynamic
+Paxos\footnote{TODO cite} to support changing the pipeline length parameter
+$\alpha$ and running with an unlimited-length pipeline while a configuration
+change is not in progress. It also supports Raft-style
+reconfigurations\footnote{TODO cite} which can be performed with an unlimited
+pipeline throughout, and implements a basic kind of stoppability similar to
+those in Stoppable Paxos\footnote{TODO cite, and more detail}.  It achieves
+equivalent goals to those of Vertical Paxos\footnote{TODO cite} except that
+here there is no requirement for a separate oracle to manage the configuration
+of the system, which avoids the problem that for full resilience it must be
+possible to reconfigure the oracle itself, which requires another oracle and so
+on \textit{ad infinitum}.
 
+It is also noted that there is no need for every node to receive (even a hash
+of) every value that is proposed, which may allow for even cheaper
+implementations of Cheap Paxos\footnote{TODO cite} and can simplify the
+transfer of state\footnote{TODO is this in Vertical/Stoppable Paxos?} required
+when new nodes are commissioned.
+
+An interesting alternative approach is proposed by Jahl and
+Meling\footnote{TODO cite} which uses eventual consistency rather than
+consensus to determine the configuration of the system, and therefore supports
+reconfiguration even if consensus cannot be achieved due to an inability to
+elect a leader as long as it is still possible to communicate with a quorum of
+nodes. In such a situation consensus-based approaches such as the one presented
+here would fail to make any further progress, whereas one based on eventual
+consistency could be reconfigured into one in which a leader may be elected and
+thus in which further progress can be made. It is certainly possible to modify
+the approach presented here to allow the configurations $\langle \QI{e},
+\QII{e} \rangle$ themselves to be defined in an eventually-consistent manner;
+defining $e(i)$ similarly seems feasible but the details have so far proved
+elusive.
 
 
 % An example of a floating figure using the graphicx package.
