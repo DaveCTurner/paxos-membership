@@ -530,17 +530,17 @@ particularly when compared with Raft's approach.
 
 Here it is shown that Paxos can also support an unlimited-length pipeline by
 allowing phase II to start using a new configuration without re-running phase
-I; this is shown to preserve consistency as long as the configuration change is
-sufficiently small (in a sense which is made precise in section
-\ref{types-of-configuration-change} below.) In particular, this approach
-unifies and generalises the reconfigurations supported by both Raft and Dynamic
-Paxos.
+I; this is shown to preserve consistency as long as the configuration change
+satisfies certain conditions as described in section
+\ref{configuration-changes} below. In particular, this approach unifies and
+generalises the reconfigurations supported by both Raft and Dynamic Paxos as
+shown in section \ref{types-of-configuration-change}.
 
 The algorithm is presented here in its entirety for the sake of consistency of
 notation and because it modifies the original algorithm in ways that invalidate
-its consistency and liveness proofs. Reworked proofs are included in appendices
-\ref{synod-safety} and \ref{paxos-invariants} and differences from the original
-are discussed throughout.
+its consistency and liveness proofs. Reworked proofs are included in section
+\ref{liveness} and appendices \ref{synod-safety} and \ref{paxos-invariants} and
+differences from the original are discussed throughout.
 
 \section{The Synod Algorithm}
 
@@ -697,20 +697,18 @@ A fixed cluster configuration is a pair $\langle \QI{}, \QII{} \rangle$ of sets
 of quorums satisfying $\QI{} \frown \QII{}$, where $\QI{}$ and $\QII{}$ are
 respectively the sets of phase-I and phase-II quorums in use.  Changes to the
 cluster configuration are modelled by a sequence of configurations $ \langle
-\QI{0}, \QII{0} \rangle, \langle \QI{0}, \QII{1} \rangle, \langle \QI{1},
-\QII{1} \rangle, \langle \QI{1}, \QII{2} \rangle, \ldots$ or equivalently
-sequences of sets of quorums $\QI{0}, \QI{1}, \ldots$ and $\QII{0}, \QII{1},
-\ldots$ satisfying $\QI{e} \frown \QII{e}$ and $\QI{e} \frown \QII{e+1}$ for
-all $e$.  The integer subscript is called the \textit{era} of a configuration.
-Intuitively the cluster is ``in era $e$'' while instances are being chosen
-using $\langle \QI{e}, \QII{e}\rangle$. While a change from era $e$ to $e+1$ is
-in progress some instances may use the interim configuration $\langle \QI{e},
-\QII{e+1} \rangle$ and once the change to era $e+1$ is complete instances will
-use $\langle \QI{e+1}, \QII{e+1} \rangle$. Since $\QII{e} \frown \QI{e} \frown
-\QII{e+1} \frown \QI{e+1}$ it follows that consistency is preserved throughout
-by the observation of \ref{per-phase-quorums} above, and there need be no limit
-on the number of concurrently-running instances since the phase-I and phase-II
-quorums can change era independently.
+\QI{0}, \QII{0} \rangle, \langle \QI{1}, \QII{1} \rangle, \ldots$ that also
+satisfy $\QI{e} \frown \QII{e+1}$ for all $e$.  The integer subscript is called
+the \textit{era} of a configuration.  Intuitively the cluster is ``in era $e$''
+while instances are being chosen using $\langle \QI{e}, \QII{e}\rangle$. While
+a change from era $e$ to $e+1$ is in progress some instances may use the
+interim configuration $\langle \QI{e}, \QII{e+1} \rangle$ and once the change
+to era $e+1$ is complete instances will use $\langle \QI{e+1}, \QII{e+1}
+\rangle$. Since $\QII{e} \frown \QI{e} \frown \QII{e+1} \frown \QI{e+1}$ it
+follows that consistency is preserved throughout by the observation of
+\ref{per-phase-quorums} above, and there need be no limit on the number of
+concurrently-running instances since the phase-I and phase-II quorums can
+change era independently.
 
 To achieve this there are also two nondecreasing integer-valued functions, both
 written $e(\cdot)$, which respectively assign an era $e(i) > 0$ to each
@@ -740,34 +738,36 @@ $\chosen{i}{b}$ then they satisfy $i_\mathrm{max} > i$ and $e_\mathrm{max} \ge
 e(i_\mathrm{max})$ in the configuration-sequence state machine. Era numbers
 $e(b)$ for ballots $b$ are fixed in advance and not chosen by Paxos.
 
-\subsection{Liveness}
+\subsection{Liveness}\label{liveness}
 
 As with earlier presentations of Paxos\footnote{TODO cite Paxos Made Simple},
 here liveness can be guaranteed if a distinguished node $\ell$ is selected as
 the only one that may emit $\prep{b}$ messages. The original liveness proof
 then proceeded by having $\ell$ emit $\prep{b}$ for some $b$ that is chosen to
 be large enough to achieve consensus as long as enough other nodes could
-respond in a timely fashion. To ensure this was possible, it was required that
-for each ballot $b$ and each node $a$ there was a ballot $b' \succ b$ having
-$\owner{b'} = a$. It was clear that there was no upper bound on suitable values
-for $b$.
+respond in a timely fashion.
 
-However, here if $e(b) > e(i)$ then $\prop{i}{b}$ may never be sent and nor may
-$\prop{i}{b'}$ for any $b' \succ b$ since $e(\cdot)$ is nondecreasing.
-Therefore $\ell$ must be able to choose a sufficiently large ballot in a
-sufficiently small era. More precisely, this requires that for each ballot $b$,
-each era $e \ge e(b)$ and each node $a$ there must be a ballot $b' \succ b$
-having $e(b') = e$ and $\owner{b'} = a$. This means that ballot numbers cannot
-be simple integers, because this would imply that all but one era has only
-finitely many ballots.  Instead one could, for example, let $\mathbb B =
-\mathbb N \times \mathbb N \times \mathbb A$ with the lexicographic order,
-where $e(\langle e, n, a\rangle) = e$ and $\owner{\langle e, n, a \rangle} =
-a$.
+To ensure this was possible, it was required that for each ballot $b$ and each
+node $a$ there was a ballot $b' \succ b$ having $\owner{b'} = a$, and any
+sufficiently large such $b'$ would do. However, here there is an upper bound on
+suitable ballots, because if $e(b) > e(i)$ then $\prop{i}{b}$ may never be sent
+and nor may $\prop{i}{b'}$ for any $b' \succ b$ since $e(\cdot)$ is
+nondecreasing.  Therefore $\ell$ must be able to choose a sufficiently large
+ballot in a sufficiently small era. More precisely, this requires that for each
+ballot $b$, each era $e \ge e(b)$ and each node $a$ there must be a ballot $b'
+\succ b$ having $e(b') = e$ and $\owner{b'} = a$.  This means that ballot
+numbers cannot be simple integers, because this would imply that all but one
+era has only finitely many ballots.  Instead one could, for example, let
+$\mathbb B = \mathbb N \times \mathbb N \times \mathbb A$ ordered
+lexicographically, where $e(\langle e, n, a\rangle) = e$ and $\owner{\langle e,
+n, a \rangle} = a$.
 
 It is also necessary to limit the promises made to only those where $e(b) \le
-e(i)$: if this were not done then nodes could effectively promise to accept no
-ballots in the current era; as changes to the current era are themselves agreed
-by Paxos this would prevent any further progress from being made.
+e(i)$: if node $a$ made a promise $\fprom{i}{a}{b}$ with $e(b) > e(i)$ then it
+can no longer accept any proposals $\prop{i}{b'}$ since such a proposal would
+have $e(b') \le e(i) < e(b)$ so that $b' \prec b$. As changes to the current
+era are themselves agreed by Paxos this may prevent any further progress from
+being made if sufficiently many nodes emit such promises.
 
 With these two modifications the proof of liveness runs much as in the original
 presentation:
@@ -800,7 +800,7 @@ Then, if $\ell$ has not yet emitted $\prop{i}{b_i}$ then it it chooses one of
 the values for instance $i$ (which eventually exists), modifies $v_i(b_i)$ as
 appropriate, broadcasts $\prop{i}{b_i}$ and waits to receive acceptances from a
 quorum of nodes in $\QII{e(i)}$. When enough acceptances have been received, it
-may decide $\chosen{i}{b_i}$ as required. \end{proof}
+follows that $\chosen{i}{b_i}$ as required. \end{proof}
 
 \subsection{Fully concurrent configuration changes}
 
@@ -817,8 +817,7 @@ normally accepted without undue delay by all other nodes.
 When in this state, if an operator wishes to change the cluster configuration
 to $\langle \Qnew{I}, \Qnew{II} \rangle$ where $\QI{e(b)} \frown \Qnew{II}
 \frown \Qnew{I}$ they must first arrange to append $\langle \Qnew{I}, \Qnew{II}
-\rangle$ to the sequence of configurations\footnote{TODO have changed the
-sequence of configurations - bring this in line}, setting $\langle \QI{e(b)+1},
+\rangle$ to the sequence of configurations, setting $\langle \QI{e(b)+1},
 \QII{e(b)+1} \rangle = \langle \Qnew{I}, \Qnew{II} \rangle$ and $e_\mathrm{max}
 = e(b) + 1$, then pick a future instance $i_c > i_\mathrm{max}$ at which the
 change should take effect and append values to the sequence of eras to set
@@ -864,14 +863,91 @@ era $e(b)$. Again, this preserves consistency but limits concurrency.
 
 \subsection{Examples}\label{types-of-configuration-change}
 
-For the sake of simplicity, in this section let $Q^\textrm{I}_e =
-Q^\textrm{II}_e$ throughout and write simply $Q_e$ for both.
+This section contains some examples of configuration changes that satisfy the
+conditions described above.  All the configurations described here have equal
+sets of quorums in phase I and phase II in normal running, so for the sake of
+simplicity throughout this section let $Q^\textrm{I}_e = Q^\textrm{II}_e$ and
+write simply $Q_e$ for both. Implementations can ensure $Q_e \frown Q_e$ for
+each $e$ by, for instance, arranging for each quorum in $Q_e$ to comprise a
+majority subset of some finite set of nodes. Slightly more generally, let a
+\textit{weight function} be a function $w : \mathbb A \to \mathbb N$ that only
+takes finitely many nonzero values. This can be used to define a configuration
+$\langle M(w), M(w) \rangle$ by \textit{weighted majority}: \[M(w) = \left\{ q
+\;\middle|\; \sum_{a \in q} 2 w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\]
+Corollary \ref{weights-equal} in appendix \ref{weights-appendix} demonstrates
+the well-known result that $M(w) \frown M(w)$ for any weight function $w$.
 
 \def\maj#1{\mathbf{maj}(#1)}
 
-Implementations can ensure $Q_e \frown Q_e$ for each $e$ by, for instance,
-arranging for each quorum in $Q_e$ to comprise a majority subset of some finite
-set of nodes.  If $Q_e$ and $Q_{e+1}$ are nonempty then intuitively the
+Raft's quorums are simple majorities of a set of nodes, which can be emulated
+with weight functions that only take values in $\{0, 1\}$, and supports adding
+or removing a single node from this set which amounts to changing the weight of
+a single node by $1$. For instance, if $\mathbb A = \{ a_1, a_2, \ldots \}$
+then let \[w_n(a) = \begin{cases} 1 & \mathrm{if } a \in \{a_1, \ldots, a_n\}
+\\ 0 & \mathrm{otherwise}\end{cases}\] and observe that ${M(w_3) \frown
+M(w_4)}$ and ${M(w_4) \frown M(w_5)}$ but ${M(w_3) \not\frown M(w_5)}$ because
+$\{a_1, a_2\} \in M(w_3)$ and $\{a_3, a_4, a_5\} \in M(w_5)$ do not intersect.
+Thus adding or removing a single node can be done safely, but adding or
+removing more than one node cannot.
+
+In fact there is no need to restrict attention just to weight functions taking
+values in $\{0, 1\}$ as shown by theorem \ref{weights-nearly-equal} which is
+reminiscent of the amoeba analogy in \cite{cheap-paxos}: any two weight
+functions that differ by at most one at at most one node can be used to define
+consecutive configurations. This extra generality is important for deployments
+where nodes may share infrastructure (e.g. power distribution or network
+connectivity) because such infrastructure may be expensive to replicate. In
+more detail, a na\"ive approach to replacing a node in a three-node cluster
+would be to perform this sequence of configuration changes:
+\[\begin{array}{rcccc}
+%
+\textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
+%
+w_e&1&0&1&1\\
+%
+w_{e+1}&1&1&1&1\\
+%
+w_{e+2}&0&1&1&1\\
+%
+\end{array}\]
+%
+However to be resilient to infrastructure failures this requires all four nodes
+to rely on independent infrastructure, because it can only handle a single node
+failure throughout. It also has no node with a casting voite in era $e+1$. On the
+other hand the following sequence requires only three separate sets of infrastructure:
+\[\begin{array}{rcccc}
+%
+\textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
+%
+w_e&2&0&2&2\\
+%
+w_{e+1}&2&1&2&2\\
+%
+w_{e+2}&1&1&2&2\\
+%
+w_{e+3}&0&1&2&2\\
+%
+w_{e+4}&0&2&2&2\\
+%
+\end{array}\]
+%
+
+
+
+the
+majority subsets of $s_3$ and $s_4$ are sufficiently similar to be consecutive
+configurations, but those of $s_3$ and $s_5$ are not.
+
+If $w(a) = 0$ for all
+$a$ then $w$ is said to be \textit{weightless} and $M(w) = \varnothing$.
+
+
+Here it is demonstrated that the configuration changes supported by this
+technique generalise those of Raft and of Dynamic Paxos, and can also be used
+to stop a running cluster.
+
+
+  If $Q_e$ and $Q_{e+1}$ are nonempty then intuitively the
 condition that $Q_e \frown Q_{e+1}$ ensures that the configuration change from
 $Q_e$ to $Q_{e+1}$ is sufficiently small that phase I need not re-run when
 moving from era $e-1$ to era $e$. For instance, let \[\maj{s} = \{ q \subseteq
@@ -884,15 +960,7 @@ and observe that ${\maj{s_3} \frown \maj{s_4}}$ and ${\maj{s_4} \frown
 majority subsets of $s_3$ and $s_4$ are sufficiently similar to be consecutive
 configurations, but those of $s_3$ and $s_5$ are not. In general if quorums are
 defined to be the majority subsets of a finite set of nodes then adding or
-removing a single node is always a sufficiently small reconfiguration.  More
-generally, let a \textit{weight} function be a function $w : \mathbb A \to
-\mathbb N$ that only takes finitely many nonzero values. This can be used to
-define a configuration $M(w)$ by \textit{weighted majority}: \[M(w) = \left\{ q
-\;\middle|\; \sum_{a \in q} 2 w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\] If
-$w(a) = 0$ for all $a$ then $w$ is said to be \textit{weightless} and $M(w) =
-\varnothing$.  Corollary \ref{weights-equal} shows that $M(w) \frown M(w)$ for
-any weight function $w$.
-%
+removing a single node is always a sufficiently small reconfiguration.  %
 A sequence $w_0, w_1, \ldots$ of weight functions can be used to define the
 sequence of configurations $\langle M(w_0), M(w_0) \rangle, \langle M(w_1),
 M(w_1) \rangle, \ldots$ used by a cluster, which must satisfy $M(w_e) \frown
@@ -912,8 +980,6 @@ holds.
 
 \end{enumerate}
 %
-Theorem \ref{weights-nearly-equal} is reminiscent of the amoeba analogy in
-\cite{cheap-paxos}.
 
 Raft's configurations are effectively weight functions
 which take values in $\{0,1\}$ and therefore the reconfigurations permitted by
@@ -1384,7 +1450,8 @@ Synod's invariant \ref{synod-quorums} follows from lemma
 show so by theorem \ref{synod-safety-theorem} it follows that $v_i(b_1) =
 v_i(b_2)$ as required.  \end{proof}
 
-\section{Consecutive eras using weight-based configurations}
+\section{Consecutive eras using weight-based
+configurations}\label{weights-appendix}
 
 \begin{theorem} \label{weights-nearly-equal} If $w, w' : \mathbb A \to \mathbb
 N$ are weight functions such that $\sum_{a \in \mathbb A} |w'(a) - w(a)| \le 1$
