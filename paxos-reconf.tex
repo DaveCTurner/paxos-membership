@@ -523,10 +523,10 @@ needing such a limit at all seems inelegant\cite{reconfiguring-a-state-machine}
 when compared with Raft's approach.
 
 Here it is shown that the value of $\alpha$ can indeed be varied as the system
-is running, and that Paxos also supports an unlimited-length pipeline by
-allowing phase II to start using a new configuration without re-running phase
-I; this is shown to preserve consistency as long as the configuration change
-satisfies certain conditions as described in section
+is running, and that Paxos also supports an unlimited-length pipeline during
+reconfiguration by allowing phase II to start using a new configuration without
+re-running phase I; this is shown to preserve consistency as long as the
+configuration change satisfies certain conditions as described in section
 \ref{configuration-changes} below. In particular, this approach unifies and
 generalises the reconfigurations supported by both Raft and Dynamic Paxos as
 shown in section \ref{types-of-configuration-change}.
@@ -762,7 +762,10 @@ numbers cannot be simple integers, because this would imply that all but one
 era has only finitely many ballots.  Instead one could, for example, let
 $\mathbb B = \mathbb N \times \mathbb N \times \mathbb A$ ordered
 lexicographically, where $e(\langle e, n, a\rangle) = e$ and $\owner{\langle e,
-n, a \rangle} = a$.
+n, a \rangle} = a$. This is the approach used in Egalitarian
+Paxos\footnote{TODO cite} in which eras are known as \textit{epochs}: this term
+is not used here to avoid confusion with the epochs of Raft which track the
+current leader rather than the current configuration.
 
 It is also necessary to limit the promises made to only those where $e(b) \le
 e(i)$: if node $a$ made a promise $\fprom{i}{a}{b}$ with $e(b) > e(i)$ then it
@@ -993,13 +996,20 @@ Paxos\footnote{TODO cite} to support changing the pipeline length parameter
 $\alpha$ and running with an unlimited-length pipeline while a configuration
 change is not in progress. It also supports Raft-style
 reconfigurations\footnote{TODO cite} which can be performed with an unlimited
-pipeline throughout, and implements a basic kind of stoppability similar to
-those in Stoppable Paxos\footnote{TODO cite, and more detail}.  It achieves
-equivalent goals to those of Vertical Paxos\footnote{TODO cite} except that
-here there is no requirement for a separate oracle to manage the configuration
-of the system, which avoids the problem that for full resilience it must be
-possible to reconfigure the oracle itself, which requires another oracle and so
-on \textit{ad infinitum}.
+pipeline throughout, and implements the ``brick-wall'' stopping scheme as in
+Stoppable Paxos\footnote{TODO cite}. Unlike in Stoppable Paxos, here an
+instance can be chosen only if the previous instances have all been chosen, but
+it may be possible to extend the ``voiding'' technique of Stoppable Paxos to
+one which applies here which would lift this restriction.
+
+It achieves equivalent goals to those of Vertical Paxos\footnote{TODO cite}
+except that here there is no requirement for a separate oracle to manage the
+configuration of the system, which avoids the problem that for full resilience
+it must be possible to reconfigure the oracle itself, which requires another
+oracle and so on \textit{ad infinitum}. Egalitarian Paxos\footnote{TODO cite}
+also defines a nondecreasing $e(b)$ for each ballot $b$ to ensure that ballots
+are not chosen when their configuration is stale. As with Vertical Paxos these
+values are managed by an external oracle.
 
 It is also noted that there is no need for every node to receive (even a hash
 of) every value that is proposed, which may allow for even cheaper
@@ -1015,7 +1025,7 @@ elect a leader as long as it is still possible to communicate with a quorum of
 nodes. In such a situation consensus-based approaches such as the one presented
 here would fail to make any further progress, whereas one based on eventual
 consistency could be reconfigured into one in which a leader may be elected and
-thus in which further progress can be made. It is certainly possible to modify
+thus in which further progress can be made.  It is certainly possible to modify
 the approach presented here to allow the configurations $\langle \QI{e},
 \QII{e} \rangle$ themselves to be defined in an eventually-consistent manner;
 defining $e(i)$ similarly seems feasible too but the details have so far proved
