@@ -486,11 +486,6 @@ when $\ge f+1$ (i.e. a majority) of the nodes agree. The (nonempty) sets of
 nodes involved in reaching consensus are known as \textit{quorums} and the set
 of quorums in use is known as the \textit{configuration} of the cluster.
 
-%More generally, if $\mathbb A$ is the set of all nodes then there is a set $Q
-%\subseteq \mathcal P \mathbb A$ of \textit{quorums}, and a value is chosen
-%when all nodes $a \in q$ agree for some quorum $q \in Q$. The set of quorums
-%$Q$ is called the \textit{configuration} of the cluster.
-
 It is normally necessary to be able to add or remove nodes from the cluster
 while it is running. It is crucial that all participating nodes agree on the
 cluster configuration, and this can be achieved by tracking the configuration
@@ -903,10 +898,10 @@ reminiscent of the amoeba analogy in \cite{cheap-paxos}: any two weight
 functions that differ by at most one at at most one node can be used to define
 consecutive configurations. This extra generality is important for deployments
 where nodes may share infrastructure (e.g. power distribution or network
-connectivity) because such infrastructure may be expensive to replicate. In
-more detail, a na\"ive approach to replacing a node in a three-node cluster
-would be to perform this sequence of configuration changes:
-\[\begin{array}{rcccc}
+connectivity) because such nodes may suffer correlated failures, and
+infrastructure tends to be expensive to replicate. In more detail, a na\"ive
+approach to replacing a node in a three-node cluster would be to perform this
+sequence of configuration changes: \[\begin{array}{rcccc}
 %
 \textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
 %
@@ -919,11 +914,12 @@ w_{e+2}&0&1&1&1\\
 \end{array}\]
 %
 However to be resilient to infrastructure failures this requires all four nodes
-to rely on independent infrastructure, because it can only handle a single node
-failure throughout. It also has no node with a casting voite in era $e+1$. On
-the other hand the following sequence requires only three separate sets of
-infrastructure and both $a_1$ and $a_2$ have casting votes throughout:
-\[\begin{array}{rcccc}
+and their corresponding infrastructure to be completely independent since it
+can only handle a single node failure throughout. It also has no node with a
+casting voite in era $e+1$. On the other hand the following sequence requires
+only three separate sets of infrastructure since the system can continue to
+operate even if both $a_{\textrm{old}}$ and $a_{\textrm{new}}$ fail, and both
+$a_1$ and $a_2$ have casting votes throughout: \[\begin{array}{rcccc}
 %
 \textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
 %
@@ -956,13 +952,13 @@ consecutive configurations.
 
 Early versions of Raft supported more general reconfigurations using a
 technique known as \textit{joint configurations}. To change from configuration
-$Q_{e}$ to an unrelated configuration $Q'$ it is possible to set $Q_{e+2} = Q'$
-and set $Q_{e+1}$ to be the \textit{joint configuration} of $Q_{e}$ and $Q'$:
-\[Q_{e+1} = \{ q \cup q' \mid q \in Q_{e}, q' \in Q' \}.\] Intuitively, while
-this joint configuration is in use all decisions must be agreed by quorums of
-both the old and new configuration. Certainly this satisfies that \[Q_{e}
-\frown Q_{e + 1} \frown Q_{e+1} \frown Q_{e + 2} \frown Q_{e + 2}\] as
-required.
+$Q_{e}$ to an unrelated configuration $Q'$ (i.e.  $Q_{e} \not\frown Q' \frown
+Q'$) it is possible to set $Q_{e+2} = Q'$ and set $Q_{e+1}$ to be the
+\textit{joint configuration} of $Q_{e}$ and $Q'$: \[Q_{e+1} = \{ q \cup q' \mid
+q \in Q_{e}, q' \in Q' \}.\] Intuitively, while this joint configuration is in
+use all decisions must be agreed by quorums of both the old and new
+configuration. Certainly this satisfies that \[Q_{e} \frown Q_{e + 1} \frown
+Q_{e+1} \frown Q_{e + 2} \frown Q_{e + 2}\] as required.
 
 If $w(a) = 0$ for all $a$ then $w$ is said to be \textit{weightless} and $M(w)
 = \varnothing$. Clearly if there is an instance $i$ such that $Q_{e(i)} =
@@ -976,19 +972,19 @@ most one: an era may be skipped at instance $i$ by letting $e(i) = e(i-1) + 2$.
 This recovers the ability to perform arbitrary configuration changes in a
 single step as in Dynamic Paxos: if the system is currently using configuration
 $Q_{e}$ and an operator wishes to change to an unrelated configuration $Q'$
-(i.e.  $Q_{e} \not\frown Q' \frown Q'$) then they can set $Q_{e+2} = Q'$ and
-pick an appropriate $Q_{e+1}$ which satisfies that \[Q_{e} \frown Q_{e + 1}
-\frown Q_{e+1} \frown Q'.\] For instance $Q_{e+1}$ could be $\varnothing$ or
-could be the joint configuration of $Q_{e}$ and $Q'$.  However, re-running
-phase I can only be delayed if the era increases by $1$ and in this situation
-the era increases by $2$, so the new phase I must be complete before any new
-phase II instances can be started.  As in Dynamic Paxos the operator chooses an
-$\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i
-+ \alpha$, effectively delaying the configuration change for $\alpha$ instances
-in the hope that this is long enough to have completed the new phase I. Unlike
-in Dynamic Paxos there is only a need to limit the pipeline length while a
+then they can set $Q_{e+2} = Q'$ and pick an appropriate $Q_{e+1}$ which
+satisfies that $Q_{e} \frown Q_{e + 1} \frown Q_{e+1} \frown Q'$: for instance
+$Q_{e+1}$ could be $\varnothing$ or could be the joint configuration of $Q_{e}$
+and $Q'$.  However, re-running phase I can only be delayed if the era increases
+by $1$ and in this situation the era increases by $2$, so the new phase I must
+be complete before any new phase II instances can be started.  To prevent this
+causing the pipeline to stall, the operator chooses an $\alpha > 0$ and sets
+$e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i + \alpha$,
+effectively delaying the configuration change for $\alpha$ instances in the
+hope that this is long enough to have completed the new phase I. Unlike in
+Dynamic Paxos there is no need to limit the pipeline length unless a
 configuration change is in progress, and different changes may use different
-limits if required.
+values of $\alpha$ if required.
 
 \section{Related Work}
 
@@ -1022,7 +1018,7 @@ consistency could be reconfigured into one in which a leader may be elected and
 thus in which further progress can be made. It is certainly possible to modify
 the approach presented here to allow the configurations $\langle \QI{e},
 \QII{e} \rangle$ themselves to be defined in an eventually-consistent manner;
-defining $e(i)$ similarly seems feasible but the details have so far proved
+defining $e(i)$ similarly seems feasible too but the details have so far proved
 elusive.
 
 
