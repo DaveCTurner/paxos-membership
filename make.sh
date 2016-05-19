@@ -8,5 +8,5 @@ cat > inc.tex <<EOF
 \\def\\pubdate{$DATE}
 EOF
 
-latex jitter-free-membership
-latex jitter-free-membership
+latex paxos-reconf
+latex paxos-reconf
