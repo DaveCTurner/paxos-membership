@@ -51,7 +51,6 @@
 
 
 \documentclass[journal]{IEEEtran}
-%\usepackage[paperwidth=310mm,paperheight=200mm]{geometry} % TODO just for on-screen
 %
 % If IEEEtran.cls has not been installed into the LaTeX system files,
 % manually specify the path to it like:
@@ -475,16 +474,17 @@ reconfigurations and more besides.\end{abstract}
 
 \section{Introduction}
 
-\IEEEPARstart{P}{axos} and Raft are algorithms for achieving consensus on (or
-\textit{choosing}) a sequence $v_0, v_1, \ldots$ of values in a distributed,
-fault-tolerant fashion~\cite{part-time-parliament}. They guarantee system-wide
-\textit{consistency}, in the sense that the values chosen are guaranteed to be
-equal across the whole system even in the presence of failures. They typically
-run on a cluster of $2f+1$ nodes, where $f$ is the number of faulty nodes that
-should be tolerated, and consensus is achieved on a value $v_i \in \mathbb V$
-when $\ge f+1$ (i.e. a majority) of the nodes agree. The (nonempty) sets of
-nodes involved in reaching consensus are known as \textit{quorums} and the set
-of quorums in use is known as the \textit{configuration} of the cluster.
+\IEEEPARstart{P}{axos} \cite{part-time-parliament} and Raft\cite{raft} are
+algorithms for achieving consensus on (or \textit{choosing}) a sequence $v_0,
+v_1, \ldots$ of values in a distributed, fault-tolerant fashion. They guarantee
+system-wide \textit{consistency}, in the sense that the values chosen are
+guaranteed to be equal across the whole system even in the presence of
+failures. They typically run on a cluster of $2f+1$ nodes, where $f$ is the
+number of faulty nodes that should be tolerated, and consensus is achieved on a
+value $v_i \in \mathbb V$ when $\ge f+1$ (i.e. a majority) of the nodes agree.
+The (nonempty) sets of nodes involved in reaching consensus are known as
+\textit{quorums} and the set of quorums in use is known as the
+\textit{configuration} of the cluster.
 
 It is normally necessary to be able to add or remove nodes from the cluster
 while it is running. It is crucial that all participating nodes agree on the
@@ -627,7 +627,7 @@ with the $f$ auxiliary processors storing just the hashes of values to ensure
 integrity.
 
 It is also worth comparing this approach to that of Vertical
-Paxos\footnote{TODO cite} which takes care to ensure that the system state is
+Paxos\cite{vertical-paxos} which takes care to ensure that the system state is
 completely transferred between nodes before they start to participate fully in
 the cluster, with certain optimisations which are needed since this state
 transfer could be an expensive and time-consuming operation. However if the
@@ -653,13 +653,11 @@ phase-I and phase-II quorums for ballot $b$ respectively.
 
 In the original presentation of the Synod algorithm any (weighted) majority of
 the nodes could be used as a quorum, so that $\QI{}(b_1) \frown \QII{}(b_2)$
-for all $b_1$ and $b_2$ since all majorities intersect.  This intersection
-property is stronger than needed and other presentations\footnote{TODO cite}
-relax it in various ways. The proof of theorem \ref{synod-safety-theorem} in
-appendix \ref{synod-safety} is a generalisation of the original one to
-demonstrate that consistency still holds even under the weaker assumption that
-$\QI{}(b_1) \frown \QII{}(b_2)$ when $\prop{}{b_1}$, $\chosen{}{b_2}$ and $b_1
-\succ b_2$.
+for all $b_1$ and $b_2$ since all majorities intersect. The proof of theorem
+\ref{synod-safety-theorem} in appendix \ref{synod-safety} is a generalisation
+of the original one to demonstrate that consistency still holds even under the
+weaker assumption that $\QI{}(b_1) \frown \QII{}(b_2)$ when $\prop{}{b_1}$,
+$\chosen{}{b_2}$ and $b_1 \succ b_2$.
 
 \section{The Paxos algorithm}
 
@@ -742,7 +740,7 @@ $e(b)$ for ballots $b$ are fixed in advance and not chosen by Paxos.
 
 \subsection{Liveness}\label{liveness}
 
-As with earlier presentations of Paxos\footnote{TODO cite Paxos Made Simple},
+As with earlier presentations of Paxos\cite{paxos-made-simple},
 here liveness can be guaranteed if a distinguished node $\ell$ is selected as
 the only one that may emit $\prep{b}$ messages. The original liveness proof
 then proceeded by having $\ell$ emit $\prep{b}$ for some $b$ that is chosen to
@@ -763,9 +761,9 @@ era has only finitely many ballots.  Instead one could, for example, let
 $\mathbb B = \mathbb N \times \mathbb N \times \mathbb A$ ordered
 lexicographically, where $e(\langle e, n, a\rangle) = e$ and $\owner{\langle e,
 n, a \rangle} = a$. This is the approach used in Egalitarian
-Paxos\footnote{TODO cite} in which eras are known as \textit{epochs}: this term
-is not used here to avoid confusion with the epochs of Raft which track the
-current leader rather than the current configuration.
+Paxos\cite{egalitarian-paxos} in which eras are known as \textit{epochs}: this
+term is not used here to avoid confusion with the epochs of Raft which track
+the current leader rather than the current configuration.
 
 It is also necessary to limit the promises made to only those where $e(b) \le
 e(i)$: if node $a$ made a promise $\fprom{i}{a}{b}$ with $e(b) > e(i)$ then it
@@ -939,14 +937,13 @@ w_{e+4}&0&2&2&2\\
 \end{array}\]
 %
 This is important as in many operating environments it may be too expensive or
-complicated to arrange for four independent infrastructures\footnote{For
-instance, at time of writing, only one Amazon Web Services region
-(\texttt{us-east-1}) has four independent zones, whereas four of them have
-three: \texttt{ap-southeast-2}, \texttt{eu-west-1}, \texttt{sa-east-1} and
+complicated to arrange for four independent infrastructures particularly if the
+fourth is only required to ensure consistency in relatively rare periods of
+maintenance. For instance, at time of writing, only one Amazon Web Services
+region (\texttt{us-east-1}) has four independent zones, whereas four of them
+have three: \texttt{ap-southeast-2}, \texttt{eu-west-1}, \texttt{sa-east-1} and
 \texttt{us-west-2}. Similarly, only one Google Cloud Platform region
-(\texttt{us-central1}) has four zones and all the others have three zones.}
-particularly if the fourth is only required to ensure consistency in relatively
-rare periods of maintenance.
+(\texttt{us-central1}) has four zones and all the others have three zones.
 
 Notice also that if $w$ and $w'$ differ by a constant factor, in the sense that
 there are positive integers $k$ and $k'$ such that $k w(a) = k' w'(a)$ for all
@@ -967,8 +964,8 @@ If $w(a) = 0$ for all $a$ then $w$ is said to be \textit{weightless} and $M(w)
 = \varnothing$. Clearly if there is an instance $i$ such that $Q_{e(i)} =
 \varnothing$ then no value can ever be chosen for $i$. On the other hand $Q
 \frown \varnothing$ for all $Q$ so changing to a weightless configuration is
-always permitted, and this has the effect of stopping \footnote{TODO cite} a
-Paxos cluster at a particular instance.
+always permitted, and this has the effect of stopping a Paxos cluster at a
+particular instance \cite{reconfiguring-a-state-machine,stoppable-paxos}.
 
 There is no requirement for the eras of consecutive instances to differ by at
 most one: an era may be skipped at instance $i$ by letting $e(i) = e(i-1) + 2$.
@@ -992,33 +989,32 @@ values of $\alpha$ if required.
 \section{Related Work}
 
 As discussed above, the approach described here generalises Dynamic
-Paxos\footnote{TODO cite} to support changing the pipeline length parameter
+Paxos\cite{cheap-paxos} to support changing the pipeline length parameter
 $\alpha$ and running with an unlimited-length pipeline while a configuration
 change is not in progress. It also supports Raft-style
-reconfigurations\footnote{TODO cite} which can be performed with an unlimited
+reconfigurations\cite{raft} which can be performed with an unlimited
 pipeline throughout, and implements the ``brick-wall'' stopping scheme as in
-Stoppable Paxos\footnote{TODO cite}. Unlike in Stoppable Paxos, here an
+Stoppable Paxos\cite{stoppable-paxos}. Unlike in Stoppable Paxos, here an
 instance can be chosen only if the previous instances have all been chosen, but
 it may be possible to extend the ``voiding'' technique of Stoppable Paxos to
 one which applies here which would lift this restriction.
 
-It achieves equivalent goals to those of Vertical Paxos\footnote{TODO cite}
+It achieves equivalent goals to those of Vertical Paxos\cite{vertical-paxos}
 except that here there is no requirement for a separate oracle to manage the
 configuration of the system, which avoids the problem that for full resilience
 it must be possible to reconfigure the oracle itself, which requires another
-oracle and so on \textit{ad infinitum}. Egalitarian Paxos\footnote{TODO cite}
-also defines a nondecreasing $e(b)$ for each ballot $b$ to ensure that ballots
-are not chosen when their configuration is stale. As with Vertical Paxos these
-values are managed by an external oracle.
+oracle and so on \textit{ad infinitum}. Egalitarian
+Paxos\cite{egalitarian-paxos} also defines a nondecreasing $e(b)$ for each
+ballot $b$ to ensure that ballots are not chosen when their configuration is
+stale. As with Vertical Paxos these values are managed by an external oracle.
 
 It is also noted that there is no need for every node to receive (even a hash
 of) every value that is proposed, which may allow for even cheaper
-implementations of Cheap Paxos\footnote{TODO cite} and can simplify the
-transfer of state\footnote{TODO is this in Vertical/Stoppable Paxos?} required
-when new nodes are commissioned.
+implementations of Cheap Paxos\cite{cheap-paxos} and can simplify the transfer
+of state\cite{vertical-paxos} required when new nodes are commissioned.
 
 An interesting alternative approach is proposed by Jahl and
-Meling\footnote{TODO cite} which uses eventual consistency rather than
+Meling\cite{async-reconfig} which uses eventual consistency rather than
 consensus to determine the configuration of the system, and therefore supports
 reconfiguration even if consensus cannot be achieved due to an inability to
 elect a leader as long as it is still possible to communicate with a quorum of
@@ -1128,9 +1124,6 @@ elusive.
 
 
 
-
-%\section{Conclusion}
-%TODO
 
 \vfill
 
