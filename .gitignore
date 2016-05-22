@@ -12,3 +12,4 @@ inc.tex
 *.citations
 *.labels
 *.fls
+*.inputs
