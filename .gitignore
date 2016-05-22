@@ -1,0 +1,8 @@
+inc.tex
+*.aux
+*.bbl
+*.blg
+*.log
+*.dvi
+*.pdf
+*.ps
