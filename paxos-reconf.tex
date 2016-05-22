@@ -354,7 +354,7 @@
 % correct bad hyphenation here
 \hyphenation{op-tical net-works semi-conduc-tor}
 
-\def\mytitle{Unbounded pipelining in dynamically reconfigurable Paxos clusters}
+\def\mytitle{Unbounded Pipelining in Dynamically Reconfigurable Paxos Clusters}
 \include{inc}
 
 \begin{document}
@@ -378,11 +378,11 @@
 %
 
 \author{David C. Turner% <-this % stops a space
-\thanks{The author is with the Operations and Planning Systems division of
-Tracsis plc, 103 Clarendon Road, Leeds LS2 9DF, United Kingdom (email:
-d.turner@tracsis.com)
-}% <-this % stops a space
 \thanks{Manuscript received \pubdate, version \gitid.}%
+\thanks{The author is with the Operations and Planning Systems division of
+Tracsis plc, Leeds LS2 9DF, United Kingdom (email:
+d.turner@tracsis.com)}% <-this % stops a space
+\thanks{Digital Object Identifier 99.9999/ZZZ.9999.999999}
 %\thanks{Manuscript received April 19, 2005; revised August 26, 2015.}} TODO
 }
 
@@ -423,7 +423,7 @@ d.turner@tracsis.com)
 
 % If you want to put a publisher's ID mark on the page you can do it like
 % this:
-%\IEEEpubid{0000--0000/00\$00.00~\copyright~2015 IEEE}
+%\IEEEpubid{1045--9219~\copyright~2016 IEEE.  Personal use is permitted, but republication/redistribution requires IEEE permission.}
 % Remember, if you use this you must call \IEEEpubidadjcol in the second
 % column for its text to clear the IEEEpubid mark.
 
@@ -455,7 +455,7 @@ reconfigurations and more besides.\end{abstract}
 
 % Note that keywords are not normally used for peerreview papers.
 \begin{IEEEkeywords}
-Distributed algorithms, distributed computing, fault tolerance
+Distributed algorithms, fault tolerance.
 \end{IEEEkeywords}
 
 
@@ -475,7 +475,7 @@ Distributed algorithms, distributed computing, fault tolerance
 
 \section{Introduction}
 
-\IEEEPARstart{P}{axos} \cite{part-time-parliament} and Raft\cite{raft} are
+\IEEEPARstart{P}{axos} \cite{part-time-parliament} AND RAFT\cite{raft} are
 algorithms for achieving consensus on (or \textit{choosing}) a sequence $v_0,
 v_1, \ldots$ of values in a distributed, fault-tolerant fashion. They guarantee
 system-wide \textit{consistency}, in the sense that the values chosen are
@@ -541,6 +541,8 @@ notation and because it modifies the original algorithm in ways that invalidate
 its consistency and liveness proofs. Reworked proofs are included in section
 \ref{liveness} and appendices \ref{synod-safety} and \ref{paxos-invariants} and
 differences from the original are discussed throughout.
+
+%\IEEEpubidadjcol %must be in 2nd col of 1st page
 
 \section{The Synod Algorithm}
 
@@ -1147,8 +1149,7 @@ may be elected and thus in which further progress can be made.
 
 \appendices
 
-\section{Consecutive eras using weight-based
-configurations}\label{weights-appendix}
+\section{}\label{weights-appendix}
 
 \begin{theorem} \label{weights-nearly-equal} If $w, w' : \mathbb A \to \mathbb
 N$ are weight functions such that $\sum_{a \in \mathbb A} |w'(a) - w(a)| \le 1$
@@ -1362,9 +1363,9 @@ Q^\textrm{II}(b) &= \QII{e(i)}, \\
 & \ {}\vee \exists i' \le i. \mprom{i'}{a}{b}, \\
 \bprom{}{a}{b}{b'} &= \bprom{i}{a}{b}{b'}, \\
 \prop{}{b} &= \prop{i}{b}, \\
-\acc{}{a}{b} &= \acc{i}{a}{b} \textrm{ and} \\
-\chosen{}{b} &= \chosen{i}{b}. \\
-v(b) &= v_i(b)\\
+\acc{}{a}{b} &= \acc{i}{a}{b}, \\
+\chosen{}{b} &= \chosen{i}{b} \textrm{ and} \\
+v(b) &= v_i(b) .\\
 \end{array}
 \]
 Synod's invariant \ref{synod-quorums} follows from lemma
@@ -1427,9 +1428,12 @@ Nikolaus Jehl for their advice and comments on earlier drafts of this paper.
 %\end{IEEEbiography}
 %
 %% if you will not have a photo at all:
-%\begin{IEEEbiographynophoto}{John Doe}
-%Biography text here.
+%\begin{IEEEbiographynophoto}{David C. Turner}
+%received the Ph.D. degree from the University of Cambridge in 2009.
+%
+%Since 2010 he has worked as a software engineer at Tracsis plc.
 %\end{IEEEbiographynophoto}
+
 %
 %% insert where needed to balance the two columns on the last page with
 %% biographies
@@ -1445,7 +1449,7 @@ Nikolaus Jehl for their advice and comments on earlier drafts of this paper.
 % on the last page and whether or not the columns
 % are being equalized.
 
-%\vfill
+\vfill
 
 % Can be used to pull up biographies so that the bottom of the last one
 % is flush with the other column.
