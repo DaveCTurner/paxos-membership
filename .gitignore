@@ -6,3 +6,4 @@ inc.tex
 *.dvi
 *.pdf
 *.ps
+.shake
