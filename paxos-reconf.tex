@@ -580,9 +580,9 @@ that the ballot $b$ may be chosen.
 There is a function $v : \mathbb B \to \mathbb V$ assigning a value to each
 ballot, discussed in more detail in section \ref{value-function} below, and the
 system satisfies a set of invariants as described in appendix
-\ref{synod-safety} from which theorem \ref{synod-safety-theorem} shows that
-consistency is guaranteed: \[\textrm{if } \chosen{}{b} \textrm{ and }
-\chosen{}{b'} \textrm { then } v(b) = v(b').\]
+\ref{synod-safety} from which it follows that consistency is guaranteed in the
+sense that if $\chosen{}{b}$ and $\chosen{}{b'}$ then $v(b) = v(b')$ as shown
+in theorem \ref{synod-safety-theorem}.
 
 Each node operates as a state machine whose transitions are caused by the
 receipts of messages. A node may emit $\prop{}{b}$ when it considers phase I to
@@ -600,14 +600,13 @@ In the original presentation of the Synod algorithm, the values of ballots are
 carried along with their identifiers in the messages $\bprom{}{a}{b}{ b',v(b')
 }$, $\prop{}{ b,v(b)}$ and $\acc{}{a}{ b,v(b) }$. Observation O4 in
 \cite{cheap-paxos} notes that these values can be replaced in some cases by
-hashes, which is useful if the values themselves are expensive to transmit
-between nodes. This can be taken one step further and the values can be
+hashes, but this idea can be taken a step further and the values can be
 completely elided from the messages that take part in the Synod protocol,
 allowing considerably more freedom in the implementation of the function $v$
 without sacrificing consistency. This is useful because the values themselves
-may be large or expensive to transport across the network but the messages
-involved in the Synod protocol are typically very small if the values are
-removed.
+may be large or expensive to send between nodes so an efficient implementation
+must minimise the need to transport values as much as possible; the messages
+involved in the protocol are very small if the values are removed.
 
 Although it appears that the function $v$ is fixed, in practice it is allowed
 to change as the system runs. Treating it as fixed simplifies the consistency
@@ -652,14 +651,13 @@ special treatment.
 \def\QI#1{\I{Q}{#1}}
 \def\QII#1{\II{Q}{#1}}
 
-The heart of the consistency property of the Synod algorithm is that the set of
-nodes involved in completing phase I must always intersect the set of nodes
+The consistency property of the Synod algorithm relies on the fact that the set
+of nodes involved in completing phase I must always intersect the set of nodes
 involved in completing phase II so that there is at least one node to carry
-information between the two phases. Write $Q_1 \frown Q_2$ to indicate that
-every element of $Q_1$ intersects every element of $Q_2$ or more formally
-define $Q_1 \frown Q_2$ iff every $q_1 \in Q_1$ and $q_2 \in Q_2$ have ${q_1
-\cap q_2 \ne \varnothing}$. Write $\QI{}(b)$ and $\QII{}(b)$ for the sets of
-phase-I and phase-II quorums for ballot $b$ respectively.
+information between the two phases. Write $Q_1 \frown Q_2$ iff every $q_1 \in
+Q_1$ and $q_2 \in Q_2$ have ${q_1 \cap q_2 \ne \varnothing}$, and write
+$\QI{}(b)$ and $\QII{}(b)$ for the sets of phase-I and phase-II quorums for
+ballot $b$ respectively.
 
 In the original presentation of the Synod algorithm any (weighted) majority of
 the nodes could be used as a quorum, so that $\QI{}(b_1) = \QII{}(b_2)$ and
@@ -772,7 +770,8 @@ $e(\langle e, n, a\rangle) = e$ and $\owner{\langle e, n, a \rangle} = a$. This
 is the approach used in Egalitarian Paxos\cite{egalitarian-paxos} in which eras
 are known as \textit{epochs} but this terminology is avoided here to prevent
 confusion with the epochs (views, terms, \ldots) of leader-election protocols
-which track the current leader rather than the current configuration.
+(e.g. \cite{omega-meets-paxos}) which track the current leader rather than the
+current configuration.
 
 It is also necessary to limit the promises made to only those where $e(b) \le
 e(i)$ because if node $a$ made a promise $\fprom{i}{a}{b}$ with $e(b) > e(i)$
