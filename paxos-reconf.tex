@@ -1001,12 +1001,10 @@ As discussed above, the approach described here generalises Dynamic
 Paxos\cite{cheap-paxos} to support changing the pipeline length parameter
 $\alpha$ and running with an unlimited-length pipeline while a configuration
 change is not in progress. It also supports Raft-style
-reconfigurations\cite{raft} which can be performed with an unlimited
-pipeline throughout, and implements the ``brick-wall'' stopping scheme as in
-Stoppable Paxos\cite{stoppable-paxos}. Unlike in Stoppable Paxos, here an
-instance can be chosen only if the previous instances have all been chosen, but
-it may be possible to extend the ``voiding'' technique of Stoppable Paxos to
-one which applies here which would lift this restriction.
+reconfigurations\cite{raft} which can be performed with an unlimited pipeline
+throughout, and implements the ``brick-wall'' stopping scheme as in Stoppable
+Paxos\cite{stoppable-paxos}. Unlike in Stoppable Paxos, here an instance can be
+chosen only if the previous instances have all been chosen.
 
 It achieves equivalent goals to those of Vertical Paxos\cite{vertical-paxos}
 except that here there is no requirement for a separate oracle to manage the
