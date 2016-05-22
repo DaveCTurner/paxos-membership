@@ -503,18 +503,17 @@ certain nodes become faulty, or if messages between certain pairs of nodes
 cease to be delivered reliably for a period, or if the configuration changes.
 Raft's pattern of execution is similar.
 
-Both algorithms allow for \textit{pipelining} \cite{smart}: later values can be
-proposed before earlier ones have been chosen. To ensure that this preserves
-consistency is nontrivial because a value may only be proposed once a quorum of
-nodes are ready for it, but\footnote{TODO revise} whether a set of nodes is a
-quorum or not may change as earlier values are chosen. Paxos implementations
-typically solve this problem by limiting the length of the pipeline to some
-$\alpha > 0$ and requiring that a configuration change chosen at instance $i$
-does not take effect until at least instance $i + \alpha$.  Raft imposes no
-such limit on the number of concurrently-running instances and instead ensures
-consistency by only allowing certain reconfigurations to take place, and then
-performs sequences of these restricted reconfigurations in order to achieve an
-arbitrary reconfiguration.
+Both algorithms allow for \textit{pipelining} \cite{smart} whereby later values
+can be proposed before earlier ones have been chosen. To ensure that this
+preserves consistency is nontrivial because a value may only be proposed once a
+quorum of nodes are ready for it but the quorums change as values are chosen.
+Paxos implementations typically solve this problem by limiting the length of
+the pipeline to some $\alpha > 0$ and requiring that a configuration change
+chosen at instance $i$ does not take effect until at least instance $i +
+\alpha$.  Raft imposes no limit on the number of concurrently-running
+instances and instead ensures consistency by only allowing certain
+reconfigurations to take place, and then performs sequences of these restricted
+reconfigurations in order to achieve an arbitrary reconfiguration.
 
 The choice of the pipeline length parameter $\alpha$ is a little delicate: too
 small and the system may suffer from poor performance due to lack of
@@ -715,9 +714,7 @@ interim configuration $\langle \QI{e}, \QII{e+1} \rangle$ and once the change
 to era $e+1$ is complete instances will use $\langle \QI{e+1}, \QII{e+1}
 \rangle$. Since $\QII{e} \frown \QI{e} \frown \QII{e+1} \frown \QI{e+1}$ it
 follows that consistency is preserved throughout by the observation of
-\ref{per-phase-quorums} above, and there need be no limit on the number of
-concurrently-running instances since\footnote{TODO nonsequitur - explain!} the
-phase-I and phase-II quorums can change era independently.
+\ref{per-phase-quorums} above.
 
 To achieve this there are also two nondecreasing integer-valued functions, both
 written $e(\cdot)$, which respectively assign an era $e(i)$ to each instance
@@ -745,42 +742,41 @@ append one or more elements to these sequences, but do not change any existing
 elements, and the tracked sequences are always long enough to make progress in
 the sense that if $\chosen{i}{b}$ then they satisfy $i_\mathrm{max} > i$ and
 $e_\mathrm{max} \ge e(i_\mathrm{max})$. Era numbers $e(b)$ for ballots $b$ are
-fixed in advance and not chosen by Paxos.
+fixed in advance and not chosen by consensus.
 
 \subsection{Liveness}\label{liveness}
 
-As with earlier presentations of Paxos\cite{paxos-made-simple},
-here liveness can be guaranteed if a distinguished node $\ell$ is selected as
-the only one that may emit $\prep{b}$ messages. The original liveness proof
-then proceeded by having $\ell$ emit $\prep{b}$ for some $b$ that is chosen to
-be large enough to achieve consensus as long as enough other nodes could
-respond in a timely fashion.
-
-To ensure this was possible, it was required that for each ballot $b$ and each
-node $a$ there was a ballot $b' \succ b$ having $\owner{b'} = a$, and any
-sufficiently large such $b'$ would do. However, here there is an upper bound on
-suitable ballots, because if $e(b) > e(i)$ then $\prop{i}{b}$ may never be sent
-and nor may $\prop{i}{b'}$ for any $b' \succ b$ since $e(\cdot)$ is
-nondecreasing.  Therefore here $\ell$ must be able to choose a sufficiently
-large ballot in a sufficiently small era. More precisely, this requires that
-for each ballot $b$, each era $e \ge e(b)$ and each node $a$ there must be a
-ballot $b' \succ b$ having $e(b') = e$ and $\owner{b'} = a$.  This means that
-ballot numbers cannot be simple integers, because this would imply that all but
-one era has only finitely many ballots.  Instead one could, for example, let
-$\mathbb B = \mathbb N \times \mathbb N \times \mathbb A$ ordered
-lexicographically, where $e(\langle e, n, a\rangle) = e$ and $\owner{\langle e,
-n, a \rangle} = a$. This is the approach used in Egalitarian
-Paxos\cite{egalitarian-paxos} in which eras are known as \textit{epochs}: this
-terminology is not used here to avoid confusion with the epochs (views, terms,
-\ldots) of the leader-election protocol which track the current leader rather
-than the current configuration.
+To be useful this algorithm must not only guarantee consistency but also ensure
+that it is always possible to make progress by eventually choosing a value for
+each instance. It is impossible to show this deterministically in a fully
+asynchronous system\cite{flp-impossibility} but as with earlier presentations
+of Paxos\cite{paxos-made-simple} here liveness can be proved by assuming that a
+distinguished node $\ell$ is eventually selected as the only one that may emit
+$\prep{b}$ messages. The original liveness proof then proceeded by having
+$\ell$ emit $\prep{b}$ for some $b$ that is chosen to be large enough that a
+quorum of nodes may respond with promises. Unlike in the original proof, here
+there is an upper bound on suitable ballots, because if ${e(b) > e(i)}$ then
+$\prop{i}{b}$ may never be sent and nor may $\prop{i}{b'}$ for any $b' \succ b$
+since $e(\cdot)$ is nondecreasing.  Therefore here $\ell$ must be able to
+choose a ballot that is large enough but not too large.  More precisely, this
+requires that for each ballot $b$, each era $e \ge e(b)$ and each node $a$
+there must be a ballot $b' \succ b$ having $e(b') = e$ and $\owner{b'} = a$.
+This means that ballot numbers cannot be simple integers because this would
+imply that all eras (except at most one) have only finitely many ballots.
+Rather than using simple integers one could, for example, let $\mathbb B =
+\mathbb N \times \mathbb N \times \mathbb A$ ordered lexicographically, where
+$e(\langle e, n, a\rangle) = e$ and $\owner{\langle e, n, a \rangle} = a$. This
+is the approach used in Egalitarian Paxos\cite{egalitarian-paxos} in which eras
+are known as \textit{epochs} but this terminology is avoided here to prevent
+confusion with the epochs (views, terms, \ldots) of leader-election protocols
+which track the current leader rather than the current configuration.
 
 It is also necessary to limit the promises made to only those where $e(b) \le
-e(i)$: if node $a$ made a promise $\fprom{i}{a}{b}$ with $e(b) > e(i)$ then it
-can no longer accept any proposals $\prop{i}{b'}$ since such a proposal would
-have $e(b') \le e(i) < e(b)$ so that $b' \prec b$. As changes to the current
-era are themselves agreed by Paxos this may prevent any further progress from
-being made if sufficiently many nodes emit such promises.
+e(i)$ because if node $a$ made a promise $\fprom{i}{a}{b}$ with $e(b) > e(i)$
+then it can no longer accept any proposals $\prop{i}{b'}$ since such a proposal
+would have $e(b') \le e(i) < e(b)$ so that $b' \prec b$. As changes to the
+current era are themselves agreed by consensus this may prevent any further
+progress from being made.
 
 With these two modifications the proof of liveness runs much as in the original
 presentation:
@@ -791,9 +787,9 @@ form $\prep{b}$, and given that for every instance there is eventually at least
 one value to propose, eventually a value is chosen for every instance.
 \end{theorem}
 
-\begin{proof} The proof runs by induction over the instances, so suppose that
-$\chosen{j}{b_j}$ for all $j < i$ and show that eventually $\chosen{i}{b_i}$ as
-follows.
+\begin{proof} The proof proceeds by induction over the instances, so suppose
+that $\chosen{j}{b_j}$ for all $j < i$ and show that eventually
+$\chosen{i}{b_i}$ as follows.
 
 Firstly note that $i \le i_{\mathrm{max}}$ since either $i = 0$ or
 $\chosen{i-1}{b_{i-1}}$ and hence that $e(i)$ is known to $\ell$. Recall also
@@ -815,31 +811,33 @@ appropriate, broadcasts $\prop{i}{b_i}$, and waits to receive acceptances from
 a quorum of nodes in $\QII{e(i)}$. When enough acceptances have been received
 it follows that $\chosen{i}{b_i}$ as required. \end{proof}
 
-\subsection{Fully concurrent configuration changes}
+\subsection{Fully concurrent configuration changes}\label{fully-concurrent}
 
 In normal running there is an instance $i_0$ and a ballot $b$ with ${e(b) =
-e(i_0) = e(i_\mathrm{max}) = e_\mathrm{max}}$ and the node $\owner{b}$ has
-received a quorum of promises $q^\textrm{I} \in \QI{e(b)}$ for ballot $b$ for
-all instances $i \ge i_0$. In this state, $\owner{b}$ may emit $\prop{i}{b}$
-for any $i \ge i_0$, since $e(b) = e(i_0) \le e(i)$ as $e$ is nondecreasing.
-The node $\owner{b}$ is known as the \textit{leader} and its proposals are
-normally accepted without undue delay by all other nodes.
+e(i_0) = e(i_\mathrm{max}) = e_\mathrm{max}}$ and the distinguished node $\ell
+= \owner{b}$ has received a quorum of promises $q^\textrm{I} \in \QI{e(b)}$ for
+ballot $b$ for all instances $i \ge i_0$. In this state, $\ell$ may emit
+$\prop{i}{b}$ for any $i \ge i_0$, since $e(b) = e(i_0) \le e(i)$ as $e$ is
+nondecreasing.  The node $\ell$ is known as the \textit{leader} and its
+proposals are normally accepted without undue delay by all other nodes.
 
 \def\Qnew#1{Q^\textrm{#1}_\textrm{new}}
 
-When in this state, if an operator wishes to change the cluster configuration
-to $\langle \Qnew{I}, \Qnew{II} \rangle$ where $\QI{e(b)} \frown \Qnew{II}
-\frown \Qnew{I}$ they must first arrange to append $\langle \Qnew{I}, \Qnew{II}
+When in this state it is possible to perform a reconfiguration without
+preventing any other proposals from being made and values chosen concurrently
+using the following procedure. Suppose an operator wishes to change the cluster
+configuration to $\langle \Qnew{I}, \Qnew{II} \rangle$ where $\QI{e(b)} \frown
+\Qnew{II} \frown \Qnew{I}$. First she appends $\langle \Qnew{I}, \Qnew{II}
 \rangle$ to the sequence of configurations, setting $\langle \QI{e(b)+1},
 \QII{e(b)+1} \rangle = \langle \Qnew{I}, \Qnew{II} \rangle$ and $e_\mathrm{max}
-= e(b) + 1$, then pick a future instance $i_c > i_\mathrm{max}$ at which the
-change should take effect and append values to the sequence of eras to set
+= e(b) + 1$, then she picks a future instance $i_c > i_\mathrm{max}$ at which
+the change should take effect and appends values to the sequence of eras to set
 $e(i) = e(i_0)$ for $i_0 \le i < i_c$ and $e(i_c) = e(i_0) + 1$.  Since $e(i_c)
-= e(i_0) + 1 \le e(b) + 1$, instance $i_c$ and any future instances with the
-same era may be chosen even though phase I has not yet run for a ballot in this
-era.  As long as $e(i_\mathrm{max})$ is not increased again, this means there
-is no limit on how many instances can be chosen without waiting for another
-phase I to run.
+= e(i_0) + 1 \le e(b) + 1$, values for instance $i_c$ and any future instances
+with the same era may be proposed and chosen even though phase I has not yet
+run for a ballot in this era. As long as $e(i_\mathrm{max})$ is not increased
+again, this means there is no limit on how many further instances can be
+proposed and chosen without waiting for another phase I to complete.
 
 At this point, the system is no longer in normal running as defined above
 because $e(b) = e_\mathrm{max} - 1$. In order to get back to normal running
@@ -860,10 +858,11 @@ running. Observe the following:
 \begin{itemize}
 %
 \item The first part of this process requires that $e(i_\mathrm{max})$
-increases by at most $1$ before the new phase I has finished running. If
-$e(i_\mathrm{max})$ were increased by a larger amount then this would put a
-limit on how many instances can run in the old era, which preserves consistency
-and liveness but may limit performance.
+increases by at most $1$ before the new phase I has finished running, because
+if $e(i_\mathrm{max}) \ge e(i_0) + 2$ then no values may be chosen for any
+instance $i \ge i_\mathrm{max}$ without running another phase I, which bounds
+how many instances may be running concurrently. In this situation consistency
+and liveness are preserved but there may be a performance impact.
 %
 \item The second part of this process requires the existence of a node
 $\owner{b'}$ that has a casting vote. If $\owner{b} \ne \owner{b'}$ then this
@@ -896,6 +895,10 @@ $\langle M(w), M(w) \rangle$ by \textit{weighted majority}: \[M(w) = \left\{ q
 \;\middle|\; \sum_{a \in q} 2 w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\]
 Corollary \ref{weights-equal} in appendix \ref{weights-appendix} demonstrates
 the well-known result that $M(w) \frown M(w)$ for any weight function $w$.
+Indeed, if $w$ and $w'$ are weight functions that differ by a constant factor
+in the sense that that there are positive integers $k$ and $k'$ with $k w(a) =
+k' w'(a)$ for all $a$, then clearly ${M(w) = M(w')}$ and hence $M(w) \frown
+M(w')$.
 
 \def\wl#1{w^{1 \ldots #1}}
 \def\Mwl#1{M(\wl{#1})}
@@ -920,8 +923,10 @@ consecutive configurations. This extra generality is important for deployments
 where nodes may share infrastructure (e.g. power distribution or network
 connectivity) because such nodes may suffer correlated failures, and reducing
 this correlation tends to be expensive.  In more detail, a na\"ive approach to
-replacing a node in a three-node cluster would be to perform this sequence of
-configuration changes: \[\begin{array}{rcccc}
+swapping a node $a_{\textrm{old}}$ for a replacement $a_{\textrm{new}}$ in a
+three-node cluster using unweighted majorities would be to perform the
+configuration changes given by this sequence of weight functions:
+\[\begin{array}{rcccc}
 %
 \textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
 %
@@ -935,23 +940,27 @@ w_{e+2}&0&1&1&1\\
 %
 However to be resilient to infrastructure failures this requires all four nodes
 and their underlying infrastructures to be completely independent since a
-correlated failure of two nodes would prevent further progress.  It also has no
-node with a casting vote in era $e+1$. On the other hand the following sequence
-allows $a_{\textrm{old}}$ and $a_{\textrm{new}}$ to share infrastructure
-without extra risk, and both $a_1$ and $a_2$ have casting votes throughout:
-\[\begin{array}{rcccc}
+correlated failure of any two nodes would prevent further progress.  It also
+has no node with a casting vote in era $e+1$. On the other hand the following
+sequence achieves the same overall change but allows $a_{\textrm{old}}$ and
+$a_{\textrm{new}}$ to share infrastructure without extra risk, and both $a_1$
+and $a_2$ have casting votes throughout: \[\begin{array}{rcccc}
 %
 \textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
 %
-w_e&2&0&2&2\\
+w_e&1&0&1&1\\
 %
-w_{e+1}&2&1&2&2\\
+w_{e+1}&2&0&2&2\\
 %
-w_{e+2}&1&1&2&2\\
+w_{e+2}&2&1&2&2\\
 %
-w_{e+3}&0&1&2&2\\
+w_{e+3}&1&1&2&2\\
 %
-w_{e+4}&0&2&2&2\\
+w_{e+4}&0&1&2&2\\
+%
+w_{e+5}&0&2&2&2\\
+%
+w_{e+6}&0&1&1&1\\
 %
 \end{array}\]
 %
@@ -964,11 +973,6 @@ have three: \texttt{ap-southeast-2}, \texttt{eu-west-1}, \texttt{sa-east-1} and
 \texttt{us-west-2}. Similarly, only one Google Cloud Platform region
 (\texttt{us-central1}) has four zones and all the others have three zones.
 
-Notice also that if $w$ and $w'$ differ by a constant factor, in the sense that
-there are positive integers $k$ and $k'$ such that $k w(a) = k' w'(a)$ for all
-$a$, then clearly ${M(w) = M(w')}$ and hence $w$ and $w'$ can be used to define
-consecutive configurations.
-
 Early versions of Raft supported more general reconfigurations using a
 technique known as \textit{joint configurations}. To change from configuration
 $Q_{e}$ to an unrelated configuration $Q'$ (i.e.  $Q_{e} \not\frown Q' \frown
@@ -977,7 +981,7 @@ Q'$) it is possible to set $Q_{e+2} = Q'$ and set $Q_{e+1}$ to be the
 q \in Q_{e}, q' \in Q' \}.\] Intuitively, while this joint configuration is in
 use all decisions must be agreed by quorums of both the old and new
 configuration. Certainly this satisfies that \[Q_{e} \frown Q_{e + 1} \frown
-Q_{e+1} \frown Q_{e + 2} \frown Q_{e + 2}\] as required.
+Q_{e+1} \frown Q_{e + 2} \frown Q_{e + 2}.\]
 
 If $w(a) = 0$ for all $a$ then $w$ is said to be \textit{weightless} and $M(w)
 = \varnothing$. Clearly if there is an instance $i$ such that $Q_{e(i)} =
@@ -987,23 +991,24 @@ always permitted, and this has the effect of stopping a Paxos cluster at a
 particular instance \cite{reconfiguring-a-state-machine,stoppable-paxos}.
 
 There is no requirement for the eras of consecutive instances to differ by at
-most one: an era may be skipped at instance $i$ by letting $e(i) = e(i-1) + 2$.
-This recovers the ability to perform arbitrary configuration changes in a
-single step as in Dynamic Paxos: if the system is currently using configuration
-$Q_{e}$ and an operator wishes to change to an unrelated configuration $Q'$
-then they can set $Q_{e+2} = Q'$ and pick an appropriate $Q_{e+1}$ which
-satisfies that $Q_{e} \frown Q_{e + 1} \frown Q_{e+1} \frown Q'$: for instance
-$Q_{e+1}$ could be $\varnothing$ or could be the joint configuration of $Q_{e}$
-and $Q'$.  However, re-running phase I can only be delayed if the era increases
-by $1$ and in this situation the era increases by $2$, so the new phase I must
-be complete before any new phase II instances can be started.  To prevent this
-causing the pipeline to stall, the operator chooses an $\alpha > 0$ and sets
-$e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i + \alpha$,
-effectively delaying the configuration change for $\alpha$ instances in the
-hope that this is long enough to have completed the new phase I. This improves
-slightly on Dynamic Paxos as there is no need to limit the pipeline length
-unless a configuration change is in progress, and different changes may use
-different values of $\alpha$ if required.
+most one so an era may be skipped at instance $i$ by letting $e(i) = e(i-1) +
+2$.  This recovers the ability to perform arbitrary configuration changes in a
+single step as in Dynamic Paxos. In more detail, if the system is currently
+using configuration $Q_{e}$ and an operator wishes to change to an unrelated
+configuration $Q'$ then she can set $Q_{e+2} = Q'$ and pick an appropriate
+$Q_{e+1}$ such as $\varnothing$ or the joint configuration of $Q_{e}$ and $Q'$
+which satisfies that $Q_{e} \frown Q_{e + 1} \frown Q_{e+1} \frown Q'$.
+However, re-running phase I can only be delayed as described in section
+\ref{fully-concurrent} above if the era increases by $1$ and in this situation
+the era increases by $2$, so the new phase I must be complete before any new
+phase II instances can be started.  To prevent this causing the pipeline to
+stall, the operator chooses an $\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and
+$e(j) = e(i)$ for $i < j \le i + \alpha$, effectively delaying the
+configuration change for $\alpha$ instances in the hope that this is long
+enough to have completed the new phase I. This improves slightly on Dynamic
+Paxos as there is no need to limit the pipeline length unless a configuration
+change is in progress, and different changes may use different values of
+$\alpha$ if required.
 
 \section{Related Work}
 
@@ -1014,17 +1019,17 @@ change is not in progress. It also supports Raft-style
 reconfigurations\cite{raft} which can be performed with an unlimited pipeline
 throughout, and implements the ``brick-wall'' stopping scheme as in Stoppable
 Paxos\cite{stoppable-paxos}. Unlike in Stoppable Paxos, here an instance can be
-chosen only if the previous instances have all been chosen.
+chosen only if the previous instances have also all been chosen. This could be
+an acceptable restriction in many situations.
 
 It achieves equivalent goals to those of Vertical Paxos\cite{vertical-paxos}
 except that here there is no requirement for a separate oracle to manage the
-configuration of the system, which avoids the problem that for full resilience
-it must be possible to reconfigure the oracle itself, which requires another
-oracle and so on \textit{ad infinitum}. Egalitarian
-Paxos\cite{egalitarian-paxos} also defines a nondecreasing $e(b)$ for each
-ballot $b$ to ensure that ballots are not chosen when their configuration is
-stale, but as with Vertical Paxos these values are managed by an external
-oracle.
+configuration of the system.  Egalitarian Paxos\cite{egalitarian-paxos} also
+defines a nondecreasing $e(b)$ for each ballot $b$ to ensure that ballots are
+not chosen when their configuration is stale, and as with Vertical Paxos these
+values are managed externally. The problem with an external oracle is that for
+full resilience it must be possible to reconfigure the oracle itself, which
+requires another oracle and so on \textit{ad infinitum}.
 
 It is also noted that there is no need for every node to receive (even a hash
 of) every value that is proposed, which may allow for even cheaper
@@ -1036,13 +1041,10 @@ Meling\cite{async-reconfig} which uses eventual consistency rather than
 consensus to determine the configuration of the system, and therefore supports
 reconfiguration as long as it is still possible to communicate with a quorum of
 nodes even if consensus cannot be achieved due to an inability to elect a
-leader. In such a situation consensus-based approaches such as the one
-presented here would fail to make any further progress, whereas one based on
-eventual consistency could be reconfigured into one in which a leader may be
-elected and thus in which further progress can be made.  It is certainly
-possible to modify the approach presented here to allow the configurations
-themselves to be defined in an eventually-consistent manner; defining $e(i)$
-similarly seems feasible too but the details have so far proved elusive.
+distinguished leader. In such a situation consensus-based approaches such as
+the one presented here would fail to make any further progress, whereas one
+based on eventual consistency could be reconfigured into one in which a leader
+may be elected and thus in which further progress can be made.
 
 
 % An example of a floating figure using the graphicx package.
