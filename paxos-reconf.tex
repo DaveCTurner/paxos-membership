@@ -1139,6 +1139,72 @@ similarly seems feasible too but the details have so far proved elusive.
 \pagebreak
 
 \appendices
+
+\section{Consecutive eras using weight-based
+configurations}\label{weights-appendix}
+
+\begin{theorem} \label{weights-nearly-equal} If $w, w' : \mathbb A \to \mathbb
+N$ are weight functions such that $\sum_{a \in \mathbb A} |w'(a) - w(a)| \le 1$
+then $M(w) \frown M(w')$.  \end{theorem}
+
+\begin{proof}Since $w$ and $w'$ take integer values, they must differ at at
+most one node by at most $1$. Let $a_0$ be the node such that $|w'(a_0) -
+w(a_0)| \le 1$ and $w(a) = w'(a)$ for all $a \ne a_0$.
+%
+Let $q \in M(w)$ and $q' \in M(w')$. By the definition of $M$, and since $w$
+and $w'$ take only integer values,
+%
+$\sum_{a \in q} 2 w(a) \ge \sum_{a \in \mathbb A} w(a) + 1$
+%
+and
+%
+$\sum_{a \in q'} 2 w'(a) \ge \sum_{a \in \mathbb A} w'(a) + 1$.
+%
+Let $d_{\mathbb A} = w'(a_0) - w(a_0)$ so that $\sum_{a \in \mathbb A} w'(a) =
+\sum_{a \in \mathbb A} w(a) + d_{\mathbb A}$ and $|d_\mathbb A| \le 1$. Also
+let \[ d_{q'} =
+\begin{cases}
+%
+d_{\mathbb A} & a_0 \in q' \\
+%
+0 & \textrm{otherwise,}
+%
+\end{cases}
+\]
+so that $\sum_{a \in q'} w'(a) = \sum_{a \in q'} w(a) + d_{q'}$.
+%
+Then
+\begin{gather*}
+%
+\sum_{a \in \mathbb A} 2w(a) + d_{\mathbb A} + 2 \\
+%
+\begin{aligned}
+%
+&= \left( \sum_{a \in \mathbb A} w(a)  + 1\right)
++  \left( \sum_{a \in \mathbb A} w'(a) + 1\right) \\
+%
+&\le \sum_{a \in q}  2w(a)
++    \sum_{a \in q'} 2w'(a) \\
+%
+&= \sum_{a \in q}  2w(a)
++  \sum_{a \in q'} 2w(a) + 2d_{q'}\\
+%
+&= \sum_{a \in q \cup q'} 2w(a)
++  \sum_{a \in q \cap q'} 2w(a) + 2d_{q'}\\
+%
+&\le \sum_{a \in \mathbb A} 2w(a)
++    \sum_{a \in q \cap q'} 2w(a) + 2d_{q'},\\
+%
+\end{aligned}\end{gather*} so that $\sum_{a \in q \cap q'} 2w(a) \ge d_{\mathbb
+A} + 2 - 2d_{q'} = 2 \pm d_\mathbb A \ge 1$ and hence $q \cap q' \ne
+\varnothing$ as desired.  \end{proof}
+
+\begin{corollary} \label{weights-equal} If $w : \mathbb A \to \mathbb N$ is a
+weight function then \[M(w) \frown M(w).\]  \end{corollary}
+
+\begin{proof} This is a special case of theorem \ref{weights-nearly-equal},
+where $w' = w$.  \end{proof}
+
 \section{Consistency of the Synod algorithm}
 \label{synod-safety}
 
@@ -1294,71 +1360,6 @@ Synod's invariant \ref{synod-quorums} follows from lemma
 \ref{paxos-synod-quorum-invariant} and the remaining invariants are simple to
 show so by theorem \ref{synod-safety-theorem} it follows that $v_i(b_1) =
 v_i(b_2)$ as required.  \end{proof}
-
-\section{Consecutive eras using weight-based
-configurations}\label{weights-appendix}
-
-\begin{theorem} \label{weights-nearly-equal} If $w, w' : \mathbb A \to \mathbb
-N$ are weight functions such that $\sum_{a \in \mathbb A} |w'(a) - w(a)| \le 1$
-then $M(w) \frown M(w')$.  \end{theorem}
-
-\begin{proof}Since $w$ and $w'$ take integer values, they must differ at at
-most one node by at most $1$. Let $a_0$ be the node such that $|w'(a_0) -
-w(a_0)| \le 1$ and $w(a) = w'(a)$ for all $a \ne a_0$.
-%
-Let $q \in M(w)$ and $q' \in M(w')$. By the definition of $M$, and since $w$
-and $w'$ take only integer values,
-%
-$\sum_{a \in q} 2 w(a) \ge \sum_{a \in \mathbb A} w(a) + 1$
-%
-and
-%
-$\sum_{a \in q'} 2 w'(a) \ge \sum_{a \in \mathbb A} w'(a) + 1$.
-%
-Let $d_{\mathbb A} = w'(a_0) - w(a_0)$ so that $\sum_{a \in \mathbb A} w'(a) =
-\sum_{a \in \mathbb A} w(a) + d_{\mathbb A}$ and $|d_\mathbb A| \le 1$. Also
-let \[ d_{q'} =
-\begin{cases}
-%
-d_{\mathbb A} & a_0 \in q' \\
-%
-0 & \textrm{otherwise,}
-%
-\end{cases}
-\]
-so that $\sum_{a \in q'} w'(a) = \sum_{a \in q'} w(a) + d_{q'}$.
-%
-Then
-\begin{gather*}
-%
-\sum_{a \in \mathbb A} 2w(a) + d_{\mathbb A} + 2 \\
-%
-\begin{aligned}
-%
-&= \left( \sum_{a \in \mathbb A} w(a)  + 1\right)
-+  \left( \sum_{a \in \mathbb A} w'(a) + 1\right) \\
-%
-&\le \sum_{a \in q}  2w(a)
-+    \sum_{a \in q'} 2w'(a) \\
-%
-&= \sum_{a \in q}  2w(a)
-+  \sum_{a \in q'} 2w(a) + 2d_{q'}\\
-%
-&= \sum_{a \in q \cup q'} 2w(a)
-+  \sum_{a \in q \cap q'} 2w(a) + 2d_{q'}\\
-%
-&\le \sum_{a \in \mathbb A} 2w(a)
-+    \sum_{a \in q \cap q'} 2w(a) + 2d_{q'},\\
-%
-\end{aligned}\end{gather*} so that $\sum_{a \in q \cap q'} 2w(a) \ge d_{\mathbb
-A} + 2 - 2d_{q'} = 2 \pm d_\mathbb A \ge 1$ and hence $q \cap q' \ne
-\varnothing$ as desired.  \end{proof}
-
-\begin{corollary} \label{weights-equal} If $w : \mathbb A \to \mathbb N$ is a
-weight function then \[M(w) \frown M(w).\]  \end{corollary}
-
-\begin{proof} This is a special case of theorem \ref{weights-nearly-equal},
-where $w' = w$.  \end{proof}
 
 % use section* for acknowledgment
 \section*{Acknowledgment}
