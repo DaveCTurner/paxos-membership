@@ -761,9 +761,9 @@ $\mathbb B = \mathbb N \times \mathbb N \times \mathbb A$ ordered
 lexicographically, where $e(\langle e, n, a\rangle) = e$ and $\owner{\langle e,
 n, a \rangle} = a$. This is the approach used in Egalitarian
 Paxos\cite{egalitarian-paxos} in which eras are known as \textit{epochs}: this
-word is not used here to avoid confusion with the epochs (terms, views, \ldots)
-of the leader-election protocol which track the current leader rather than the
-current configuration.
+terminology is not used here to avoid confusion with the epochs (views, terms,
+\ldots) of the leader-election protocol which track the current leader rather
+than the current configuration.
 
 It is also necessary to limit the promises made to only those where $e(b) \le
 e(i)$: if node $a$ made a promise $\fprom{i}{a}{b}$ with $e(b) > e(i)$ then it
