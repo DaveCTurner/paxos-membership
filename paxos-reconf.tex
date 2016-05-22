@@ -486,11 +486,12 @@ value $v_i$ when $\ge f+1$ (i.e. a majority) of the nodes agree.  The
 \textit{quorums} and the set of quorums in use is known as the
 \textit{configuration} of the cluster.
 
-It is normally necessary to be able to add or remove nodes from the cluster
-while it is running. It is crucial that all participating nodes agree on the
-cluster configuration, and this can be achieved by tracking the configuration
-with the consensus algorithm itself using a state machine whose transitions
-occur when particular values in the sequence are chosen.
+It is normally necessary to be able to dynamically reconfigure a cluster by
+adding or removing nodes while it is running. It is crucial that all
+participating nodes agree on the cluster configuration, and this can be
+achieved by tracking the configuration with the consensus algorithm itself
+using a state machine whose transitions occur when particular values in the
+sequence are chosen.
 
 In Paxos, each value $v_i$ is chosen using a separate instance $i$ of a
 two-phase consensus protocol known as \textit{Synod}. The full Paxos algorithm
@@ -505,31 +506,35 @@ Raft's pattern of execution is similar.
 Both algorithms allow for \textit{pipelining} \cite{smart}: later values can be
 proposed before earlier ones have been chosen. To ensure that this preserves
 consistency is nontrivial because a value may only be proposed once a quorum of
-nodes are ready for it, but whether a set of nodes is a quorum or not may
-change as earlier values are chosen. Paxos typically solves this problem by
-limiting the length of the pipeline to some $\alpha > 0$ and requiring that a
-configuration change chosen at instance $i$ does not take effect until at least
-instance $i + \alpha$.  Raft imposes no such limit on the number of
-concurrently-running instances and instead ensures consistency by only allowing
-certain reconfigurations to take place, and then performs sequences of these
-restricted reconfigurations in order to achieve an arbitrary reconfiguration.
+nodes are ready for it, but\footnote{TODO revise} whether a set of nodes is a
+quorum or not may change as earlier values are chosen. Paxos implementations
+typically solve this problem by limiting the length of the pipeline to some
+$\alpha > 0$ and requiring that a configuration change chosen at instance $i$
+does not take effect until at least instance $i + \alpha$.  Raft imposes no
+such limit on the number of concurrently-running instances and instead ensures
+consistency by only allowing certain reconfigurations to take place, and then
+performs sequences of these restricted reconfigurations in order to achieve an
+arbitrary reconfiguration.
 
 The choice of the pipeline length parameter $\alpha$ is a little delicate: too
 small and the system may suffer from poor performance due to lack of
 parallelism, but too large and configuration changes can take an unreasonably
 long time to complete. It would be better to be able to vary the value of
 $\alpha$ as the system is running rather than having to choose it up-front, but
-needing such a limit at all seems inelegant\cite{reconfiguring-a-state-machine}
+there seems to be no published method for doing so safely. It would be better
+still to be able to impose this limit only when a configuration change is in
+progress and allow an unbounded pipeline while the configuration is static. But
+the need for any such limit seems inelegant\cite{reconfiguring-a-state-machine}
 particularly when compared with Raft's approach.
 
-Here it is shown that the value of $\alpha$ can indeed be varied as the system
-is running, and that Paxos also supports an unlimited-length pipeline during
-reconfiguration by allowing phase II to start using a new configuration without
-re-running phase I. This is shown to preserve consistency as long as the
-configuration change satisfies certain conditions as described in section
-\ref{configuration-changes} below. In particular, this approach unifies and
-generalises the reconfigurations supported by both Raft and Dynamic Paxos as
-shown in section \ref{types-of-configuration-change}.
+Here it is shown that the value of $\alpha$ can indeed be varied safely as the
+system is running and that the pipeline may indeed remain unbounded while the
+configuration is static. It is also shown that the pipeline may safely remain
+unbounded even during a configuration change as long as the reconfiguration
+satisfies the conditions described in section \ref{configuration-changes}
+below. In particular, this result unifies and generalises the reconfigurations
+supported by both Raft and Dynamic Paxos\cite{cheap-paxos} as shown in section
+\ref{types-of-configuration-change}.
 
 The algorithm is presented here in its entirety for the sake of consistency of
 notation and because it modifies the original algorithm in ways that invalidate
@@ -571,11 +576,11 @@ have been sent, and to add another predicate $\chosen{}{b}$ which indicates
 that the ballot $b$ may be chosen.
 
 There is a function $v : \mathbb B \to \mathbb V$ assigning a value to each
-ballot, discussed in more detail in section \ref{value-function} below, and
-the system satisfies a set of invariants as described in appendix
-\ref{synod-safety} from which can be shown that consistency is ensured:
-\[\textrm{if } \chosen{}{b} \textrm{ and } \chosen{}{b'} \textrm { then } v(b)
-= v(b').\]
+ballot, discussed in more detail in section \ref{value-function} below, and the
+system satisfies a set of invariants as described in appendix
+\ref{synod-safety} from which theorem \ref{synod-safety-theorem} shows that
+consistency is guaranteed: \[\textrm{if } \chosen{}{b} \textrm{ and }
+\chosen{}{b'} \textrm { then } v(b) = v(b').\]
 
 Each node operates as a state machine whose transitions are caused by the
 receipts of messages. A node may emit $\prop{}{b}$ when it considers phase I to
@@ -589,15 +594,18 @@ depending on the ballot $b$ and the phase as discussed in section
 
 \subsection{Implementing the value function}\label{value-function}
 
-In the original presentation of the Synod algorithm, the values of ballots
-are carried along with their identifiers in the messages $\bprom{}{a}{b}{
-b',v(b') }$, $\prop{}{ b,v(b)}$ and $\acc{}{a}{ b,v(b) }$. Observation O4 in
+In the original presentation of the Synod algorithm, the values of ballots are
+carried along with their identifiers in the messages $\bprom{}{a}{b}{ b',v(b')
+}$, $\prop{}{ b,v(b)}$ and $\acc{}{a}{ b,v(b) }$. Observation O4 in
 \cite{cheap-paxos} notes that these values can be replaced in some cases by
 hashes, which is useful if the values themselves are expensive to transmit
 between nodes. This can be taken one step further and the values can be
 completely elided from the messages that take part in the Synod protocol,
 allowing considerably more freedom in the implementation of the function $v$
-without sacrificing consistency.
+without sacrificing consistency. This is useful because the values themselves
+may be large or expensive to transport across the network but the messages
+involved in the Synod protocol are typically very small if the values are
+removed.
 
 Although it appears that the function $v$ is fixed, in practice it is allowed
 to change as the system runs. Treating it as fixed simplifies the consistency
@@ -605,24 +613,25 @@ proof and highlights that its values need not be included in all messages, but
 means that the system cannot be shown to satisfy any useful liveness
 properties.  To recover liveness, it is enough to note that if the invariants
 of appendix \ref{synod-safety} are satisfied with a value function $v$ then
-they are satisfied for any value function $v'$ that agrees with $v$ on proposed
-ballots, i.e. having $v(b) = v'(b)$ only whenever $\prop{}{b}$. Since only
-$\owner{b}$ may propose $b$, if it has not yet proposed a value for $b$ it can
-prove that $\neg\prop{}{b}$ and therefore freely modify $v(b)$.
+they continue to be satisfied if $v$ is replaced by another value function $v'$
+that agrees with $v$ on proposed ballots, i.e. where $v(b) = v'(b)$ if
+$\prop{}{b}$ but not necessarily otherwise. Since only $\owner{b}$ may propose
+$b$, if it has not yet proposed a value for $b$ it can prove that
+$\neg\prop{}{b}$ and therefore freely modify $v(b)$.
 
 It is also important for liveness that the implementation of $v$ is resilient
 to the same failure modes as the rest of the system. Since the value of each
 ballot $b$ has at most one writer, $\owner{b}$, it is possible to think of $v$
 as an insert-only set of pairs ${\{ \langle b, v(b) \rangle \mid \prop{}{b}
 \}}$ which is an example of a convergent replicated data type\cite{crdts} and
-can therefore be implemented robustly in a distributed system. Indeed the
-original presentation can be seen as containing such an implementation, where
-the inclusion of values in all messages ensures convergence occurs as quickly
-as possible, and replicating this set across all ${2f+1}$ nodes ensures $v$
-itself may be resilient to as many as $2f$ failures. Cheap Paxos is cheaper
-partly because it replicates $v$ across just the ${f+1}$ primary processors,
-with the $f$ auxiliary processors storing just the hashes of values to ensure
-integrity.
+can therefore be implemented simply and robustly in a distributed system.
+Indeed the original presentation can be seen as containing such an
+implementation, where the inclusion of values in all messages ensures
+convergence occurs as quickly as possible, and replicating this set across all
+${2f+1}$ nodes ensures $v$ itself may be resilient to as many as $2f$ failures.
+Cheap Paxos\cite{cheap-paxos} is cheaper partly because it replicates $v$
+across just the ${f+1}$ primary processors, with the $f$ auxiliary processors
+storing just the hashes of values to ensure integrity.
 
 It is also worth comparing this approach to that of Vertical
 Paxos\cite{vertical-paxos} which takes care to ensure that the system state is
@@ -651,12 +660,13 @@ define $Q_1 \frown Q_2$ iff every $q_1 \in Q_1$ and $q_2 \in Q_2$ have ${q_1
 phase-I and phase-II quorums for ballot $b$ respectively.
 
 In the original presentation of the Synod algorithm any (weighted) majority of
-the nodes could be used as a quorum, so that $\QI{}(b_1) \frown \QII{}(b_2)$
-for all $b_1$ and $b_2$ since all majorities intersect. The proof of theorem
-\ref{synod-safety-theorem} in appendix \ref{synod-safety} is a generalisation
-of the original one to demonstrate that consistency still holds even under the
-weaker assumption that $\QI{}(b_1) \frown \QII{}(b_2)$ only need hold when
-$\prop{}{b_1}$, $\chosen{}{b_2}$ and $b_1 \succ b_2$.
+the nodes could be used as a quorum, so that $\QI{}(b_1) = \QII{}(b_2)$ and
+hence $\QI{}(b_1) \frown \QII{}(b_2)$ for all $b_1$ and $b_2$ since all
+majorities intersect. The proof of theorem \ref{synod-safety-theorem} in
+appendix \ref{synod-safety} is a generalisation of the original one to
+demonstrate that consistency still holds even under the weaker assumption that
+$\QI{}(b_1) \frown \QII{}(b_2)$ only need hold when $\prop{}{b_1}$,
+$\chosen{}{b_2}$ and $b_1 \succ b_2$.
 
 \section{The Paxos algorithm}
 
@@ -676,7 +686,7 @@ $\fprom{i}{a}{b}$, $\bprom{i}{a}{b}{b'}$ and $\mprom{i}{a}{b}$ according to its
 past behaviour. Each phase II instance $i$ operates just as in the Synod
 algorithm, starting with a broadcast of $\prop{i}{b}$ to which each node $a$
 may respond with an acceptance $\acc{i}{a}{b}$ and once acceptances have been
-received from a quorum of nodes it follows that $\chosen{i}{b}$.
+received from a quorum of nodes it follows that $\chosen{i}{b}$ holds.
 
 There is a function $v_i : \mathbb B \to \mathbb V$ for each instance $i$
 giving a value to each ballot, and theorem \ref{paxos-safety-theorem} shows
@@ -706,36 +716,36 @@ to era $e+1$ is complete instances will use $\langle \QI{e+1}, \QII{e+1}
 \rangle$. Since $\QII{e} \frown \QI{e} \frown \QII{e+1} \frown \QI{e+1}$ it
 follows that consistency is preserved throughout by the observation of
 \ref{per-phase-quorums} above, and there need be no limit on the number of
-concurrently-running instances since the phase-I and phase-II quorums can
-change era independently.
+concurrently-running instances since\footnote{TODO nonsequitur - explain!} the
+phase-I and phase-II quorums can change era independently.
 
 To achieve this there are also two nondecreasing integer-valued functions, both
 written $e(\cdot)$, which respectively assign an era $e(i)$ to each instance
 $i$, and an era $e(b)$ to each ballot $b$. Intuitively $e(b)$ records which
 quorums may be used to decide that $\prop{i}{b}$ can be sent in phase I and
-$e(i)$ records which quorums may be used to decide that $\chosen{i}{b}$ in
-phase II, with extra conditions to ensure that ${e(b) \le e(i) \le e(b)+1}$ and
-therefore that ${e(i) \in \{ e(b), e(b)+1 \}}$ and hence $\QI{e(b)} \frown
-\QII{e(i)}$ as required to ensure consistency.  More formally, a node may emit
-$\prop{i}{b}$ only if $e(b) \le e(i)$ and it has received promises for ballot
-$b$ in instance $i$ from a quorum of nodes in $\QI{e(b)}$, and similarly a node
-may decide $\chosen{i}{b}$ only if ${e(i) \le e(b)+1}$ and it has received
-$\acc{i}{a}{b}$ from a quorum of nodes in $\QII{e(i)}$.
+$e(i)$ records which quorums may be used to decide that $\chosen{i}{b}$ holds
+in phase II. More precisely a node may emit $\prop{i}{b}$ only if $e(b) \le
+e(i)$ and it has received promises for ballot $b$ in instance $i$ from a quorum
+of nodes in $\QI{e(b)}$, and similarly a node may decide $\chosen{i}{b}$ only
+if ${e(i) \le e(b)+1}$ and it has received $\acc{i}{a}{b}$ from a quorum of
+nodes in $\QII{e(i)}$. These extra conditions ensure that if $\chosen{i}{b}$
+then ${e(b) \le e(i) \le e(b)+1}$ and hence $\QI{e(b)} \frown \QII{e(i)}$ as
+required to ensure consistency.
 
 \subsection{Dynamic configuration changes}
 
 As in Dynamic Paxos, the configurations $\langle \QI{0}, \QII{0} \rangle,
 \langle \QI{1}, \QII{1} \rangle, \ldots$ and era numbers $e(i)$ are themselves
-chosen by Paxos. In more detail, configurations are tracked by a state machine
-whose state is the finite sequence $\langle \QI{0}, \QII{0} \rangle, \ldots,
-\langle \QI{e_\mathrm{max}}, \QII{e_\mathrm{max}} \rangle$ and the era numbers
-of instances are tracked by a state machine whose state is the finite
+chosen by consensus. In more detail, configurations are tracked by a state
+machine whose state is the finite sequence $\langle \QI{0}, \QII{0} \rangle,
+\ldots, \langle \QI{e_\mathrm{max}}, \QII{e_\mathrm{max}} \rangle$ and the era
+numbers of instances are tracked by a state machine whose state is the finite
 nondecreasing sequence $e(0), \ldots, e(i_\mathrm{max})$.  Their transitions
 append one or more elements to these sequences, but do not change any existing
-elements, and the tracked sequences are always long enough to make progress: if
-$\chosen{i}{b}$ then they satisfy $i_\mathrm{max} > i$ and $e_\mathrm{max} \ge
-e(i_\mathrm{max})$. Era numbers $e(b)$ for ballots $b$ are fixed in advance and
-not chosen by Paxos.
+elements, and the tracked sequences are always long enough to make progress in
+the sense that if $\chosen{i}{b}$ then they satisfy $i_\mathrm{max} > i$ and
+$e_\mathrm{max} \ge e(i_\mathrm{max})$. Era numbers $e(b)$ for ballots $b$ are
+fixed in advance and not chosen by Paxos.
 
 \subsection{Liveness}\label{liveness}
 
