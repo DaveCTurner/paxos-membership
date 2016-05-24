@@ -444,8 +444,8 @@ d.turner@tracsis.com)}% <-this % stops a space
 \begin{abstract}Distributed consensus is an essential building block for
   creating fault-tolerant systems. When equipped with a consensus algorithm a
   distributed system can act as a replicated state machine (RSM), duplicating
-  its state across a number of redundant components to avoid the failure of any
-  single component leading to a system-wide failure. Paxos and Raft are two
+  its state across a set of redundant components to avoid the failure of any
+  single component leading to a system-wide failure. Paxos and Raft are
   examples of algorithms for achieving distributed consensus. Practical
   implementations of this kind of system must support dynamic reconfiguration
   in order to be able to replace failed components and perform other
@@ -483,25 +483,29 @@ Distributed algorithms, fault tolerance.
 
 \section{Introduction}
 
-\IEEEPARstart{D}{istributed} systems can tolerate faults if they are built from
-redundant components such that certain sets of components may fail without
-causing a system-wide failure. A replicated state machine (RSM) is a style of
-fault-tolerant distributed system in which a deterministic state machine is
-replicated across a number of redundant nodes. If each node receives the same
-sequence of commands then, being deterministic, they all compute the same state.
+\IEEEPARstart{D}{istributed} systems are systems built from collections of
+parts which may communicate and may also sometimes fail. Such systems can
+tolerate failures of individual parts without suffering a system-wide failure
+by ensuring that there is redundancy between the parts.  A replicated state
+machine (RSM) is a style of fault-tolerant distributed system in which a
+deterministic state machine is replicated across a set of distinct nodes in a
+way that ensures each node receives the same sequence of commands. Being
+deterministic, each node computes the same state if they all receive the same
+inputs.
 
-In order to arrange for each node to receive the same sequence of commands the
-system must achieve consensus (or \textit{choose}) a consistent sequence $v_0,
-v_1, \ldots$ of values, which is known as the \textit{distributed consensus
-problem}. Paxos \cite{part-time-parliament} and Raft\cite{raft} are two
-algorithms that solve this problem.  They guarantee system-wide
-\textit{consistency}, in the sense that the values chosen are guaranteed to be
-equal across the whole system even in the presence of failures. They typically
-run on a cluster of $2f+1$ nodes, where $f$ is the number of faulty nodes that
-should be tolerated, and consensus is achieved on a value $v_i$ when $\ge f+1$
-(i.e. a majority) of the nodes agree.  The (nonempty) sets of nodes involved in
-reaching consensus are known as \textit{quorums} and the set of quorums in use
-is known as the \textit{configuration} of the cluster.
+In order to arrange for each node to receive these commands the system must
+achieve consensus on (or \textit{choose}) a consistent sequence $v_0, v_1,
+\ldots$ of values. This is the \textit{distributed consensus problem} which has
+been thoroughly studied and Paxos \cite{part-time-parliament} and
+Raft\cite{raft} are two algorithms that have been developed to solve it. They
+guarantee system-wide \textit{consistency}, in the sense that the values chosen
+are guaranteed to be equal across the whole system even in the presence of
+failures. They typically run on a cluster of $2f+1$ nodes, where $f$ is the
+number of faulty nodes that should be tolerated, and consensus is achieved on a
+value $v_i$ when $\ge f+1$ (i.e. a majority) of the nodes agree.  The
+(nonempty) sets of nodes involved in reaching consensus are known as
+\textit{quorums} and the set of quorums in use is known as the
+\textit{configuration} of the cluster.
 
 It is normally necessary to be able to dynamically reconfigure a cluster by
 adding or removing nodes while it is running. This allows the components of the
@@ -532,10 +536,11 @@ implementations typically solve this problem by limiting the length of the
 pipeline to some $\alpha > 0$ and requiring that a configuration change chosen
 at instance $i$ does not take effect until at least instance $i + \alpha$,
 which means that when a value is proposed there can be no as-yet-undecided
-configuration change in the pipeline.  Raft imposes no limit on the number of
-concurrently-running instances and instead ensures consistency by restricting
-which reconfigurations may occur, and then performs sequences of these
-restricted reconfigurations in order to achieve an arbitrary reconfiguration.
+configuration change in the pipeline that could cause a different value to be
+chosen. Raft imposes no limit on the number of concurrently-running instances
+and instead ensures consistency by restricting which reconfigurations may
+occur, and then performs sequences of these restricted reconfigurations in
+order to achieve an arbitrary reconfiguration.
 
 The choice of the pipeline length parameter $\alpha$ must be made carefully. If
 it is too small then the system may suffer from poor performance due to lack of
@@ -561,13 +566,14 @@ Paxos\cite{cheap-paxos} as shown in section
 
 The algorithm is presented here in its entirety for the sake of consistency of
 notation and because it modifies the original algorithm in ways that invalidate
-its consistency and liveness proofs. Reworked proofs are included in section
-\ref{liveness} and appendices \ref{synod-safety} and \ref{paxos-invariants} and
-differences from the original are discussed throughout. We begin with a recap
-of the Synod algorithm in section \ref{synod-text} and follow this by covering
-the full Paxos algorithm in section \ref{paxos-text}, then in section
+its consistency and liveness proofs.  We begin with a recap of the Synod
+algorithm in section \ref{synod-text} and follow this by covering the full
+Paxos algorithm in section \ref{paxos-text}, then in section
 \ref{types-of-configuration-change} it is shown how this work generalises the
-existing reconfiguration processes supported in Paxos and Raft.
+existing reconfiguration processes supported in Paxos and Raft.  Reworked
+proofs are included in section \ref{liveness} and appendices \ref{synod-safety}
+and \ref{paxos-invariants} and differences from the original are discussed
+throughout.
 
 %\IEEEpubidadjcol %must be in 2nd col of 1st page
 
@@ -587,7 +593,7 @@ of operating a cluster.
 
 Chandra, Griesemer and Redstone \cite{paxos-made-live} note that the details of
 reconfiguration are ``relatively minor'' but ``subtle'' and do not give any
-details on the scheme that they use.
+details on the reconfiguration scheme used in their Chubby system.
 
 Malkhi, Lamport and Zhou \cite{stoppable-paxos} proposed Stoppable Paxos, an
 alternative method for reconfiguring clusters in which an RSM may be stopped,
@@ -607,7 +613,7 @@ another oracle and so on \textit{ad infinitum}.
 Ongaro and Ousterhout \cite{raft} developed the Raft protocol which supports an
 unbounded pipeline throughout the reconfiguration process by instead limiting
 the reconfigurations that can be performed to be, in a sense, sufficiently
-small.
+small that reconfiguration remains safe.
 
 Viewstamped Replication and Zab are two other well-known consensus protocols.
 Viewstamped Replication supports reconfiguration as described by Liskov and
@@ -616,9 +622,9 @@ Reed and Junqueira \cite{zab} initially publised Zab without reconfiguration
 and this feature was subsequently added by Shraer, Reed, Malkhi and Junqueira
 \cite{zab-reconf}, using a limited-pipeline approach much as in Dynamic Paxos.
 
-An interesting alternative approach was proposed by Jahl and Meling
-\cite{async-reconfig} which uses eventual consistency rather than consensus to
-determine the configuration of the system, and therefore supports
+An interesting alternative approach to reconfiguration was proposed by Jahl and
+Meling \cite{async-reconfig} which uses eventual consistency rather than
+consensus to determine the configuration of the system, and therefore supports
 reconfiguration as long as it is still possible to communicate with a quorum of
 nodes even if consensus cannot be achieved due to an inability to elect a
 distinguished leader. In such a situation consensus-based approaches such as
@@ -630,9 +636,10 @@ may be elected and thus in which further progress can be made.
 
 Synod\cite{part-time-parliament} is an algorithm for achieving consensus on a
 single value in a distributed system comprising a set of nodes which can
-communicate by sending messages to each other. Communication is asynchronous
-but not Byzantine, in the sense that messages may be delayed, reordered,
-duplicated and dropped but not corrupted.
+communicate by sending messages to each other. The system is asynchronous but
+not Byzantine, in the sense that messages may be delayed, reordered, duplicated
+and dropped but not corrupted, and processes may run arbitrarily slowly or even
+stop but may not deviate from their specifications.
 
 Let $\mathbb B$ be a set of \textit{ballot identifiers} with a wellfounded
 total order $\prec$. Let $\mathbb A$ be a set of \textit{node identifiers} and
@@ -647,36 +654,49 @@ let $\mathbb V$ be the set of values that may be chosen.
 \def\chosen#1#2{\mathbf{chosen}_{#1}(#2)}
 \def\owner#1{\mathrm{owner}(#1)}
 
-The Synod algorithm involves four kinds of message, described below.
-Throughout, $a \in \mathbb A$ and $b, b' \in \mathbb B$.  Phase I starts with
-the broadcast of a \textit{prepare} message $\prep{b}$ to which each node may
-respond with a \textit{promise} message, either a \textit{free promise} written
-$\fprom{}{a}{b}$ or a \textit{forced promise} written $\bprom{}{a}{b}{b'}$
-where $a$ identifies the responding node.  Phase II starts with the broadcast
-of a \textit{proposal} message $\prop{}{b}$ to which each node $a$ may respond
-with an \textit{acceptance} message $\acc{}{a}{b}$.  It is convenient also to
-use these symbols as predicates indicating whether the corresponding messages
-have been sent, and to add another predicate $\chosen{}{b}$ which indicates
-that the ballot $b$ may be chosen.
+The Synod algorithm involves four kinds of message, in two phases, as described
+below.  Throughout, $a \in \mathbb A$ and $b, b' \in \mathbb B$.  Phase I
+starts with the broadcast of a \textit{prepare} message $\prep{b}$ to which
+each node may respond with a \textit{promise} message, either a \textit{free
+promise} written $\fprom{}{a}{b}$ or a \textit{forced promise} written
+$\bprom{}{a}{b}{b'}$ where $a$ identifies the responding node.  Phase II starts
+with the broadcast of a \textit{proposal} message $\prop{}{b}$ to which each
+node $a$ may respond with an \textit{acceptance} message $\acc{}{a}{b}$. It is
+convenient also to use these symbols as predicates indicating whether the
+corresponding messages have been sent.
 
 There is a function $v : \mathbb B \to \mathbb V$ assigning a value to each
-ballot, discussed in more detail in section \ref{value-function} below, and the
-system satisfies a set of invariants as described in appendix
+ballot, discussed in more detail in section \ref{value-function} below.  It is
+also useful to add another predicate $\chosen{}{b}$ which indicates that the
+value $v(b)$ associated with the ballot $b$ has been chosen.
+
+The system satisfies a set of invariants as described in appendix
 \ref{synod-safety} from which it follows that consistency is guaranteed in the
 sense that if $\chosen{}{b}$ and $\chosen{}{b'}$ then $v(b) = v(b')$ as shown
 in theorem \ref{synod-safety-theorem}.
 
 Each node operates as a state machine whose transitions are caused by the
-receipts of messages. A node may emit $\prop{}{b}$ when it considers phase I to
-be complete at ballot $b$, which is when promise messages for $b$ have been
+receipts of messages. Each phase is considered to be complete for a particular
+ballot when appropriate messages have been received from sufficiently many
+nodes, where ``sufficiently many'' is a property of the configuration of the
+system that is defined precisely in terms of sets of quorums of nodes.
+
+In more detail, a node may emit $\prop{}{b}$ when it considers phase I to be
+complete at ballot $b$, which is when promise messages for $b$ have been
 received from a quorum of nodes, and similarly may deduce $\chosen{}{b}$ when
 it considers phase II to be complete at $b$, which is when acceptances of $b$
-from a quorum of nodes have been received. The phase-I and phase-II quorums are
-chosen so as to always contain at least one node in common, but may vary
-depending on the ballot $b$ and the phase as discussed in section
-\ref{per-phase-quorums} below.
+from a quorum of nodes have been received.
+
+The phase-I and phase-II quorums are chosen so as to always contain at least one
+node in common, but may vary depending on the ballot $b$ and the phase as
+discussed in section \ref{per-phase-quorums} below.
 
 \subsection{Implementing the value function}\label{value-function}
+
+In an implementation of a RSM, the values chosen represent the transitions that
+the state machines must perform. It is possible that these values may be
+expensive to transfer between nodes because they carry a large quantity of
+data.
 
 In the original presentation of the Synod algorithm, the values of ballots are
 carried along with their identifiers in the messages $\bprom{}{a}{b}{ b',v(b')
@@ -685,10 +705,13 @@ carried along with their identifiers in the messages $\bprom{}{a}{b}{ b',v(b')
 hashes, but this idea can be taken a step further and the values can be
 completely elided from the messages that take part in the Synod protocol,
 allowing considerably more freedom in the implementation of the function $v$
-without sacrificing consistency. This is useful because the values themselves
-may be large or expensive to send between nodes so an efficient implementation
-must minimise the need to transport values as much as possible; the messages
-involved in the protocol are very small if the values are removed.
+without sacrificing consistency.
+
+By allowing the values to be communicated using a separate mechanism from the
+consensus messages themselves it is possible to seek optimisations that rely on
+the fact that the values may be large but need not move quickly whereas the
+consensus messages are small but must be transported with low latency to ensure
+the system has good performance.
 
 Although it appears that the function $v$ is fixed, in practice it is allowed
 to change as the system runs. Treating it as fixed simplifies the consistency
@@ -744,11 +767,14 @@ ballot $b$ respectively.
 In the original presentation of the Synod algorithm any (weighted) majority of
 the nodes could be used as a quorum, so that $\QI{}(b_1) = \QII{}(b_2)$ and
 hence $\QI{}(b_1) \frown \QII{}(b_2)$ for all $b_1$ and $b_2$ since all
-majorities intersect. The proof of theorem \ref{synod-safety-theorem} in
-appendix \ref{synod-safety} is a generalisation of the original one to
-demonstrate that consistency still holds even under the weaker assumption that
-$\QI{}(b_1) \frown \QII{}(b_2)$ only need hold when $\prop{}{b_1}$,
-$\chosen{}{b_2}$ and $b_1 \succ b_2$.
+majorities intersect.
+
+Theorem \ref{synod-safety-theorem} shows that consistency can still be
+guaranteed even if sometimes $\QI{}(b_1) \ne \QII{}(b_2)$, as long as
+$\QI{}(b_1) \frown \QII{}(b_2)$ when $\prop{}{b_1}$, $\chosen{}{b_2}$ and $b_1
+\succ b_2$, as described in invariant \ref{synod-quorums} of appendix
+\ref{synod-safety}. This weaker invariant allows more general reconfigurations
+to take place as described in section \ref{configuration-changes} below.
 
 \section{The Paxos algorithm}\label{paxos-text}
 
@@ -786,46 +812,52 @@ define separate invariants concerning the sending of acceptances.
 
 A fixed cluster configuration is a pair $\langle \QI{}, \QII{} \rangle$ of sets
 of quorums satisfying $\QI{} \frown \QII{}$, where $\QI{}$ and $\QII{}$ are
-respectively the sets of phase-I and phase-II quorums in use.  Changes to the
-cluster configuration are modelled by a sequence of configurations $ \langle
-\QI{0}, \QII{0} \rangle, \langle \QI{1}, \QII{1} \rangle, \ldots$ that also
-satisfy $\QI{e} \frown \QII{e+1}$ for all $e$.  The integer subscript is called
-the \textit{era} of a configuration.  Intuitively the cluster is ``in era $e$''
-while instances are being chosen using $\langle \QI{e}, \QII{e}\rangle$. While
-a change from era $e$ to $e+1$ is in progress some instances may use the
-interim configuration $\langle \QI{e}, \QII{e+1} \rangle$ and once the change
-to era $e+1$ is complete instances will use $\langle \QI{e+1}, \QII{e+1}
-\rangle$. Since $\QII{e} \frown \QI{e} \frown \QII{e+1} \frown \QI{e+1}$ it
-follows that consistency is preserved throughout by the observation of
-\ref{per-phase-quorums} above.
+respectively the sets of phase-I and phase-II quorums in use.
+
+Changes to the cluster configuration are modelled by a sequence of
+configurations $ \langle \QI{0}, \QII{0} \rangle, \langle \QI{1}, \QII{1}
+\rangle, \ldots$ that also satisfy $\QI{e} \frown \QII{e+1}$ for all $e$.  The
+integer subscript is called the \textit{era} of a configuration.  Intuitively
+the cluster is ``in era $e$'' while instances are being chosen using $\langle
+\QI{e}, \QII{e}\rangle$. While a change from era $e$ to $e+1$ is in progress
+some instances may use the interim configuration $\langle \QI{e}, \QII{e+1}
+\rangle$ and once the change to era $e+1$ is complete instances will use
+$\langle \QI{e+1}, \QII{e+1} \rangle$. Since $\QII{e} \frown \QI{e} \frown
+\QII{e+1} \frown \QI{e+1}$ it follows that consistency is preserved throughout
+by the observation of \ref{per-phase-quorums} above.
 
 To achieve this there are also two nondecreasing integer-valued functions, both
 written $e(\cdot)$, which respectively assign an era $e(i)$ to each instance
 $i$, and an era $e(b)$ to each ballot $b$. Intuitively $e(b)$ records which
-quorums may be used to decide that $\prop{i}{b}$ can be sent in phase I and
+quorums may be used to decide that $\prop{i}{b}$ can be sent in phase I, and
 $e(i)$ records which quorums may be used to decide that $\chosen{i}{b}$ holds
 in phase II. More precisely a node may emit $\prop{i}{b}$ only if $e(b) \le
 e(i)$ and it has received promises for ballot $b$ in instance $i$ from a quorum
 of nodes in $\QI{e(b)}$, and similarly a node may decide $\chosen{i}{b}$ only
 if ${e(i) \le e(b)+1}$ and it has received $\acc{i}{a}{b}$ from a quorum of
-nodes in $\QII{e(i)}$. These extra conditions ensure that if $\chosen{i}{b}$
-then ${e(b) \le e(i) \le e(b)+1}$ and hence $\QI{e(b)} \frown \QII{e(i)}$ as
-required to ensure consistency.
+nodes in $\QII{e(i)}$. These extra conditions on the eras of ballots and
+instances in messages ensure that if $\chosen{i}{b}$ then ${e(b) \le e(i) \le
+e(b)+1}$ and hence $\QI{e(b)} \frown \QII{e(i)}$ as required to ensure
+consistency.
 
 \subsection{Dynamic configuration changes}
 
 As in Dynamic Paxos, the configurations $\langle \QI{0}, \QII{0} \rangle,
 \langle \QI{1}, \QII{1} \rangle, \ldots$ and era numbers $e(i)$ are themselves
-chosen by consensus. In more detail, configurations are tracked by a state
-machine whose state is the finite sequence $\langle \QI{0}, \QII{0} \rangle,
-\ldots, \langle \QI{e_\mathrm{max}}, \QII{e_\mathrm{max}} \rangle$ and the era
-numbers of instances are tracked by a state machine whose state is the finite
-nondecreasing sequence $e(0), \ldots, e(i_\mathrm{max})$.  Their transitions
-append one or more elements to these sequences, but do not change any existing
-elements, and the tracked sequences are always long enough to make progress in
-the sense that if $\chosen{i}{b}$ then they satisfy $i_\mathrm{max} > i$ and
-$e_\mathrm{max} \ge e(i_\mathrm{max})$. Era numbers $e(b)$ for ballots $b$ are
-fixed in advance and not chosen by consensus.
+chosen by consensus.
+
+In more detail, configurations are tracked by a component of the RSM whose
+state is the finite sequence $\langle \QI{0}, \QII{0} \rangle, \ldots, \langle
+\QI{e_\mathrm{max}}, \QII{e_\mathrm{max}} \rangle$ and the era numbers of
+instances are tracked by a state machine whose state is the finite
+nondecreasing sequence $e(0), \ldots, e(i_\mathrm{max})$. The transitions that
+affect these sequences may append one or more elements, but may not change any
+existing elements. The sequences are always long enough to make progress in the
+sense that if $\chosen{i}{b}$ then they satisfy $i_\mathrm{max} > i$ and
+$e_\mathrm{max} \ge e(i_\mathrm{max})$.
+
+In contrast, era numbers $e(b)$ for ballots $b$ are fixed in advance and not
+chosen by consensus.
 
 \subsection{Liveness}\label{liveness}
 
@@ -835,15 +867,18 @@ each instance. It is impossible to show this deterministically in a fully
 asynchronous system\cite{flp-impossibility} but as with earlier presentations
 of Paxos\cite{paxos-made-simple} here liveness can be proved by assuming that a
 distinguished node $\ell$ is eventually selected as the only one that may emit
-$\prep{b}$ messages. The original liveness proof then proceeded by having
-$\ell$ emit $\prep{b}$ for some $b$ that is chosen to be large enough that a
-quorum of nodes may respond with promises. Unlike in the original proof, here
-there is an upper bound on suitable ballots, because if ${e(b) > e(i)}$ then
-$\prop{i}{b}$ may never be sent and nor may $\prop{i}{b'}$ for any $b' \succ b$
-since $e(\cdot)$ is nondecreasing.  Therefore here $\ell$ must be able to
-choose a ballot that is large enough but not too large.  More precisely, this
-requires that for each ballot $b$, each era $e \ge e(b)$ and each node $a$
-there must be a ballot $b' \succ b$ having $e(b') = e$ and $\owner{b'} = a$.
+$\prep{b}$ messages.
+
+The original liveness proof then proceeded by having $\ell$ emit $\prep{b}$ for
+some $b$ that is chosen to be large enough that a quorum of nodes may respond
+with promises. Unlike in the original proof, here there is an upper bound on
+suitable ballots, because if ${e(b) > e(i)}$ then $\prop{i}{b}$ may never be
+sent and nor may $\prop{i}{b'}$ for any $b' \succ b$ since $e(\cdot)$ is
+nondecreasing. Therefore here $\ell$ must be able to choose a ballot that is
+large enough but not too large.  More precisely, this requires that for each
+ballot $b$, each era $e \ge e(b)$ and each node $a$ there must be a ballot $b'
+\succ b$ having $e(b') = e$ and $\owner{b'} = a$.
+
 This means that ballot numbers cannot be simple integers because this would
 imply that all eras (except at most one) have only finitely many ballots.
 Rather than using simple integers one could, for example, let $\mathbb B =
@@ -852,15 +887,15 @@ $e(\langle e, n, a\rangle) = e$ and $\owner{\langle e, n, a \rangle} = a$. This
 is the approach used in Egalitarian Paxos\cite{egalitarian-paxos} in which eras
 are known as \textit{epochs} but this terminology is avoided here to prevent
 confusion with the epochs (views, terms, \ldots) of leader-election protocols
-(e.g. \cite{omega-meets-paxos}) which track the current leader rather than the
+(e.g.  \cite{omega-meets-paxos}) which track the current leader rather than the
 current configuration.
 
 It is also necessary to limit the promises made to only those where $e(b) \le
 e(i)$ because if node $a$ made a promise $\fprom{i}{a}{b}$ with $e(b) > e(i)$
 then it can no longer accept any proposals $\prop{i}{b'}$ since such a proposal
 would have $e(b') \le e(i) < e(b)$ so that $b' \prec b$. As changes to the
-current era are themselves agreed by consensus this may prevent any further
-progress from being made.
+current era are themselves agreed by consensus this kind of promise risks
+preventing any further progress from being made.
 
 With these two modifications the proof of liveness runs much as in the original
 presentation:
@@ -1094,7 +1129,7 @@ Paxos as there is no need to limit the pipeline length unless a configuration
 change is in progress, and different changes may use different values of
 $\alpha$ if required.
 
-\section{Related Work}
+\section{Conclusion}
 
 As discussed above, the approach described here generalises Dynamic
 Paxos\cite{cheap-paxos} to support changing the pipeline length parameter

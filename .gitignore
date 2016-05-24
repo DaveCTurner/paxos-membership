@@ -13,3 +13,4 @@ inc.tex
 *.labels
 *.fls
 *.inputs
+.paxos-reconf.tex.swp
