@@ -408,7 +408,7 @@ d.turner@tracsis.com)}% <-this % stops a space
 
 % The paper headers
 \markboth{IEEE Transactions on Parallel and Distributed Systems,~Vol.~?, No.~?,
-?~?}%TODO Journal of \LaTeX\ Class Files,~Vol.~14, No.~8, August~2015}%
+?~? Draft \gitid}%TODO Journal of \LaTeX\ Class Files,~Vol.~14, No.~8, August~2015}%
 {Turner: \mytitle}
 % The only time the second header will appear is for the odd numbered pages
 % after the title page when using the twoside option.
@@ -444,20 +444,20 @@ d.turner@tracsis.com)}% <-this % stops a space
 \begin{abstract}Distributed consensus is an essential building block for
   creating fault-tolerant systems. When equipped with a consensus algorithm a
   distributed system can act as a replicated state machine (RSM), duplicating
-  its state across a set of redundant components to avoid the failure of any
-  single component leading to a system-wide failure. Paxos and Raft are
+  its state across a cluster of redundant components to avoid the failure of
+  any single component leading to a system-wide failure. Paxos and Raft are
   examples of algorithms for achieving distributed consensus. Practical
   implementations of this kind of system must support dynamic reconfiguration
   in order to be able to replace failed components and perform other
-  administrative tasks. Paxos can achieve high performance by pipelining
-  (starting work on new requests before existing requests have completed) but
-  typically bounds the length of the pipeline to ensure consistency during
-  reconfiguration. Raft also supports pipelining and imposes no such bound on
-  concurrent requests, preserving consistency instead by restricting which
-  reconfigurations may be performed. This article shows how to extend Paxos to
-  support a more general form of reconfiguration which subsumes the original
-  bounded-pipeline approach as well as Raft-like fully-concurrent
-  reconfigurations and more besides.
+  administrative tasks without downtime. Paxos can achieve high performance by
+  pipelining (starting work on new requests before existing requests have
+  completed) but typically bounds the length of the pipeline to ensure
+  consistency during reconfiguration. Raft also supports pipelining and imposes
+  no such bound on concurrent requests, preserving consistency instead by
+  restricting which reconfigurations may be performed. This article shows how
+  to extend Paxos to support a more general form of reconfiguration which
+  subsumes the original bounded-pipeline approach as well as Raft-like
+  fully-concurrent reconfigurations and more besides.
 
 \end{abstract}
 
@@ -488,69 +488,71 @@ parts which may communicate and may also sometimes fail. Such systems can
 tolerate failures of individual parts without suffering a system-wide failure
 by ensuring that there is redundancy between the parts.  A replicated state
 machine (RSM) is a style of fault-tolerant distributed system in which a
-deterministic state machine is replicated across a set of distinct nodes in a
-way that ensures each node receives the same sequence of commands. Being
-deterministic, each node computes the same state if they all receive the same
-inputs.
+deterministic state machine is replicated across a set of distinct nodes. Being
+deterministic, the nodes' states remain synchronised if they all start in the
+same state and perform the same sequence of transitions.
 
-In order to arrange for each node to receive these commands the system must
-achieve consensus on (or \textit{choose}) a consistent sequence $v_0, v_1,
-\ldots$ of values. This is the \textit{distributed consensus problem} which has
-been thoroughly studied and Paxos \cite{part-time-parliament} and
-Raft\cite{raft} are two algorithms that have been developed to solve it. They
-guarantee system-wide \textit{consistency}, in the sense that the values chosen
-are guaranteed to be equal across the whole system even in the presence of
-failures. They typically run on a cluster of $2f+1$ nodes, where $f$ is the
-number of faulty nodes that should be tolerated, and consensus is achieved on a
-value $v_i$ when $\ge f+1$ (i.e. a majority) of the nodes agree.  The
+In order to arrange for each node to perform the same transitions the system
+must achieve consensus on (or \textit{choose}) a sequence $v_0, v_1, \ldots$ of
+values which describe the transitions. The sequence must be consistent across
+the whole system even in the presence of failures, and as long as there are not
+too many failures it must remain possible to continue to make progress.  This
+is known as the distributed consensus problem, for which a number of solutions
+are known to exist including Paxos \cite{part-time-parliament} and
+Raft\cite{raft}. They typically run on a cluster of $2f+1$ nodes, where $f$ is
+the number of faulty nodes that should be tolerated, and consensus is achieved
+on a value $v_i$ when $\ge f+1$ (i.e. a majority) of the nodes agree.  The
 (nonempty) sets of nodes involved in reaching consensus are known as
 \textit{quorums} and the set of quorums in use is known as the
 \textit{configuration} of the cluster.
 
 It is normally necessary to be able to dynamically reconfigure a cluster by
-adding or removing nodes while it is running. This allows the components of the
-system to be repaired or replaced without needing to take the whole system
-offline. It is crucial that all participating nodes agree on the cluster
-configuration, and this can be achieved by tracking the configuration with a
-component of the RSM itself, and using the consensus algorithm to choose
-special reconfiguration commands when a configuration change is desired.
+adding or removing nodes while it is running. This allows parts of the system
+to be repaired or replaced without needing to take the whole system offline. It
+is crucial that all participating nodes agree on the cluster configuration, and
+this can be achieved by holding the configuration within the RSM itself and
+using the consensus algorithm to choose special reconfiguration commands when a
+configuration change is desired.
 
 In Paxos, each value $v_i$ is chosen using a separate instance $i$ of a
 two-phase consensus protocol known as \textit{Synod}. The full Paxos algorithm
-essentially runs an infinite sequence of Synod protocols in parallel, using
-uniformity of the instances to do so without requiring an infinite amount of
-time.  It starts by running phase I of all instances at once and then runs
+essentially runs an infinite sequence of Synod instances in parallel, using
+uniformity of the instances to do so without requiring infinite time or
+resources.  It starts by running phase I of all instances at once and then runs
 phase II of each instance in turn to yield the desired sequence of chosen
 values. It normally continues to run phase II for extended periods of time, but
 will return to phase I if certain nodes become faulty, or if messages between
 certain pairs of nodes cease to be delivered reliably for a period, or if the
 configuration changes.  Raft's pattern of execution is similar.
 
-Both algorithms support high throughput by allowing for \textit{pipelining}
+Both algorithms can achieve high throughput by allowing for \textit{pipelining}
 \cite{smart} whereby an instance may start running before all previous
 instances have fully completed. It is a little tricky to ensure that this
 preserves consistency when the configuration is held in the RSM itself because
-a value may only be proposed once a quorum of nodes are ready for it, but the
-quorums change as values are chosen and the state of the RSM changes.  Paxos
-implementations typically solve this problem by limiting the length of the
-pipeline to some $\alpha > 0$ and requiring that a configuration change chosen
-at instance $i$ does not take effect until at least instance $i + \alpha$,
-which means that when a value is proposed there can be no as-yet-undecided
-configuration change in the pipeline that could cause a different value to be
-chosen. Raft imposes no limit on the number of concurrently-running instances
-and instead ensures consistency by restricting which reconfigurations may
-occur, and then performs sequences of these restricted reconfigurations in
-order to achieve an arbitrary reconfiguration.
+a value may only be proposed once a quorum of nodes are ready for it, but there
+may be a configuration change in the pipeline which would change the quorums
+that should be used which could make a proposal invalid. If this is not handled
+carefully then it may lead to inconsistency. Paxos implementations typically
+solve this problem by limiting the length of the pipeline to some $\alpha > 0$
+and requiring that a configuration change chosen at instance $i$ does not take
+effect until at least instance $i + \alpha$, which means that when a value is
+proposed there can be no as-yet-undecided configuration change in the pipeline
+that could cause a different value to be chosen. In contrast, Raft imposes no
+limit on the number of concurrently-running instances and instead restricts the
+reconfigurations that may occur to only allow ones that are sufficiently minor
+that they cannot result in inconsistency. An operator may then then perform a
+sequence of these restricted reconfigurations in order to achieve an arbitrary
+reconfiguration.
 
 The choice of the pipeline length parameter $\alpha$ must be made carefully. If
 it is too small then the system may suffer from poor performance due to lack of
 parallelism, but if it is too large then configuration changes can be
 unreasonably expensive to complete. It would be better to be able to vary the
 value of $\alpha$ as the system is running rather than having to choose it
-up-front, but there seems to be no published method for doing so safely. It
-would be better still to be able to impose this limit only when a configuration
-change is in progress and allow an unbounded pipeline while the configuration
-is static. The need for any such limit seems
+up-front, but there seems to be no published method for doing so whilst
+ensuring consistency. It would be better still to be able to impose this limit
+only when a configuration change is in progress and allow an unbounded pipeline
+while the configuration is static. The need for any such limit seems
 inelegant\cite{reconfiguring-a-state-machine} particularly when compared with
 Raft's approach.
 
@@ -571,9 +573,9 @@ algorithm in section \ref{synod-text} and follow this by covering the full
 Paxos algorithm in section \ref{paxos-text}, then in section
 \ref{types-of-configuration-change} it is shown how this work generalises the
 existing reconfiguration processes supported in Paxos and Raft.  Reworked
-proofs are included in section \ref{liveness} and appendices \ref{synod-safety}
-and \ref{paxos-invariants} and differences from the original are discussed
-throughout.
+proofs of liveness and consistency are included in section \ref{liveness} and
+appendices \ref{synod-safety} and \ref{paxos-invariants} and differences from
+the original are highlighted throughout.
 
 %\IEEEpubidadjcol %must be in 2nd col of 1st page
 
@@ -593,7 +595,8 @@ of operating a cluster.
 
 Chandra, Griesemer and Redstone \cite{paxos-made-live} note that the details of
 reconfiguration are ``relatively minor'' but ``subtle'' and do not give any
-details on the reconfiguration scheme used in their Chubby system.
+details on the reconfiguration scheme used in their Chubby system so it is
+likely that it also used the bounded-pipeline approach.
 
 Malkhi, Lamport and Zhou \cite{stoppable-paxos} proposed Stoppable Paxos, an
 alternative method for reconfiguring clusters in which an RSM may be stopped,
@@ -612,8 +615,8 @@ another oracle and so on \textit{ad infinitum}.
 
 Ongaro and Ousterhout \cite{raft} developed the Raft protocol which supports an
 unbounded pipeline throughout the reconfiguration process by instead limiting
-the reconfigurations that can be performed to be, in a sense, sufficiently
-small that reconfiguration remains safe.
+the reconfigurations that can be performed to be sufficiently minor that
+consistency is preserved.
 
 Viewstamped Replication and Zab are two other well-known consensus protocols.
 Viewstamped Replication supports reconfiguration as described by Liskov and
@@ -673,7 +676,9 @@ value $v(b)$ associated with the ballot $b$ has been chosen.
 The system satisfies a set of invariants as described in appendix
 \ref{synod-safety} from which it follows that consistency is guaranteed in the
 sense that if $\chosen{}{b}$ and $\chosen{}{b'}$ then $v(b) = v(b')$ as shown
-in theorem \ref{synod-safety-theorem}.
+in theorem \ref{synod-safety-theorem}. The extra flexibility in quorums, and
+the removal of values from messages, are the two main differences between this
+theorem and the corresponding ones in earlier work.
 
 Each node operates as a state machine whose transitions are caused by the
 receipts of messages. Each phase is considered to be complete for a particular
@@ -687,25 +692,30 @@ received from a quorum of nodes, and similarly may deduce $\chosen{}{b}$ when
 it considers phase II to be complete at $b$, which is when acceptances of $b$
 from a quorum of nodes have been received.
 
-The phase-I and phase-II quorums are chosen so as to always contain at least one
-node in common, but may vary depending on the ballot $b$ and the phase as
+The phase-I and phase-II quorums are defined so as to always contain at least
+one node in common, but may vary depending on the ballot $b$ and the phase as
 discussed in section \ref{per-phase-quorums} below.
 
 \subsection{Implementing the value function}\label{value-function}
 
 In an implementation of a RSM, the values chosen represent the transitions that
 the state machines must perform. It is possible that these values may be
-expensive to transfer between nodes because they carry a large quantity of
-data.
+expensive to transfer between nodes because they could carry a large quantity
+of data.
 
 In the original presentation of the Synod algorithm, the values of ballots are
 carried along with their identifiers in the messages $\bprom{}{a}{b}{ b',v(b')
-}$, $\prop{}{ b,v(b)}$ and $\acc{}{a}{ b,v(b) }$. Observation O4 in
-\cite{cheap-paxos} notes that these values can be replaced in some cases by
-hashes, but this idea can be taken a step further and the values can be
-completely elided from the messages that take part in the Synod protocol,
-allowing considerably more freedom in the implementation of the function $v$
-without sacrificing consistency.
+}$, $\prop{}{ b,v(b)}$ and $\acc{}{a}{ b,v(b) }$. This means that, in a unicast
+network, each value is transported from the proposing node to at least $f$
+other nodes which then must each send the value back to the proposer to
+indicate their acceptance, which requires the value to traverse the network at
+least $2f$ times in total.
+
+Observation O4 in \cite{cheap-paxos} notes that these values can be replaced in
+some cases by hashes, but this idea can be taken a step further and the values
+can be completely elided from the messages that take part in the Synod
+protocol, allowing considerably more freedom in the implementation of the
+function $v$ without sacrificing consistency.
 
 By allowing the values to be communicated using a separate mechanism from the
 consensus messages themselves it is possible to seek optimisations that rely on
@@ -717,37 +727,38 @@ Although it appears that the function $v$ is fixed, in practice it is allowed
 to change as the system runs. Treating it as fixed simplifies the consistency
 proof and highlights that its values need not be included in all messages, but
 means that the system cannot be shown to satisfy any useful liveness
-properties.  To recover liveness, it is enough to note that if the invariants
-of appendix \ref{synod-safety} are satisfied with a value function $v$ then
-they continue to be satisfied if $v$ is replaced by another value function $v'$
-that agrees with $v$ on proposed ballots, i.e. where $v(b) = v'(b)$ if
-$\prop{}{b}$ but not necessarily otherwise. Since only $\owner{b}$ may propose
-$b$, if it has not yet proposed a value for $b$ it can prove that
-$\neg\prop{}{b}$ and therefore freely modify $v(b)$.
+properties.  To recover liveness, note that if the invariants of appendix
+\ref{synod-safety} are satisfied with a value function $v$ then they continue
+to be satisfied if $v$ is replaced by another value function $v'$ that agrees
+with $v$ on proposed ballots, i.e. where $v(b) = v'(b)$ if $\prop{}{b}$ but not
+necessarily otherwise. Since only $\owner{b}$ may propose $b$, if it has not
+yet itself proposed a value for $b$ it can deduce that $\neg\prop{}{b}$ and
+therefore freely modify $v(b)$.
 
 It is also important for liveness that the implementation of $v$ is resilient
-to the same failure modes as the rest of the system. Since the value of each
-ballot $b$ has at most one writer, $\owner{b}$, it is possible to think of $v$
-as an insert-only set of pairs ${\{ \langle b, v(b) \rangle \mid \prop{}{b}
+to the same failure modes as the rest of the system. Since $\owner{b}$ is, in a
+sense, responsible for the value of the ballot $b$, it is possible to think of
+$v$ as an insert-only set of pairs ${\{ \langle b, v(b) \rangle \mid \prop{}{b}
 \}}$ which is an example of a convergent replicated data type\cite{crdts} and
-can therefore be implemented simply and robustly in a distributed system.
-Indeed the original presentation can be seen as containing such an
-implementation, where the inclusion of values in all messages ensures
-convergence occurs as quickly as possible, and replicating this set across all
-${2f+1}$ nodes ensures $v$ itself may be resilient to as many as $2f$ failures.
-Cheap Paxos\cite{cheap-paxos} is cheaper partly because it replicates $v$
-across just the ${f+1}$ primary processors, with the $f$ auxiliary processors
-storing just the hashes of values to ensure integrity.
+can therefore be implemented simply and robustly in a distributed system
+without needing to rely on a consensus algorithm.  Indeed the original
+presentation can be seen as containing such an implementation, where the
+inclusion of values in all messages ensures convergence occurs as quickly as
+possible, and replicating this set across all ${2f+1}$ nodes ensures $v$ itself
+may be resilient to as many as $2f$ failures.  Cheap Paxos\cite{cheap-paxos} is
+cheaper partly because it replicates $v$ across just the ${f+1}$ primary
+processors, with the $f$ auxiliary processors storing just the hashes of values
+to ensure integrity.
 
 It is also worth comparing this approach to that of Vertical
 Paxos\cite{vertical-paxos} which takes care to ensure that the system state is
 completely transferred between nodes before they start to participate fully in
-the cluster, with certain optimisations to handle the fact that this state
-transfer could be an expensive and time-consuming operation involving a very
-large quantity of data. However if the implementation of $v$ is separated out
-from the consensus algorithm itself then the quantity of data that must be
-transferred between consensus nodes becomes small enough that it needs no
-special treatment.
+the cluster, with certain optimisations in recognition of the fact that this
+state transfer could be an expensive and time-consuming operation involving a
+very large quantity of data. However if the implementation of $v$ is separated
+out then the quantity of data that must be transferred as part of the consensus
+algorithm becomes small enough that it needs no special treatment and a more
+efficient consensus-free technique may be used to implement $v$ efficiently.
 
 \subsection{Per-phase quorums}\label{per-phase-quorums}
 
@@ -773,8 +784,9 @@ Theorem \ref{synod-safety-theorem} shows that consistency can still be
 guaranteed even if sometimes $\QI{}(b_1) \ne \QII{}(b_2)$, as long as
 $\QI{}(b_1) \frown \QII{}(b_2)$ when $\prop{}{b_1}$, $\chosen{}{b_2}$ and $b_1
 \succ b_2$, as described in invariant \ref{synod-quorums} of appendix
-\ref{synod-safety}. This weaker invariant allows more general reconfigurations
-to take place as described in section \ref{configuration-changes} below.
+\ref{synod-safety}. This weaker invariant is the key to allowing more general
+reconfigurations to take place safely as described in section
+\ref{configuration-changes} below.
 
 \section{The Paxos algorithm}\label{paxos-text}
 
@@ -811,8 +823,8 @@ define separate invariants concerning the sending of acceptances.
 \subsection{Configuration changes}\label{configuration-changes}
 
 A fixed cluster configuration is a pair $\langle \QI{}, \QII{} \rangle$ of sets
-of quorums satisfying $\QI{} \frown \QII{}$, where $\QI{}$ and $\QII{}$ are
-respectively the sets of phase-I and phase-II quorums in use.
+of quorums satisfying $\QI{} \frown \QII{}$, where $\QI{}$ and $\QII{}$ are the
+sets of quorums to use in phase I and phase II respectively.
 
 Changes to the cluster configuration are modelled by a sequence of
 configurations $ \langle \QI{0}, \QII{0} \rangle, \langle \QI{1}, \QII{1}
@@ -821,7 +833,7 @@ integer subscript is called the \textit{era} of a configuration.  Intuitively
 the cluster is ``in era $e$'' while instances are being chosen using $\langle
 \QI{e}, \QII{e}\rangle$. While a change from era $e$ to $e+1$ is in progress
 some instances may use the interim configuration $\langle \QI{e}, \QII{e+1}
-\rangle$ and once the change to era $e+1$ is complete instances will use
+\rangle$, and once the change to era $e+1$ is complete instances will use
 $\langle \QI{e+1}, \QII{e+1} \rangle$. Since $\QII{e} \frown \QI{e} \frown
 \QII{e+1} \frown \QI{e+1}$ it follows that consistency is preserved throughout
 by the observation of \ref{per-phase-quorums} above.
@@ -838,7 +850,7 @@ if ${e(i) \le e(b)+1}$ and it has received $\acc{i}{a}{b}$ from a quorum of
 nodes in $\QII{e(i)}$. These extra conditions on the eras of ballots and
 instances in messages ensure that if $\chosen{i}{b}$ then ${e(b) \le e(i) \le
 e(b)+1}$ and hence $\QI{e(b)} \frown \QII{e(i)}$ as required to ensure
-consistency.
+consistency, as shown in lemma \ref{paxos-synod-quorum-invariant}.
 
 \subsection{Dynamic configuration changes}
 
