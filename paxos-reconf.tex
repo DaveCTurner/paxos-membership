@@ -609,7 +609,7 @@ alternative method for reconfiguring clusters in which an RSM may be stopped,
 reconfigured, and then restarted with the new configuration. Stoppable Paxos
 allows values to be chosen out-of-order within a single configuration, but the
 pipeline cannot cross configurations as the old RSM must stop before the new
-one starts\footnote{TODO mention this again in conclusion}.
+one starts.
 
 Malkhi, Lamport and Zhou \cite{vertical-paxos} then proposed Vertical Paxos
 which keeps the RSM running throughout a reconfiguration, but requires a
@@ -651,8 +651,7 @@ may be elected and thus in which further progress can be made.
 \def\owner#1{\mathrm{owner}(#1)}
 
 \begin{figure*}[t!]
-  \label{synod-invariants-figure}
-\caption{Invariants preserved by the Synod algorithm}
+\caption{Invariants preserved by the Synod algorithm\label{synod-invariants-figure}}
 
 \renewcommand{\theenumi}{S\arabic{enumi}}
 
@@ -713,7 +712,7 @@ ballot, discussed in more detail in section \ref{value-function} below.  It is
 also useful to add another predicate $\chosen{}{b}$ which indicates that the
 value $v(b)$ associated with the ballot $b$ has been chosen.
 
-The system satisfies a set of invariants listed in figure
+The system satisfies a set of invariants listed in fig.
 \ref{synod-invariants-figure} from which it follows that consistency is
 guaranteed in the sense that if $\chosen{}{b}$ and $\chosen{}{b'}$ then $v(b) =
 v(b')$ as shown in theorem \ref{synod-safety-theorem} in appendix
@@ -724,8 +723,8 @@ corresponding ones in earlier work.
 Each node operates as a state machine whose transitions are caused by the
 receipts of messages. Each phase is considered to be complete for a particular
 ballot when appropriate messages have been received from sufficiently many
-nodes, where ``sufficiently many'' is a property of the configuration of the
-system that is defined precisely in terms of sets of quorums of nodes.
+nodes, where ``sufficiently many'' is defined in terms of sets of quorums of
+nodes in the system's configuration.
 
 In more detail, a node may emit $\prop{}{b}$ when it considers phase I to be
 complete at ballot $b$, which is when promise messages for $b$ have been
@@ -798,8 +797,8 @@ the cluster, with certain optimisations in recognition of the fact that this
 state transfer could be an expensive and time-consuming operation involving a
 very large quantity of data. However if the implementation of $v$ is separated
 out then the quantity of data that must be transferred as part of the consensus
-algorithm becomes small enough that it needs no special treatment and a more
-efficient consensus-free technique may be used to implement $v$ efficiently.
+algorithm becomes small enough that it needs no special treatment and a
+consensus-free technique may be used to implement $v$ more efficiently.
 
 \subsection{Per-phase quorums}\label{per-phase-quorums}
 
@@ -824,16 +823,14 @@ majorities intersect.
 Theorem \ref{synod-safety-theorem} shows that consistency can still be
 guaranteed even if sometimes $\QI{}(b_1) \ne \QII{}(b_2)$, as long as
 $\QI{}(b_1) \frown \QII{}(b_2)$ when $\prop{}{b_1}$, $\chosen{}{b_2}$ and $b_1
-\succ b_2$, as described in invariant \ref{synod-quorums} of appendix
-\ref{synod-safety}. This weaker invariant is the key to allowing more general
-reconfigurations to take place safely as described in section
-\ref{configuration-changes} below.
+\succ b_2$, as described in invariant \ref{synod-quorums}.  This weaker
+invariant is the key to allowing more general reconfigurations to take place
+safely as described in section \ref{configuration-changes} below.
 
 \section{The Paxos algorithm}\label{paxos-text}
 
-\begin{figure*}
-  \label{paxos-invariants-figure}
-\caption{Invariants preserved by the Paxos algorithm}
+\begin{figure*} \caption{Invariants preserved by the Paxos
+  algorithm\label{paxos-invariants-figure}}
 
 \renewcommand{\theenumi}{P\arabic{enumi}}
 
@@ -901,7 +898,7 @@ giving a value to each ballot, and theorem \ref{paxos-safety-theorem} shows
 that whenever $\chosen{i}{b}$ and $\chosen{i}{b'}$ it follows that $v_i(b) =
 v_i(b')$.
 
-The invariants listed in figure \ref{paxos-invariants-figure} are roughly the
+The invariants listed in fig. \ref{paxos-invariants-figure} are roughly the
 same as for many other presentations of Paxos with the addition of constraints
 on the eras of instances and ballots as discussed below. Note that invariants
 \ref{paxos-mprom}, \ref{paxos-fprom} and \ref{paxos-bprom} limit the
