@@ -284,7 +284,7 @@
 % Instead, use Morten Hogholm'a dblfloatfix which combines the features
 % of both fixltx2e and stfloats:
 %
-% \usepackage{dblfloatfix}
+\usepackage{dblfloatfix}
 % The latest version can be found at:
 % http://www.ctan.org/pkg/dblfloatfix
 
@@ -328,6 +328,10 @@
 % The IEEEtran \ifCLASSOPTIONcaptionsoff conditional can also be used
 % later in the document, say, to conditionally put the References on a 
 % page by themselves.
+
+\usepackage{float}
+\floatstyle{boxed}
+\restylefloat{figure}
 
 
 
@@ -637,6 +641,49 @@ the one presented here would fail to make any further progress, whereas one
 based on eventual consistency could be reconfigured into one in which a leader
 may be elected and thus in which further progress can be made.
 
+\def\prep#1{\mathbf{prepare}(#1)}
+\def\mprom#1#2#3{\mathbf{promised}_{\ge #1}(#2,#3)}
+\def\fprom#1#2#3{\mathbf{promised}_{#1}(#2,#3)}
+\def\bprom#1#2#3#4{\mathbf{promised}_{#1}(#2,#3;#4)}
+\def\prop#1#2{\mathbf{proposed}_{#1}(#2)}
+\def\acc#1#2#3{\mathbf{accepted}_{#1}(#2,#3)}
+\def\chosen#1#2{\mathbf{chosen}_{#1}(#2)}
+\def\owner#1{\mathrm{owner}(#1)}
+
+\begin{figure*}[t!]
+  \label{synod-invariants-figure}
+\caption{Invariants preserved by the Synod algorithm}
+
+\renewcommand{\theenumi}{S\arabic{enumi}}
+
+\begin{enumerate}
+
+\item \label{synod-quorums} For $b_1 \succ b_2 \in \mathbb B$ there are sets of
+quorums $Q^\textrm{I}(b_1)$ and $Q^\textrm{II}(b_2) \subseteq \mathcal P
+\mathbb A$ such that if $\prop{}{b_1}$ and $\chosen{}{b_2}$ then
+${Q^\textrm{I}(b_1) \frown Q^\textrm{II}(b_2)}$.
+
+\item \label{synod-fprom} $\fprom{}{a}{b}$ only if $\neg\acc{}{a}{b'}$ for ${b'
+\prec b}$.
+
+\item \label{synod-bprom} $\bprom{}{a}{b}{b'}$ only if $b' \prec b$,
+$\acc{}{a}{b'}$, and $b'$ is the greatest such ballot, in the sense that
+$\neg\acc{}{a}{b''}$ for all $b''$ having $b' \prec b'' \prec b$.
+
+\item \label{synod-prop} $\prop{}{b}$ only if there is $q^\textrm{I} \in
+Q^\textrm{I}(b)$ such that for every node $a \in q^\textrm{I}$ either
+$\fprom{}{a}{b}$ or else $\exists b'.  \bprom{}{a}{b}{b'}$, and if ${P = \{ b'
+\mid \exists a \in q^\textrm{I}. \bprom{}{a}{b}{b'} \} \ne \varnothing}$ then
+it follows that $v(b) = v(\mathrm{max}(P))$.
+
+\item \label{synod-acc} $\acc{}{a}{b}$ only if $\prop{}{b}$.
+
+\item \label{synod-chosen} $\chosen{}{b}$ only if there is $q^\textrm{II} \in
+Q^\textrm{II}(b)$ such that $\acc{}{a}{b}$ for every $a \in q^\textrm{II}$.
+
+\end{enumerate}
+\end{figure*}
+
 \section{The Synod Algorithm}\label{synod-text}
 
 Synod\cite{part-time-parliament} is an algorithm for achieving consensus on a
@@ -649,15 +696,6 @@ stop but may not deviate from their specifications.
 Let $\mathbb B$ be a set of \textit{ballot identifiers} with a wellfounded
 total order $\prec$. Let $\mathbb A$ be a set of \textit{node identifiers} and
 let $\mathbb V$ be the set of values that may be chosen.
-
-\def\prep#1{\mathbf{prepare}(#1)}
-\def\mprom#1#2#3{\mathbf{promised}_{\ge #1}(#2,#3)}
-\def\fprom#1#2#3{\mathbf{promised}_{#1}(#2,#3)}
-\def\bprom#1#2#3#4{\mathbf{promised}_{#1}(#2,#3;#4)}
-\def\prop#1#2{\mathbf{proposed}_{#1}(#2)}
-\def\acc#1#2#3{\mathbf{accepted}_{#1}(#2,#3)}
-\def\chosen#1#2{\mathbf{chosen}_{#1}(#2)}
-\def\owner#1{\mathrm{owner}(#1)}
 
 The Synod algorithm involves four kinds of message, in two phases, as described
 below.  Throughout, $a \in \mathbb A$ and $b, b' \in \mathbb B$.  Phase I
@@ -675,12 +713,13 @@ ballot, discussed in more detail in section \ref{value-function} below.  It is
 also useful to add another predicate $\chosen{}{b}$ which indicates that the
 value $v(b)$ associated with the ballot $b$ has been chosen.
 
-The system satisfies a set of invariants as described in appendix
-\ref{synod-safety} from which it follows that consistency is guaranteed in the
-sense that if $\chosen{}{b}$ and $\chosen{}{b'}$ then $v(b) = v(b')$ as shown
-in theorem \ref{synod-safety-theorem}. The extra flexibility in quorums, and
-the removal of values from messages, are the two main differences between this
-theorem and the corresponding ones in earlier work.
+The system satisfies a set of invariants listed in figure
+\ref{synod-invariants-figure} from which it follows that consistency is
+guaranteed in the sense that if $\chosen{}{b}$ and $\chosen{}{b'}$ then $v(b) =
+v(b')$ as shown in theorem \ref{synod-safety-theorem} in appendix
+\ref{synod-safety}. The extra flexibility in quorums, and the removal of values
+from messages, are the two main differences between this theorem and the
+corresponding ones in earlier work.
 
 Each node operates as a state machine whose transitions are caused by the
 receipts of messages. Each phase is considered to be complete for a particular
@@ -792,6 +831,53 @@ reconfigurations to take place safely as described in section
 
 \section{The Paxos algorithm}\label{paxos-text}
 
+\begin{figure*}
+  \label{paxos-invariants-figure}
+\caption{Invariants preserved by the Paxos algorithm}
+
+\renewcommand{\theenumi}{P\arabic{enumi}}
+
+\begin{enumerate}
+
+\item\label{paxos-quorums} There are configurations $\langle \QI{0}, \QII{0}
+\rangle, \langle \QI{1}, \QII{1} \rangle, \ldots$ where ${\QII{e} \frown \QI{e}
+\frown \QII{e+1}}$ for each $e$.
+
+\item\label{paxos-mprom} $\mprom{i}{a}{b}$ only if $\neg\acc{i'}{a}{b'}$ for
+all $i' \ge i$ and $b' \prec b$, and $e(b) \le e(i)$.
+
+\item\label{paxos-fprom} $\fprom{i}{a}{b}$ only if $\neg\acc{i}{a}{b'}$ for all
+$b' \prec b$, and $e(b) \le e(i)$.
+
+\item\label{paxos-bprom} $\bprom{i}{a}{b}{b'}$ only if $e(b) \le e(i)$, $b'
+  \prec b$, $\acc{i}{a}{b'}$, and $b'$ is the greatest such ballot, in the
+  sense that $\neg \acc{i}{a}{b''}$ for all $b''$ having $b' \prec b'' \prec
+  b$.
+
+\item\label{paxos-prop} $\prop{i}{b}$ only if there is a $q \in \QI{e(b)}$ such
+that for every $a \in q$ one of the following holds:
+%
+\begin{itemize}
+\item $\mprom{i'}{a}{b}$ for some $i' \le i$, or
+\item $\fprom{i}{a}{b}$, or
+\item $\bprom{i}{a}{b}{b'}$ for some $b'$,
+\end{itemize}
+
+and if $P = \{ b' \mid \exists a \in q. \bprom{i}{a}{b}{b'} \} \ne \varnothing$
+then $v_i(b) = v_i(\mathrm{max}(P))$.
+
+
+\item \label{paxos-acc} $\acc{i}{a}{b}$ only if $\prop{i}{b}$.
+
+\item \label{paxos-chosen} $\chosen{i}{b}$ only if for each $j < i$ there is a
+  $b'$ with $\chosen{i-1}{b'}$, $e(i) \le e(b) + 1$, and there is a quorum $q
+  \in \QII{e(i)}$ with $\acc{i}{a}{b}$ for every $a \in q$.
+
+\end{enumerate}
+
+\end{figure*}
+
+
 Conceptually, Paxos is a sequence of distinct instances of the Synod algorithm
 all running simultaneously. To achieve this, the messages of the Synod
 algorithm above are indexed with the instance number $i \in \mathbb N$:
@@ -815,9 +901,9 @@ giving a value to each ballot, and theorem \ref{paxos-safety-theorem} shows
 that whenever $\chosen{i}{b}$ and $\chosen{i}{b'}$ it follows that $v_i(b) =
 v_i(b')$.
 
-The invariants listed in appendix \ref{paxos-invariants} are roughly the same
-as for many other presentations of Paxos with the addition of constraints on
-the eras of instances and ballots as discussed below. Note that invariants
+The invariants listed in figure \ref{paxos-invariants-figure} are roughly the
+same as for many other presentations of Paxos with the addition of constraints
+on the eras of instances and ballots as discussed below. Note that invariants
 \ref{paxos-mprom}, \ref{paxos-fprom} and \ref{paxos-bprom} limit the
 acceptances that can be sent as well as the promises, so there is no need to
 define separate invariants concerning the sending of acceptances.
@@ -1261,9 +1347,6 @@ commissioned.
 % footnotes above bottom floats. This can be corrected via the
 % \fnbelowfloat command of the stfloats package.
 
-
-
-
 \appendices
 
 \section{}\label{weights-appendix}
@@ -1330,42 +1413,8 @@ weight function then \[M(w) \frown M(w).\]  \end{corollary}
 where $w' = w$.  \end{proof}
 
 
-\vfill
-
-\pagebreak
-
 \section{Consistency of the Synod algorithm}
 \label{synod-safety}
-
-The consistency property of the Synod algorithm is derived from the following
-invariants.
-
-\begin{enumerate}
-
-\item \label{synod-quorums} For $b_1 \succ b_2 \in \mathbb B$ there are sets of
-quorums $Q^\textrm{I}(b_1)$ and $Q^\textrm{II}(b_2) \subseteq \mathcal P
-\mathbb A$ such that if $\prop{}{b_1}$ and $\chosen{}{b_2}$ then
-${Q^\textrm{I}(b_1) \frown Q^\textrm{II}(b_2)}$.
-
-\item \label{synod-fprom} $\fprom{}{a}{b}$ only if $\neg\acc{}{a}{b'}$ for ${b'
-\prec b}$.
-
-\item \label{synod-bprom} $\bprom{}{a}{b}{b'}$ only if $b' \prec b$,
-$\acc{}{a}{b'}$, and $b'$ is the greatest such ballot, in the sense that
-$\neg\acc{}{a}{b''}$ for all $b''$ having $b' \prec b'' \prec b$.
-
-\item \label{synod-prop} $\prop{}{b}$ only if there is $q^\textrm{I} \in
-Q^\textrm{I}(b)$ such that for every node $a \in q^\textrm{I}$ either
-$\fprom{}{a}{b}$ or else $\exists b'.  \bprom{}{a}{b}{b'}$, and if ${P = \{ b'
-\mid \exists a \in q^\textrm{I}. \bprom{}{a}{b}{b'} \} \ne \varnothing}$ then
-it follows that $v(b) = v(\mathrm{max}(P))$.
-
-\item \label{synod-acc} $\acc{}{a}{b}$ only if $\prop{}{b}$.
-
-\item \label{synod-chosen} $\chosen{}{b}$ only if there is $q^\textrm{II} \in
-Q^\textrm{II}(b)$ such that $\acc{}{a}{b}$ for every $a \in q^\textrm{II}$.
-
-\end{enumerate}
 
 \begin{lemma}\label{synod-acc-bprom}If $\acc{}{a}{b_2}$,
 $\bprom{}{a}{b_1}{b_3}$ and $b_2 \prec b_1$ then $b_2 \preceq b_3$.\end{lemma}
@@ -1411,51 +1460,6 @@ invariant \ref{synod-acc}.  Therefore by lemma \ref{synod-lemma} it follows
 that $v(b_1) = v(b_2)$ as required.  \end{proof}
 
 \section{Consistency of the Paxos algorithm}\label{paxos-invariants}
-
-The consistency property of the Paxos algorithm is derived from the following
-invariants.
-
-\begin{enumerate}
-
-\item\label{paxos-quorums} There are configurations $\langle \QI{0}, \QII{0}
-\rangle, \langle \QI{1}, \QII{1} \rangle, \ldots$ where ${\QII{e} \frown \QI{e}
-\frown \QII{e+1}}$ for each $e$.
-
-\item\label{paxos-mprom} $\mprom{i}{a}{b}$ only if $\neg\acc{i'}{a}{b'}$ for
-all $i' \ge i$ and $b' \prec b$, and $e(b) \le e(i)$.
-
-\item\label{paxos-fprom} $\fprom{i}{a}{b}$ only if $\neg\acc{i}{a}{b'}$ for all
-$b' \prec b$, and $e(b) \le e(i)$.
-
-\item\label{paxos-bprom} $\bprom{i}{a}{b}{b'}$ only if \begin{itemize} \item
-$e(b) \le e(i)$, \item $b' \prec b$, \item $\acc{i}{a}{b'}$, and \item $b'$ is
-the greatest such ballot, in the sense that $\neg \acc{i}{a}{b''}$ for all
-$b''$ having $b' \prec b'' \prec b$. \end{itemize}
-
-\item\label{paxos-prop} $\prop{i}{b}$ only if there is a $q \in \QI{e(b)}$ such
-that
-\begin{itemize}
-\item for every $a \in q$ one of the following holds:
-%
-\begin{itemize}
-\item $\mprom{i'}{a}{b}$ for some $i' \le i$, or
-\item $\fprom{i}{a}{b}$, or
-\item $\bprom{i}{a}{b}{b'}$ for some $b'$, and
-\end{itemize}
-
-\item if $P = \{ b' \mid \exists a \in q. \bprom{i}{a}{b}{b'} \} \ne
-\varnothing$ then $v_i(b) = v_i(\mathrm{max}(P))$.
-
-\end{itemize}
-
-\item \label{paxos-acc} $\acc{i}{a}{b}$ only if $\prop{i}{b}$.
-
-\item \label{paxos-chosen} $\chosen{i}{b}$ only if \begin{itemize} \item for
-each $j < i$ there is a $b'$ with $\chosen{i-1}{b'}$, \item $e(i) \le e(b) +
-1$, and \item there is a quorum $q \in \QII{e(i)}$ with $\acc{i}{a}{b}$ for
-every $a \in q$.  \end{itemize}
-
-\end{enumerate}
 
 \begin{lemma}\label{paxos-synod-quorum-invariant} For $b_1 \succ b_2 \in
 \mathbb B$, if $\prop{i}{b_1}$ and $\chosen{i}{b_2}$ then
