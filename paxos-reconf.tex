@@ -1068,7 +1068,7 @@ The system must therefore be returned to normal running before any further
 reconfiguration can occur. To do this, the leader chooses a new ballot $b'$
 having $e(b') = e(b) + 1$ and $\owner{b'} = \ell$ and runs phase I for $b'$ in
 a way that does not prevent any progress in era $e(b)$ while it has not
-completed. This is possible of $\ell$ has a \textit{casting vote} in the sense
+completed. This is possible if $\ell$ has a \textit{casting vote} in the sense
 that there are quorums of nonfailed nodes $q \in \QII{e(b)}$ and $q' \in
 \QI{e(b)+1}$ having $q \cap q' = \{\ell\}$. With a casting vote, $\ell$ may
 broadcast $\prep{b'}$ just to the nodes in $q' \setminus \{\ell\}$ without
