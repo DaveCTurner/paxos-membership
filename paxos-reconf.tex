@@ -972,7 +972,7 @@ each ballot $b$, each era $e \ge e(b)$ and each node $a$ there must be a ballot
 $b' \succ b$ having $e(b') = e$ and $\owner{b'} = a$.
 
 This means that ballot numbers cannot be simple integers because this would
-imply that certain eras would only have finitely many ballots. Instead an
+imply that there exist eras containing only finitely many ballots. Instead an
 implementation could, for example, let $\mathbb B = \mathbb N \times \mathbb N
 \times \mathbb A$ ordered lexicographically, where $e(\langle e, n, a\rangle)
 \triangleq e$ and $\owner{\langle e, n, a \rangle} \triangleq a$. This is the
@@ -993,11 +993,11 @@ further progress from being made.
 With these two modifications the proof of liveness runs much as in the original
 presentation:
 
-\begin{theorem}[Liveness] Given that there is eventually a non-faulty
-  distinguished node $\ell$ which is the only node that may emit prepare
-  messages, and given that for every instance there is eventually at least one
-  value to propose, then eventually a value is chosen for every instance.
-\end{theorem}
+\begin{theorem}[Liveness]\label{liveness-theorem} Given that there is
+  eventually a nonfaulty distinguished node $\ell$ which is the only node that
+  may emit prepare messages, and sufficiently many other nonfaulty nodes, and
+  given that for every instance there is eventually at least one value to
+propose, then eventually a value is chosen for every instance.  \end{theorem}
 
 \begin{proof} The proof proceeds by induction over the instances, so suppose
 that $\chosen{j}{b_j}$ for all $j < i$ and show that eventually
@@ -1017,13 +1017,20 @@ If $\ell$ has not yet received enough promises for $b_i$ at instance $i$ then
 it broadcasts $\prep{b_i}$ and waits to receive promises from a quorum of nodes
 in $\QI{e(b_i)}$.
 
-Then, if $\ell$ has not yet emitted $\prop{i}{b_i}$ it chooses one of the
-values for instance $i$ (which eventually exists), modifies $v_i(b_i)$ as
+Then, if $\ell$ has not yet emitted $\prop{i}{b_i}$ it selects one of the
+values for instance $i$ (which eventually exists), sets $v_i(b_i)$ as
 appropriate, broadcasts $\prop{i}{b_i}$, and waits to receive acceptances in
 response. When acceptances have been received from a quorum of nodes in
 $\QII{e(i)}$ it follows that $\chosen{i}{b_i}$ as required. \end{proof}
 
 \subsection{Fully concurrent configuration changes}\label{fully-concurrent}
+
+The discussion so far shows that, like Dynamic Paxos, this algorithm satisfies
+consistency and liveness properties.  The benefit of this scheme compared with
+Dynamic Paxos is that, under normal running conditions, it is possible to
+perform a reconfiguration without needing to impose a limit on the number of
+concurrently-running instances. This section describes the details of this
+procedure.
 
 In normal running there is an instance $i_0$ and a ballot $b$ with ${e(b) =
 e(i_0) = e(i_\mathrm{max}) = e_\mathrm{max}}$ and the distinguished node $\ell
@@ -1035,9 +1042,7 @@ proposals are normally accepted without undue delay by all other nodes.
 
 \def\Qnew#1{Q^\textrm{#1}_\textrm{new}}
 
-When in this state it is possible to perform a reconfiguration without
-preventing any other proposals from being made and values chosen concurrently
-using the following procedure. Suppose an operator wishes to change the cluster
+Suppose that, in normal running, an operator wishes to change the cluster
 configuration to $\langle \Qnew{I}, \Qnew{II} \rangle$ where $\QI{e(b)} \frown
 \Qnew{II} \frown \Qnew{I}$. First she appends $\langle \Qnew{I}, \Qnew{II}
 \rangle$ to the sequence of configurations, setting $\langle \QI{e(b)+1},
@@ -1047,50 +1052,43 @@ the change should take effect and appends values to the sequence of eras to set
 $e(i) = e(i_0)$ for $i_0 \le i < i_c$ and $e(i_c) = e(i_0) + 1$.  Since $e(i_c)
 = e(i_0) + 1 \le e(b) + 1$, values for instance $i_c$ and any future instances
 with the same era may be proposed and chosen even though phase I has not yet
-run for a ballot in this era. As long as $e(i_\mathrm{max})$ is not increased
-again, this means there is no limit on how many further instances can be
-proposed and chosen without waiting for another phase I to complete.
+run for a ballot in this era, so this does not prevent any further instances
+from running concurrently.
 
 At this point, the system is no longer in normal running as defined above
-because $e(b) = e_\mathrm{max} - 1$. In order to get back to normal running
-without limiting concurrency, a ballot $b'$ should be chosen with $e(b') = e(b)
-+ 1$ and $\owner{b'}$ should try and obtain a quorum of promises for $b'$
-without preventing progress in era $e(b)$. It can do this by dividing the
-cluster into two parts between which it has a \textit{casting vote}: it finds
-$q \in Q_{e(b)}$ and $q' \in Q_{e(b)+1}$ having $q \cap q' = \{\owner{b'}\}$
-and broadcasts $\prep{b'}$ to all nodes in $q'$ except itself. While it is
-waiting for the promises to arrive in response to this broadcast, $\owner{b}$
-continues to make progress choosing instances of ballot $b$ using the quorum $q
-\in Q_{e(b)}$.  Eventually when promises have arrived from every node in $q'$
-except $\owner{b'}$ itself, it can send itself a final promise, immediately
-complete phase I for ballot $b'$, and start broadcasting proposals
-$\prop{i}{b'}$.  This restores the system to normal running. Observe the
-following:
-%
-\begin{itemize}
-%
-\item The first part of this process requires that $e(i_\mathrm{max})$
-  increases by at most $1$ before the new phase I has finished running, because
-  if $e(i_\mathrm{max}) \ge e(i_0) + 2$ then no values may be chosen for any
-  instance $i \ge i_\mathrm{max}$ without running another phase I, which bounds
-  how many instances may be running concurrently. In this situation consistency
-  and liveness are preserved but there may be a performance impact.
-%
-\item The second part of this process requires the existence of a node
-  $\owner{b'}$ that has a casting vote. If $\owner{b} \ne \owner{b'}$ then this
-  step includes an \textit{abdication}: the original leader $\owner{b}$ hands
-  over the leadership of the cluster to $\owner{b'}$. If there is no node with
-  a casting vote then the broadcast of $\prep{b'}$ will prevent further
-  progress in era $e(b)$. Again, this preserves consistency and liveness but
-  may limit performance.
-%
-\item If a node fails during this process then it may be necessary to retry
-  some of the steps or possibly even elect a new leader. Again, this preserves
-  consistency and liveness but may limit performance. In general it is not
-  possible to prevent a failure from having an impact on the performance of the
-  system.
-%
-\end{itemize}
+because $e(b) = e(i_\mathrm{max}) - 1$. If the operator were to increase
+$e(i_\mathrm{max})$ any further then there would be an instance $i$ with $e(i)
+> e(b) + 1$ and hence $\neg\chosen{i}{b}$. A value can still eventually be
+chosen for instance $i$ due to theorem \ref{liveness-theorem}, but not before
+the leader has selected a new ballot $b'$ in an appropriate era, completed
+phase I for $b'$, and then broadcast new proposals for $b'$. These steps may
+cause the pipeline to stall if not completed quickly enough.
+
+The system must therefore be returned to normal running before any further
+reconfiguration can occur. To do this, the leader chooses a new ballot $b'$
+having $e(b') = e(b) + 1$ and $\owner{b'} = \ell$ and runs phase I for $b'$ in
+a way that does not prevent any progress in era $e(b)$ while it has not
+completed. This is possible of $\ell$ has a \textit{casting vote} in the sense
+that there are quorums of nonfailed nodes $q \in \QII{e(b)}$ and $q' \in
+\QI{e(b)+1}$ having $q \cap q' = \{\ell\}$. With a casting vote, $\ell$ may
+broadcast $\prep{b'}$ just to the nodes in $q' \setminus \{\ell\}$ without
+preventing further progress in era $e(b)$ since the nodes in $q$ can continue
+to accept proposals in this era throughout.  When it has received promises from
+all the other nodes in $q'$ it can instantaneously send itself
+$\mprom{i'}{\ell}{b'}$ for some sufficiently large $i'$, which completes phase
+I at $b'$ and restores the system to normal running.
+
+If $\ell$ does not have a casting vote, but there is some other node $\ell'$
+which does, then $\ell$ should first abdicate its leadership to $\ell'$ and
+then the new leader should perform the new phase I as described above. If there
+is no node with a casting vote at all then the broadcast of $\prep{b'}$ may
+prevent progress until phase I is complete at $b'$.
+
+If any node fails during this process then it may be necessary to retry some of
+the steps or possibly even elect a new leader. Liveness and consistency
+continue to hold if nodes fail but performance may be affected, for instance by
+meaning that $\ell$ no longer has a casting vote. In general it is not possible
+to prevent node failures from having a performance impact.
 
 \section{Examples}\label{types-of-configuration-change}
 
