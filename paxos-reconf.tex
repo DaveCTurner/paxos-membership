@@ -876,7 +876,7 @@ There is another kind of message known as a \textit{multi-promise}, written
 $\mprom{i}{a}{b}$, which can be thought of as standing for the infinite set of
 free promises ${\{ \fprom{j}{a}{b} \mid j \ge i \}}$. The predicate
 $\chosen{i}{b}$ is also indexed by the instance number $i$, but prepare
-messages $\prep{b}$ apply to all instances so do not need to be indexed.
+messages $\prep{b}$ apply to all instances so are not indexed.
 
 As in the Synod algorithm, phase I starts with a broadcast of $\prep{b}$ for
 some $b$ to which each node $a$ may respond with a set of promises
@@ -912,9 +912,10 @@ the cluster is ``in era $e$'' while instances are being chosen using $\langle
 \QI{e}, \QII{e}\rangle$. While a change from era $e$ to $e+1$ is in progress
 some instances may use the interim configuration $\langle \QI{e}, \QII{e+1}
 \rangle$, and once the change to era $e+1$ is complete instances will use
-$\langle \QI{e+1}, \QII{e+1} \rangle$. Since $\QII{e} \frown \QI{e} \frown
-\QII{e+1} \frown \QI{e+1}$ it follows that consistency is preserved throughout
-by the observation of \ref{per-phase-quorums} above.
+$\langle \QI{e+1}, \QII{e+1} \rangle$. This intuition is captured more
+precisely in section \ref{fully-concurrent}, and since $\QII{e} \frown \QI{e}
+\frown \QII{e+1} \frown \QI{e+1}$ it follows that consistency is preserved
+throughout by the observation of \ref{per-phase-quorums} above.
 
 To achieve this there are also two nondecreasing integer-valued functions, both
 written $e(\cdot)$, which respectively assign an era $e(i)$ to each instance
@@ -988,7 +989,7 @@ then it can no longer accept any proposals $\prop{i}{b'}$ since such a proposal
 would have $e(b') \le e(i) < e(b)$ so that $b' \prec b$ and hence the node $a$
 would effectively be disabled in era $e(i)$. As changes to the current era are
 themselves agreed by consensus this kind of promise risks preventing any
-further progress from being made.
+further progress.
 
 With these two modifications the proof of liveness runs much as in the original
 presentation:
