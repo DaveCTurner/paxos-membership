@@ -445,8 +445,8 @@ d.turner@tracsis.com)}% <-this % stops a space
 % As a general rule, do not put math, special symbols or citations in the
 % abstract or keywords.
 
-\begin{abstract}Distributed consensus is an essential building block for
-  creating fault-tolerant systems. When equipped with a consensus algorithm a
+\begin{abstract}Consensus is an essential ingredient of a fault-tolerant
+  distributed system systems. When equipped with a consensus algorithm a
   distributed system can act as a replicated state machine (RSM), duplicating
   its state across a cluster of redundant components to avoid the failure of
   any single component leading to a system-wide failure. Paxos and Raft are
@@ -497,12 +497,12 @@ deterministic, the nodes' states remain synchronised if they all start in the
 same state and perform the same sequence of transitions.
 
 In order to arrange for each node to perform the same transitions the system
-must achieve consensus on (or \textit{choose}) a sequence $v_0, v_1, \ldots$ of
+may achieve consensus on (or \textit{choose}) a sequence $v_0, v_1, \ldots$ of
 values which describe the transitions. The sequence must be consistent across
 the whole system even in the presence of failures, and as long as there are not
 too many failures it must remain possible to continue to make progress.  This
 is known as the distributed consensus problem, for which a number of solutions
-are known to exist including Paxos \cite{part-time-parliament} and
+are known to exist, including Paxos \cite{part-time-parliament} and
 Raft\cite{raft}. They typically run on a cluster of $2f+1$ nodes, where $f$ is
 the number of faulty nodes that should be tolerated, and consensus is achieved
 on a value $v_i$ when $\ge f+1$ (i.e. a majority) of the nodes agree.  The
@@ -530,7 +530,7 @@ certain pairs of nodes cease to be delivered reliably for a period, or if the
 configuration changes.  Raft's pattern of execution is similar.
 
 Both algorithms can achieve high throughput by allowing for \textit{pipelining}
-\cite{smart} whereby an instance may start running before all previous
+\cite{smart} whereby work may begin on an instance even before all previous
 instances have fully completed. It is a little tricky to ensure that this
 preserves consistency when the configuration is held in the RSM itself because
 a value may only be proposed once a quorum of nodes are ready for it, but there
@@ -543,20 +543,19 @@ effect until at least instance $i + \alpha$, which means that when a value is
 proposed there can be no as-yet-undecided configuration change in the pipeline
 that could cause a different value to be chosen. In contrast, Raft imposes no
 limit on the number of concurrently-running instances and instead restricts the
-reconfigurations that may occur to only allow ones that are sufficiently minor
-that they cannot result in inconsistency. An operator may then then perform a
-sequence of these restricted reconfigurations in order to achieve an arbitrary
-reconfiguration.
+reconfigurations that may occur to only allow ones that cannot result in
+inconsistency. An operator may then then perform a sequence of these restricted
+reconfigurations in order to achieve an arbitrary reconfiguration.
 
-The choice of the pipeline length parameter $\alpha$ must be made carefully. If
-it is too small then the system may suffer from poor performance due to lack of
-parallelism, but if it is too large then configuration changes can be
-unreasonably expensive to complete. It would be better to be able to vary the
-value of $\alpha$ as the system is running rather than having to choose it
-up-front, but there seems to be no published method for doing so whilst
-ensuring consistency. It would be better still to be able to impose this limit
-only when a configuration change is in progress and allow an unbounded pipeline
-while the configuration is static. The need for any such limit seems
+In Paxos, the choice of the pipeline length parameter $\alpha$ must be made
+carefully. If it is too small then the system may suffer from poor performance
+due to lack of parallelism, but if it is too large then configuration changes
+can be unreasonably expensive to complete. It would be better to be able to
+vary the value of $\alpha$ as the system is running rather than having to
+choose it up-front, but there seems to be no published method for doing so
+whilst ensuring consistency. It would be better still to be able to impose this
+limit only when a configuration change is in progress and allow an unbounded
+pipeline while the configuration is static. The need for any such limit seems
 inelegant\cite{reconfiguring-a-state-machine} particularly when compared with
 Raft's approach.
 
@@ -565,23 +564,20 @@ as the system is running and that the pipeline may indeed remain unbounded
 while the configuration is static. It is also shown that the pipeline may
 safely remain unbounded even during a configuration change as long as the
 reconfiguration satisfies certain conditions described in section
-\ref{configuration-changes} below. In particular, this result unifies and
-generalises the reconfigurations supported by both Raft and Dynamic
-Paxos\cite{cheap-paxos} as shown in section
-\ref{types-of-configuration-change}.
+\ref{configuration-changes} below.
 
 The algorithm is presented here in its entirety for the sake of consistency of
 notation and because it modifies the original algorithm in ways that invalidate
 its consistency and liveness proofs.  We begin with a recap of the Synod
 algorithm in section \ref{synod-text} and follow this by covering the full
 Paxos algorithm in section \ref{paxos-text}, then in section
-\ref{types-of-configuration-change} it is shown how this work generalises the
-existing reconfiguration processes supported in Paxos and Raft.  Reworked
-proofs of liveness and consistency are included in section \ref{liveness} and
-appendices \ref{synod-safety} and \ref{paxos-invariants} and differences from
-the original are highlighted throughout. The appendices are informal versions
-of the formal proofs performed using the Isabelle/HOL proof assistant
-\cite{isabelle-hol}.
+\ref{types-of-configuration-change} it is shown how this work generalises and
+unifies the previously-known reconfiguration processes supported in Paxos and
+Raft. Reworked proofs of liveness and consistency are included in section
+\ref{liveness} and appendices \ref{synod-safety} and \ref{paxos-invariants} and
+differences from the original are highlighted throughout. The appendices are
+informal versions of the formal proofs performed using the Isabelle/HOL proof
+assistant \cite{isabelle-hol}.
 
 %\IEEEpubidadjcol %must be in 2nd col of 1st page
 
@@ -620,14 +616,13 @@ resilience it must be possible to reconfigure the oracle itself, which requires
 another oracle and so on \textit{ad infinitum}.
 
 Ongaro and Ousterhout \cite{raft} developed the Raft protocol which supports an
-unbounded pipeline throughout the reconfiguration process by instead limiting
-the reconfigurations that can be performed to be sufficiently minor that
-consistency is preserved.
+unbounded pipeline throughout the reconfiguration process without inconsistency
+by instead limiting the reconfigurations that can be performed.
 
 Viewstamped Replication and Zab are two other well-known consensus protocols.
 Viewstamped Replication supports reconfiguration as described by Liskov and
 Cowling \cite{viewstamped-replication} in a similar fashion to Vertical Paxos.
-Reed and Junqueira \cite{zab} initially publised Zab without reconfiguration
+Reed and Junqueira \cite{zab} initially presented Zab without reconfiguration
 and this feature was subsequently added by Shraer, Reed, Malkhi and Junqueira
 \cite{zab-reconf}, using a limited-pipeline approach much as in Dynamic Paxos.
 
@@ -657,28 +652,29 @@ may be elected and thus in which further progress can be made.
 
 \begin{enumerate}
 
-\item \label{synod-quorums} For $b_1 \succ b_2 \in \mathbb B$ there are sets of
-quorums $Q^\textrm{I}(b_1)$ and $Q^\textrm{II}(b_2) \subseteq \mathcal P
-\mathbb A$ such that if $\prop{}{b_1}$ and $\chosen{}{b_2}$ then
-${Q^\textrm{I}(b_1) \frown Q^\textrm{II}(b_2)}$.
+\item \label{synod-quorums} For all $b_1 \succ b_2 \in \mathbb B$ there are
+  sets of quorums $Q^\textrm{I}(b_1)$ and $Q^\textrm{II}(b_2) \subseteq
+  \mathcal P \mathbb A$ such that if $\prop{}{b_1}$ and $\chosen{}{b_2}$ then
+  ${Q^\textrm{I}(b_1) \frown Q^\textrm{II}(b_2)}$.
 
-\item \label{synod-fprom} $\fprom{}{a}{b}$ only if $\neg\acc{}{a}{b'}$ for ${b'
-\prec b}$.
+\item \label{synod-fprom} If $\fprom{}{a}{b}$ then $\neg\acc{}{a}{b'}$ for all
+  ${b' \prec b}$.
 
-\item \label{synod-bprom} $\bprom{}{a}{b}{b'}$ only if $b' \prec b$,
-$\acc{}{a}{b'}$, and $b'$ is the greatest such ballot, in the sense that
-$\neg\acc{}{a}{b''}$ for all $b''$ having $b' \prec b'' \prec b$.
+\item \label{synod-bprom} If $\bprom{}{a}{b}{b'}$ then $b' \prec b$,
+  $\acc{}{a}{b'}$, and $b'$ is the greatest such ballot in the sense that
+  $\neg\acc{}{a}{b''}$ for all $b''$ having $b' \prec b'' \prec b$.
 
-\item \label{synod-prop} $\prop{}{b}$ only if there is $q^\textrm{I} \in
-Q^\textrm{I}(b)$ such that for every node $a \in q^\textrm{I}$ either
-$\fprom{}{a}{b}$ or else $\exists b'.  \bprom{}{a}{b}{b'}$, and if ${P = \{ b'
-\mid \exists a \in q^\textrm{I}. \bprom{}{a}{b}{b'} \} \ne \varnothing}$ then
-it follows that $v(b) = v(\mathrm{max}(P))$.
+\item \label{synod-prop} If $\prop{}{b}$ then there is a quorum $q^\textrm{I}
+  \in Q^\textrm{I}(b)$ such that for every node $a \in q^\textrm{I}$ either
+  $\fprom{}{a}{b}$ or else there exists a $b'$ such that $\bprom{}{a}{b}{b'}$;
+  if also ${P = \{ b' \mid \exists a \in q^\textrm{I}.  \bprom{}{a}{b}{b'} \}
+  \ne \varnothing}$ then $v(b) = v\bigl(\mathrm{max}(P)\bigr)$.
 
-\item \label{synod-acc} $\acc{}{a}{b}$ only if $\prop{}{b}$.
+\item \label{synod-acc} If $\acc{}{a}{b}$ then $\prop{}{b}$.
 
-\item \label{synod-chosen} $\chosen{}{b}$ only if there is $q^\textrm{II} \in
-Q^\textrm{II}(b)$ such that $\acc{}{a}{b}$ for every $a \in q^\textrm{II}$.
+\item \label{synod-chosen} If $\chosen{}{b}$ then there is a quorum
+  $q^\textrm{II} \in Q^\textrm{II}(b)$ such that $\acc{}{a}{b}$ for every $a
+  \in q^\textrm{II}$.
 
 \end{enumerate}
 \end{figure*}
@@ -713,12 +709,10 @@ also useful to add another predicate $\chosen{}{b}$ which indicates that the
 value $v(b)$ associated with the ballot $b$ has been chosen.
 
 The system satisfies a set of invariants listed in fig.
-\ref{synod-invariants-figure} from which it follows that consistency is
+\ref{synod-invariants-figure}, from which it follows that consistency is
 guaranteed in the sense that if $\chosen{}{b}$ and $\chosen{}{b'}$ then $v(b) =
 v(b')$ as shown in theorem \ref{synod-safety-theorem} in appendix
-\ref{synod-safety}. The extra flexibility in quorums, and the removal of values
-from messages, are the two main differences between this theorem and the
-corresponding ones in earlier work.
+\ref{synod-safety}.
 
 Each node operates as a state machine whose transitions are caused by the
 receipts of messages. Each phase is considered to be complete for a particular
@@ -767,13 +761,13 @@ Although it appears that the function $v$ is fixed, in practice it is allowed
 to change as the system runs. Treating it as fixed simplifies the consistency
 proof and highlights that its values need not be included in all messages, but
 means that the system cannot be shown to satisfy any useful liveness
-properties.  To recover liveness, note that if the invariants of appendix
-\ref{synod-safety} are satisfied with a value function $v$ then they continue
-to be satisfied if $v$ is replaced by another value function $v'$ that agrees
-with $v$ on proposed ballots, i.e. where $v(b) = v'(b)$ if $\prop{}{b}$ but not
-necessarily otherwise. Since only $\owner{b}$ may propose $b$, if it has not
-yet itself proposed a value for $b$ it can deduce that $\neg\prop{}{b}$ and
-therefore freely modify $v(b)$.
+properties.  To recover liveness, note that if the invariants of fig.
+\ref{synod-invariants-figure} are satisfied with a value function $v$ then they
+continue to be satisfied if $v$ is replaced by another value function $v'$ that
+agrees with $v$ on proposed ballots, i.e. where $v(b) = v'(b)$ if $\prop{}{b}$
+but not necessarily otherwise. Since only $\owner{b}$ may propose $b$, if it
+has not yet itself proposed a value for $b$ it can deduce that $\neg\prop{}{b}$
+and therefore freely modify $v(b)$.
 
 It is also important for liveness that the implementation of $v$ is resilient
 to the same failure modes as the rest of the system. Since $\owner{b}$ is, in a
@@ -837,38 +831,36 @@ safely as described in section \ref{configuration-changes} below.
 \begin{enumerate}
 
 \item\label{paxos-quorums} There are configurations $\langle \QI{0}, \QII{0}
-\rangle, \langle \QI{1}, \QII{1} \rangle, \ldots$ where ${\QII{e} \frown \QI{e}
-\frown \QII{e+1}}$ for each $e$.
+  \rangle, \langle \QI{1}, \QII{1} \rangle, \ldots$ where ${\QII{e} \frown
+  \QI{e} \frown \QII{e+1}}$ for each $e$.
 
-\item\label{paxos-mprom} $\mprom{i}{a}{b}$ only if $\neg\acc{i'}{a}{b'}$ for
-all $i' \ge i$ and $b' \prec b$, and $e(b) \le e(i)$.
+\item\label{paxos-mprom} If $\mprom{i}{a}{b}$ then $e(b) \le e(i)$ and
+  $\neg\acc{j}{a}{b'}$ for all $j \ge i$ and all $b' \prec b$.
 
-\item\label{paxos-fprom} $\fprom{i}{a}{b}$ only if $\neg\acc{i}{a}{b'}$ for all
-$b' \prec b$, and $e(b) \le e(i)$.
+\item\label{paxos-fprom} If $\fprom{i}{a}{b}$ then $e(b) \le e(i)$ and
+  $\neg\acc{i}{a}{b'}$ for all $b' \prec b$.
 
-\item\label{paxos-bprom} $\bprom{i}{a}{b}{b'}$ only if $e(b) \le e(i)$, $b'
-  \prec b$, $\acc{i}{a}{b'}$, and $b'$ is the greatest such ballot, in the
-  sense that $\neg \acc{i}{a}{b''}$ for all $b''$ having $b' \prec b'' \prec
-  b$.
+\item\label{paxos-bprom} If $\bprom{i}{a}{b}{b'}$ then $e(b) \le e(i)$, $b'
+  \prec b$, $\acc{i}{a}{b'}$, and $b'$ is the greatest such ballot in the sense
+  that $\neg \acc{i}{a}{b''}$ for all $b''$ having $b' \prec b'' \prec b$.
 
-\item\label{paxos-prop} $\prop{i}{b}$ only if there is a $q \in \QI{e(b)}$ such
-that for every $a \in q$ one of the following holds:
+\item\label{paxos-prop} If $\prop{i}{b}$ then there is a quorum $q \in
+  \QI{e(b)}$ such that for every $a \in q$ one of the following holds:
 %
 \begin{itemize}
-\item $\mprom{i'}{a}{b}$ for some $i' \le i$, or
+\item $\mprom{j}{a}{b}$ for some $j \le i$, or
 \item $\fprom{i}{a}{b}$, or
-\item $\bprom{i}{a}{b}{b'}$ for some $b'$,
+\item $\bprom{i}{a}{b}{b'}$ for some $b'$.
 \end{itemize}
 
-and if $P = \{ b' \mid \exists a \in q. \bprom{i}{a}{b}{b'} \} \ne \varnothing$
-then $v_i(b) = v_i(\mathrm{max}(P))$.
+Furthermore if $P = \{ b' \mid \exists a \in q. \bprom{i}{a}{b}{b'} \} \ne
+\varnothing$ then $v_i(b) = v_i\bigl(\mathrm{max}(P)\bigr)$.
 
+\item \label{paxos-acc} If $\acc{i}{a}{b}$ then $\prop{i}{b}$.
 
-\item \label{paxos-acc} $\acc{i}{a}{b}$ only if $\prop{i}{b}$.
-
-\item \label{paxos-chosen} $\chosen{i}{b}$ only if for each $j < i$ there is a
-  $b'$ with $\chosen{i-1}{b'}$, $e(i) \le e(b) + 1$, and there is a quorum $q
-  \in \QII{e(i)}$ with $\acc{i}{a}{b}$ for every $a \in q$.
+\item \label{paxos-chosen} If $\chosen{i}{b}$ then $e(i) \le e(b) + 1$, for
+  each $j < i$ there is a $b'$ with $\chosen{j}{b'}$, and there is a quorum
+  $q \in \QII{e(i)}$ with $\acc{i}{a}{b}$ for every $a \in q$.
 
 \end{enumerate}
 
