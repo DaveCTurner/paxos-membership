@@ -952,23 +952,23 @@ e(i_\mathrm{max})$.
 
 To be useful, a consensus algorithm must not only guarantee consistency but
 also ensure that it cannot ``get stuck'', i.e. it is always possible to make
-progress by eventually choosing a value for each instance. It is impossible to
-show this deterministically in a fully asynchronous
+progress by eventually choosing a value for each instance. It is known to be
+impossible to guarantee liveness in a deterministic asynchronous
 system\cite{flp-impossibility} but as with earlier presentations of
-Paxos\cite{paxos-made-simple} here liveness can be proved by assuming that a
-distinguished node $\ell$ is eventually selected as the only one that may emit
-$\prep{b}$ messages.
+Paxos\cite{paxos-made-simple} here liveness can be shown under the assumption
+that a distinguished node $\ell$ is eventually selected as the only one that
+may emit $\prep{b}$ messages.
 
 The original liveness proof then proceeded by having $\ell$ emit $\prep{b}$ for
 some $b$ that is chosen to be large enough that a quorum of nodes may respond
-with promises. Unlike in the original proof, here there is an upper bound on
-suitable ballots since a proposed ballot must not belong to an era which is too
-large. This is because if ${e(b) > e(i)}$ then $\prop{i}{b}$ may never be sent
-and nor may $\prop{i}{b'}$ for any $b' \succ b$ since $e(\cdot)$ is
-nondecreasing. Therefore here $\ell$ must be able to choose a ballot that is
-large enough to be accepted but which still belongs to the correct era, or,
-more precisely, for each ballot $b$, each era $e \ge e(b)$ and each node $a$
-there must be a ballot $b' \succ b$ having $e(b') = e$ and $\owner{b'} = a$.
+with promises. In contrast, here there is an upper bound on suitable ballots
+since a proposed ballot must not belong to an era which is too large, because
+if ${e(b) > e(i)}$ then $\prop{i}{b}$ may never be sent and nor may
+$\prop{i}{b'}$ for any $b' \succ b$ since $e(\cdot)$ is nondecreasing.
+Therefore here $\ell$ must be able to choose a ballot that is large enough to
+be accepted but which still belongs to the correct era, or, more precisely, for
+each ballot $b$, each era $e \ge e(b)$ and each node $a$ there must be a ballot
+$b' \succ b$ having $e(b') = e$ and $\owner{b'} = a$.
 
 This means that ballot numbers cannot be simple integers because this would
 imply that certain eras would only have finitely many ballots. Instead an
@@ -1095,21 +1095,21 @@ following:
 
 This section contains some examples of configuration changes that satisfy the
 conditions described above.  All the configurations described here have equal
-sets of quorums in phase I and phase II in normal running, so for the sake of
-simplicity throughout this section let $Q^\textrm{I}_e = Q^\textrm{II}_e$ and
-write simply $Q_e$ for both. Implementations can ensure $Q_e \frown Q_e$ for
-each $e$ by, for instance, arranging for each quorum in $Q_e$ to comprise a
-majority subset of some finite set of nodes. Slightly more generally, let a
+sets of quorums in phase I and phase II of each era, so for the sake of
+simplicity throughout this section define ${Q_e = Q^\textrm{I}_e =
+Q^\textrm{II}_e}$.  Implementations can ensure $Q_e \frown Q_e$ for each $e$
+by, for instance, arranging for each quorum in $Q_e$ to comprise a majority
+subset of some finite set of nodes. Slightly more generally, let a
 \textit{weight function} be a function $w : \mathbb A \to \mathbb N$ that only
 takes finitely many nonzero values. This can be used to define a configuration
 $\langle M(w), M(w) \rangle$ by \textit{weighted majority}: \[M(w) = \left\{ q
-\;\middle|\; \sum_{a \in q} 2 w(a) > \sum_{a \in \mathbb A} w(a) \right\}.\]
-Corollary \ref{weights-equal} in appendix \ref{weights-appendix} demonstrates
-the well-known result that $M(w) \frown M(w)$ for any weight function $w$.
-Indeed, if $w$ and $w'$ are weight functions that differ by a constant factor
-in the sense that that there are positive integers $k$ and $k'$ with $k w(a) =
-k' w'(a)$ for all $a$, then clearly ${M(w) = M(w')}$ and hence $M(w) \frown
-M(w')$.
+    \;\middle|\; \sum_{a \in q} 2 w(a) > \sum_{a \in \mathbb A} w(a)
+\right\}.\] Corollary \ref{weights-equal} in appendix \ref{weights-appendix}
+demonstrates the well-known result that $M(w) \frown M(w)$ for any weight
+function $w$.  Indeed, if $w$ and $w'$ are weight functions that differ by a
+constant factor in the sense that that there are positive integers $k$ and $k'$
+with $k w(a) = k' w'(a)$ for all $a$, then clearly ${M(w) = M(w')}$ and hence
+$M(w) \frown M(w')$.
 
 \def\wl#1{w^{1 \ldots #1}}
 \def\Mwl#1{M(\wl{#1})}
@@ -1128,15 +1128,16 @@ once.
 
 In fact there is no need to restrict attention just to weight functions taking
 values in $\{0, 1\}$ as shown by theorem \ref{weights-nearly-equal} which is
-reminiscent of the amoeba analogy in \cite{cheap-paxos}: any two weight
-functions that differ by at most one at at most one node can be used to define
-consecutive configurations. This extra generality is important for deployments
-where nodes may share infrastructure (e.g. power distribution or network
-connectivity) because such nodes may suffer correlated failures, and reducing
-this correlation may be costly.  In more detail, a na\"ive approach to swapping
-a node $a_{\textrm{old}}$ for a replacement $a_{\textrm{new}}$ in a three-node
-cluster using unweighted majorities would be to perform the configuration
-changes given by this sequence of weight functions: \[\begin{array}{rcccc}
+reminiscent of the amoeba analogy in \cite{cheap-paxos}: any two integer-valued
+weight functions that differ by at most one at at most one node can be used to
+define consecutive configurations. This extra generality is important for
+deployments where nodes may share infrastructure (e.g. power distribution or
+network connectivity) because such nodes may suffer correlated failures, and
+reducing this correlation by adding more independent infrastructure may be
+costly.  In more detail, a na\"ive approach to swapping a node
+$a_{\textrm{old}}$ for a replacement $a_{\textrm{new}}$ in a three-node cluster
+using unweighted majorities would be to perform the configuration changes given
+by this sequence of weight functions: \[\begin{array}{rcccc}
 %
 \textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
 %
@@ -1210,15 +1211,15 @@ $Q_{e+1}$ such as $\varnothing$ or the joint configuration of $Q_{e}$ and $Q'$
 which satisfies that $Q_{e} \frown Q_{e + 1} \frown Q_{e+1} \frown Q'$.
 However, re-running phase I can only be delayed as described in section
 \ref{fully-concurrent} above if the era increases by $1$ and in this situation
-the era increases by $2$, so the new phase I must be complete before any new
-phase II instances can be started.  To prevent this causing the pipeline to
-stall, the operator chooses an $\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and
-$e(j) = e(i)$ for $i < j \le i + \alpha$, effectively delaying the
-configuration change for $\alpha$ instances in the hope that this is long
-enough to have completed the new phase I. This improves slightly on Dynamic
-Paxos as there is no need to limit the pipeline length unless a configuration
-change is in progress, and different changes may use different values of
-$\alpha$ if required.
+the era increases by $2$, so a new phase I must be completed before phase II of
+any new instances can be started.  To prevent this causing the pipeline to
+stall, the operator chooses a sufficiently large $\alpha > 0$ and sets
+$e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i + \alpha$,
+effectively delaying the configuration change for $\alpha$ instances in the
+hope that this is long enough to have completed the new phase I. This improves
+slightly on Dynamic Paxos as there is no need to limit the pipeline length
+unless a configuration change is in progress, and different changes may use
+different values of $\alpha$ if required.
 
 \section{Conclusion}
 
