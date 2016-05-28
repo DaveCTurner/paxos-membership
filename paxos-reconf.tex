@@ -613,9 +613,9 @@ of reconfiguration are ``relatively minor'' but ``subtle'' and do not give any
 details on the reconfiguration scheme used in their Chubby system. It seems
 likely that they also used the bounded-pipeline approach. In contrast, Birman,
 Malkhi and van Renesse \cite{virt-synch} noted that allowing for $\alpha > 1$
-leads to implementation difficulties, causing many real-world systems to
-disable pipelining by setting $\alpha = 1$, or even to disable reconfiguration
-entirely.
+requires an unacceptably complex implementation, leading many real-world
+systems to disable pipelining by setting $\alpha = 1$, or even to disable
+reconfiguration entirely.
 
 Ongaro and Ousterhout \cite{raft} developed the Raft protocol which supports an
 unbounded pipeline throughout the reconfiguration process without inconsistency
@@ -953,7 +953,7 @@ then $i_\mathrm{max} \ge i$.
 Note that a node may emit a promise for $b$ at instance $i$ only if $e(b) \le
 e(i)$.  If $i > i_\mathrm{max}$ then $e(i)$ is not known, but $e(\cdot)$ is
 nondecreasing so if $e(b) \le e(i_\mathrm{max})$ then it follows that $e(b) \le
-e(i)$.
+e(i)$ as required.
 
 \subsection{Liveness}\label{liveness}
 
