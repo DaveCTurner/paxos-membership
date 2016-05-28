@@ -946,10 +946,14 @@ of instances are held similarly as a nondecreasing sequence $e(0), e(1),
 \ldots, e(i_\mathrm{max})$.  The transitions that affect these sequences may
 append one or more elements, but may not change any existing elements.
 
-The sequences are always long enough to make progress, in the sense that if
-$\chosen{i}{b}$ then they satisfy $i_\mathrm{max} > i$ and $e_\mathrm{max} \ge
-e(i_\mathrm{max})$.
+The sequences are always long enough to make progress, in the sense that
+$e_\mathrm{max} \ge e(i_\mathrm{max})$ and if $\chosen{j}{b}$ for all $j < i$
+then $i_\mathrm{max} \ge i$.
 
+Note that a node may emit a promise for $b$ at instance $i$ only if $e(b) \le
+e(i)$.  If $i > i_\mathrm{max}$ then $e(i)$ is not known, but $e(\cdot)$ is
+nondecreasing so if $e(b) \le e(i_\mathrm{max})$ then it follows that $e(b) \le
+e(i)$.
 
 \subsection{Liveness}\label{liveness}
 
@@ -997,8 +1001,7 @@ propose, then eventually a value is chosen for every instance.  \end{theorem}
 that $\chosen{j}{b_j}$ for all $j < i$ and show that eventually
 $\chosen{i}{b_i}$ as follows.
 
-Firstly note that $i \le i_{\mathrm{max}}$ since either $i = 0$ or
-$\chosen{i-1}{b_{i-1}}$ and recall that $e(i_{\mathrm{max}}) \le
+Firstly recall that $i \le i_{\mathrm{max}}$ and $e(i_{\mathrm{max}}) \le
 e_{\mathrm{max}}$, so that the values of $e(i)$, $\QI{e(i)-1}$, $\QI{e(i)}$ and
 $\QII{e(i)}$ are known to $\ell$.
 
