@@ -542,7 +542,7 @@ can be no as-yet-undecided configuration change in the pipeline that could
 cause a different value to be chosen. In contrast, Raft imposes no limit on the
 number of concurrently-running instances and instead restricts the
 reconfigurations that may occur to only allow ones that cannot result in
-inconsistency. An operator may then then perform a sequence of these restricted
+inconsistency. An operator may then perform a sequence of these restricted
 reconfigurations in order to achieve an arbitrary reconfiguration.
 
 In Paxos, the choice of the pipeline length parameter $\alpha$ must be made
