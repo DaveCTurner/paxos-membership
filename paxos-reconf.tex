@@ -487,14 +487,14 @@ Distributed algorithms, fault tolerance.
 
 \section{Introduction}
 
-\IEEEPARstart{D}{istributed} systems are systems built from collections of
-parts which may communicate and may also sometimes fail. Such systems can
-tolerate failures of individual parts without suffering a system-wide failure
-by ensuring that there is redundancy between the parts.  A replicated state
-machine (RSM) is a style of fault-tolerant distributed system in which a
-deterministic state machine is replicated across a set of distinct nodes
-\cite{lampson}. Being deterministic, the nodes' states remain synchronised if
-they all start in the same state and perform the same sequence of transitions.
+\IEEEPARstart{R}{eliable} distributed systems must be able to tolerate a fault
+in any individual component without suffering a system-wide failure, and
+typically achieve this by ensuring that there is redundancy between the
+components.  A replicated state machine (RSM) is a style of fault-tolerant
+distributed system in which a deterministic state machine is replicated across
+a set of distinct nodes \cite{lampson}. Being deterministic, the nodes' states
+remain synchronised if they all start in the same state and perform the same
+sequence of transitions.
 
 In order to arrange for each node to perform the same transitions the system
 may achieve consensus on (or \textit{choose}) a sequence of values which
