@@ -593,11 +593,6 @@ itself to achieve higher resilience to failures that do not occur
 simultaneously, and which uses a heterogeneous set of nodes to reduce the costs
 of operating a cluster.
 
-Chandra, Griesemer and Redstone \cite{paxos-made-live} noted that the details
-of reconfiguration are ``relatively minor'' but ``subtle'' and do not give any
-details on the reconfiguration scheme used in their Chubby system. It seems
-likely that they also used the bounded-pipeline approach.
-
 Malkhi, Lamport and Zhou \cite{stoppable-paxos} proposed Stoppable Paxos, an
 alternative method for reconfiguring clusters in which an RSM may be stopped,
 reconfigured, and then restarted with the new configuration. Stoppable Paxos
@@ -613,9 +608,14 @@ scheme.  The problem with needing an external oracle is that for full
 resilience it must be possible to reconfigure the oracle itself, which requires
 another oracle and so on \textit{ad infinitum}.
 
-Birman, Malkhi and van Renesse \cite{virt-synch} noted that many real-world
-implementations of Paxos either do not support reconfiguration or set $\alpha =
-1$, effectively disabling pipelining.
+Chandra, Griesemer and Redstone \cite{paxos-made-live} noted that the details
+of reconfiguration are ``relatively minor'' but ``subtle'' and do not give any
+details on the reconfiguration scheme used in their Chubby system. It seems
+likely that they also used the bounded-pipeline approach. In contrast, Birman,
+Malkhi and van Renesse \cite{virt-synch} noted that allowing for $\alpha > 1$
+leads to implementation difficulties, causing many real-world systems to
+disable pipelining by setting $\alpha = 1$, or even to disable reconfiguration
+entirely.
 
 Ongaro and Ousterhout \cite{raft} developed the Raft protocol which supports an
 unbounded pipeline throughout the reconfiguration process without inconsistency
