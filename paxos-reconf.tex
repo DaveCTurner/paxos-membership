@@ -919,14 +919,14 @@ written $e(\cdot)$, which respectively assign an era $e(i)$ to each instance
 $i$, and an era $e(b)$ to each ballot $b$. Intuitively $e(b)$ records which
 quorums may be used to decide that $\prop{i}{b}$ can be sent in phase I, and
 $e(i)$ records which quorums may be used to decide that $\chosen{i}{b}$ holds
-in phase II. More precisely a node may emit $\prop{i}{b}$ only if $e(b) \le
-e(i)$ and it has received promises for ballot $b$ in instance $i$ from a quorum
-of nodes in $\QI{e(b)}$, and similarly a node may decide $\chosen{i}{b}$ only
-if ${e(i) \le e(b)+1}$ and it has received $\acc{i}{a}{b}$ from a quorum of
-nodes in $\QII{e(i)}$. These extra conditions on the eras of ballots and
-instances in messages ensure that if $\chosen{i}{b}$ then ${e(b) \le e(i) \le
-e(b)+1}$ and hence $\QI{e(b)} \frown \QII{e(i)}$ as required to ensure
-consistency, as shown in lemma \ref{paxos-synod-quorum-invariant}.
+in phase II. More precisely a node may emit $\prop{i}{b}$ only if it has
+received promises for ballot $b$ in instance $i$ from a quorum of nodes in
+$\QI{e(b)}$, which implies that $e(b) \le e(i)$, and similarly a node may decide
+$\chosen{i}{b}$ only if ${e(i) \le e(b)+1}$ and it has received $\acc{i}{a}{b}$
+from a quorum of nodes in $\QII{e(i)}$. These extra conditions on the eras of
+ballots and instances in messages ensure that if $\chosen{i}{b}$ then ${e(b)
+\le e(i) \le e(b)+1}$ and hence $\QI{e(b)} \frown \QII{e(i)}$ as required to
+ensure consistency, as shown in lemma \ref{paxos-synod-quorum-invariant}.
 
 \subsection{Dynamic configuration changes}
 
@@ -980,15 +980,7 @@ confusion with the epochs (views, terms, \ldots) of leader-election protocols
 (e.g.  \cite{omega-meets-paxos}) which track the current leader rather than the
 current configuration.
 
-It\footnote{TODO obsolete - move to config changes section} is also necessary
-to limit the promises made to only those where $e(b) \le e(i)$ because if node
-$a$ made a promise $\fprom{i}{a}{b}$ with $e(b) > e(i)$ then it can no longer
-accept any proposals $\prop{i}{b'}$ since such a proposal would have $e(b') \le
-e(i) < e(b)$ so that $b' \prec b$ and hence the node $a$ would effectively be
-disabled in era $e(i)$. As changes to the current era are themselves agreed by
-consensus this kind of promise risks preventing any further progress.
-
-With these two modifications the proof of liveness runs much as in the original
+With this in mind the proof of liveness runs much as in the original
 presentation:
 
 \begin{theorem}[Liveness]\label{liveness-theorem} Given that there is
@@ -1009,7 +1001,9 @@ $\QII{e(i)}$ are known to $\ell$.
 The distinguished node $\ell$ first chooses a ballot $b_i$ having $e(b_i) \in
 \{ e(i) - 1, e(i) \}$ and $\owner{b_i} = \ell$ and such that enough nodes can
 emit $\acc{i}{a}{b_i}$ without breaking any of their previously-made promises.
-Such a $b_i$ exists as noted above.
+By invariants \ref{paxos-mprom}, \ref{paxos-fprom} and \ref{paxos-bprom}, all
+promises for such a ballot $b'$ at instance $i$ must have $e(b') \le e(i)$ so
+that such a $b_i$ does exist.
 
 If $\ell$ has not yet received enough promises for $b_i$ at instance $i$ then
 it broadcasts $\prep{b_i}$ and waits to receive promises from a quorum of nodes
