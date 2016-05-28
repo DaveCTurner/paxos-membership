@@ -497,29 +497,27 @@ deterministic state machine is replicated across a set of distinct nodes
 they all start in the same state and perform the same sequence of transitions.
 
 In order to arrange for each node to perform the same transitions the system
-may achieve consensus on (or \textit{choose}) a sequence $v_0, v_1, \ldots$ of
-values which describe the transitions. The sequence must be consistent across
-the whole system even in the presence of failures, and as long as there are not
-too many failures it must remain possible to continue to make progress.  This
-is known as the distributed consensus problem, for which a number of solutions
-are known to exist, including Paxos \cite{part-time-parliament} and
-Raft\cite{raft}. They typically run on a cluster of $2f+1$ nodes, where $f$ is
-the number of faulty nodes that should be tolerated, and consensus is achieved
-on a value $v_i$ when $\ge f+1$ (i.e. a majority) of the nodes agree.  The
-(nonempty) sets of nodes involved in reaching consensus are known as
-\textit{quorums} and the collection of quorums in use is known as the
-\textit{configuration} of the cluster.
+may achieve consensus on (or \textit{choose}) a sequence of values which
+describe the transitions. The sequence must be consistent across the whole
+system even in the presence of failures, and as long as there are not too many
+failures it must remain possible to continue to make progress.  This is known
+as the distributed consensus problem, for which a number of solutions are known
+to exist, including Paxos \cite{part-time-parliament} and Raft\cite{raft}. They
+typically run on a cluster of $2f+1$ nodes, where $f$ is the number of faulty
+nodes that should be tolerated, and consensus is achieved when a nonempty
+\textit{quorum} of nodes (e.g. at least $f+1$ of them) agree.  The collection
+of quorums in use is known as the \textit{configuration} of the cluster.
 
 It is normally necessary to be able to dynamically reconfigure a cluster by
-adding or removing nodes while it is running. This allows parts of the system
-to be repaired or replaced without needing to take the whole system offline. It
-is crucial that all participating nodes agree on the cluster configuration, and
-this can be achieved by holding the configuration within the RSM itself and
+adding or removing nodes while it is running, in order that parts of the system
+can be repaired or replaced without needing to take the whole system offline.
+It is crucial that all participating nodes agree on the cluster configuration,
+and this can be achieved by holding the configuration within the RSM itself and
 using the consensus algorithm to choose special reconfiguration commands when a
 configuration change is desired.
 
-In Paxos, each value $v_i$ is chosen using a separate instance $i$ of a
-two-phase consensus protocol known as \textit{Synod}. The full Paxos algorithm
+In Paxos, each value is chosen using a separate instance of a two-phase
+consensus protocol known as \textit{Synod}. The full Paxos algorithm
 essentially runs an infinite sequence of Synod instances in parallel, using
 uniformity of the instances to do so without requiring infinite time or
 resources.  It starts by running phase I of all instances at once and then runs
@@ -576,7 +574,7 @@ unifies the previously-known reconfiguration processes supported in Paxos and
 Raft. Reworked proofs of liveness and consistency are included in section
 \ref{liveness} and appendices \ref{synod-safety} and \ref{paxos-invariants} and
 differences from the original are highlighted throughout. The appendices are
-informal versions of the formal proofs performed using the Isabelle/HOL proof
+informal versions of formal proofs performed using the Isabelle/HOL proof
 assistant \cite{isabelle-hol}.
 
 %\IEEEpubidadjcol %must be in 2nd col of 1st page
@@ -597,8 +595,8 @@ of operating a cluster.
 
 Chandra, Griesemer and Redstone \cite{paxos-made-live} note that the details of
 reconfiguration are ``relatively minor'' but ``subtle'' and do not give any
-details on the reconfiguration scheme used in their Chubby system so it is
-likely that it also used the bounded-pipeline approach.
+details on the reconfiguration scheme used in their Chubby system. It seems
+likely that they also used the bounded-pipeline approach.
 
 Malkhi, Lamport and Zhou \cite{stoppable-paxos} proposed Stoppable Paxos, an
 alternative method for reconfiguring clusters in which an RSM may be stopped,
@@ -804,11 +802,10 @@ consensus-free technique may be used to implement $v$ more efficiently.
 
 The consistency property of the Synod algorithm relies on the fact that the set
 of nodes involved in completing phase I must always intersect the set of nodes
-involved in completing phase II so that there is at least one node to carry
-information between the two phases. Write $Q_1 \frown Q_2$ iff every $q_1 \in
-Q_1$ and $q_2 \in Q_2$ have ${q_1 \cap q_2 \ne \varnothing}$, and write
-$\QI{}(b)$ and $\QII{}(b)$ for the sets of phase-I and phase-II quorums for
-ballot $b$ respectively.
+involved in completing phase II so that there is at least one node involved in
+both phases.  Write $Q_1 \frown Q_2$ iff every $q_1 \in Q_1$ and $q_2 \in Q_2$
+have ${q_1 \cap q_2 \ne \varnothing}$, and write $\QI{}(b)$ and $\QII{}(b)$ for
+the sets of phase-I and phase-II quorums for ballot $b$ respectively.
 
 In the original presentation of the Synod algorithm any (weighted) majority of
 the nodes could be used as a quorum, so that $\QI{}(b_1) = \QII{}(b_2)$ and
@@ -966,11 +963,11 @@ some $b$ that is chosen to be large enough that a quorum of nodes may respond
 with promises. In contrast, here there is an upper bound on suitable ballots
 since a proposed ballot must not belong to an era which is too large, because
 if ${e(b) > e(i)}$ then $\prop{i}{b}$ may never be sent and nor may
-$\prop{i}{b'}$ for any $b' \succ b$ since $e(\cdot)$ is nondecreasing.
-Therefore here $\ell$ must be able to choose a ballot that is large enough to
-be accepted but which still belongs to the correct era, or, more precisely, for
-each ballot $b$, each era $e \ge e(b)$ and each node $a$ there must be a ballot
-$b' \succ b$ having $e(b') = e$ and $\owner{b'} = a$.
+$\prop{i}{b'}$ for any $b' \succ b$ as $e(\cdot)$ is nondecreasing.  Therefore
+here $\ell$ must be able to choose a ballot that is large enough to be accepted
+but which still belongs to the correct era, or, more precisely, for each ballot
+$b$, each era $e \ge e(b)$ and each node $a$ there must be a ballot $b' \succ
+b$ having $e(b') = e$ and $\owner{b'} = a$.
 
 This means that ballot numbers cannot be simple integers because this would
 imply that there exist eras containing only finitely many ballots. Instead an
@@ -983,13 +980,13 @@ confusion with the epochs (views, terms, \ldots) of leader-election protocols
 (e.g.  \cite{omega-meets-paxos}) which track the current leader rather than the
 current configuration.
 
-It is also necessary to limit the promises made to only those where $e(b) \le
-e(i)$ because if node $a$ made a promise $\fprom{i}{a}{b}$ with $e(b) > e(i)$
-then it can no longer accept any proposals $\prop{i}{b'}$ since such a proposal
-would have $e(b') \le e(i) < e(b)$ so that $b' \prec b$ and hence the node $a$
-would effectively be disabled in era $e(i)$. As changes to the current era are
-themselves agreed by consensus this kind of promise risks preventing any
-further progress.
+It\footnote{TODO obsolete - move to config changes section} is also necessary
+to limit the promises made to only those where $e(b) \le e(i)$ because if node
+$a$ made a promise $\fprom{i}{a}{b}$ with $e(b) > e(i)$ then it can no longer
+accept any proposals $\prop{i}{b'}$ since such a proposal would have $e(b') \le
+e(i) < e(b)$ so that $b' \prec b$ and hence the node $a$ would effectively be
+disabled in era $e(i)$. As changes to the current era are themselves agreed by
+consensus this kind of promise risks preventing any further progress.
 
 With these two modifications the proof of liveness runs much as in the original
 presentation:
@@ -1005,9 +1002,9 @@ that $\chosen{j}{b_j}$ for all $j < i$ and show that eventually
 $\chosen{i}{b_i}$ as follows.
 
 Firstly note that $i \le i_{\mathrm{max}}$ since either $i = 0$ or
-$\chosen{i-1}{b_{i-1}}$ and hence that $e(i)$ is known to $\ell$. Recall also
-that $e(i_{\mathrm{max}}) \le e_{\mathrm{max}}$ and hence that $\QI{e(i)-1}$,
-$\QI{e(i)}$ and $\QII{e(i)}$ are known to $\ell$.
+$\chosen{i-1}{b_{i-1}}$ and recall that $e(i_{\mathrm{max}}) \le
+e_{\mathrm{max}}$, so that the values of $e(i)$, $\QI{e(i)-1}$, $\QI{e(i)}$ and
+$\QII{e(i)}$ are known to $\ell$.
 
 The distinguished node $\ell$ first chooses a ballot $b_i$ having $e(b_i) \in
 \{ e(i) - 1, e(i) \}$ and $\owner{b_i} = \ell$ and such that enough nodes can
@@ -1129,7 +1126,7 @@ once.
 In fact there is no need to restrict attention just to weight functions taking
 values in $\{0, 1\}$ as shown by theorem \ref{weights-nearly-equal} which is
 reminiscent of the amoeba analogy in \cite{cheap-paxos}: any two integer-valued
-weight functions that differ by at most one at at most one node can be used to
+weight functions whose total absolute difference is at most one can be used to
 define consecutive configurations. This extra generality is important for
 deployments where nodes may share infrastructure (e.g. power distribution or
 network connectivity) because such nodes may suffer correlated failures, and
@@ -1137,7 +1134,7 @@ reducing this correlation by adding more independent infrastructure may be
 costly.  In more detail, a na\"ive approach to swapping a node
 $a_{\textrm{old}}$ for a replacement $a_{\textrm{new}}$ in a three-node cluster
 using unweighted majorities would be to perform the configuration changes given
-by this sequence of weight functions: \[\begin{array}{rcccc}
+by this sequence of weight functions starting at era $e$: \[\begin{array}{rcccc}
 %
 \textrm{node}&a_{\textrm{old}}&a_{\textrm{new}}&a_1&a_2 \\
 %
@@ -1189,17 +1186,16 @@ technique known as \textit{joint configurations}. To change from configuration
 $Q_{e}$ to an unrelated configuration $Q'$ (i.e.  $Q_{e} \not\frown Q' \frown
 Q'$) it is possible to set $Q_{e+2} = Q'$ and set $Q_{e+1}$ to be the
 \textit{joint configuration} of $Q_{e}$ and $Q'$: \[Q_{e+1} = \{ q \cup q' \mid
-q \in Q_{e}, q' \in Q' \}.\] Intuitively, while this joint configuration is in
-use all decisions must be agreed by quorums of both the old and new
-configuration. Certainly this satisfies that \[Q_{e} \frown Q_{e + 1} \frown
-Q_{e+1} \frown Q_{e + 2} \frown Q_{e + 2}.\]
+q \in Q_{e}, q' \in Q' \}\] as this satisfies that $Q_{e} \frown Q_{e + 1}
+\frown Q_{e+1} \frown Q_{e + 2} \frown Q_{e + 2}$.
 
 If $w(a) = 0$ for all $a$ then $w$ is said to be \textit{weightless} and $M(w)
 = \varnothing$. Clearly if there is an instance $i$ such that $Q_{e(i)} =
-\varnothing$ then no value can ever be chosen for $i$. On the other hand $Q
-\frown \varnothing$ for all $Q$ so changing to a weightless configuration is
-always permitted, and this has the effect of stopping a Paxos cluster at a
-particular instance \cite{reconfiguring-a-state-machine,stoppable-paxos}.
+\varnothing$ then no value can ever be chosen for $i$ or any subsequent
+instance, by invariant \ref{paxos-chosen}. On the other hand $Q \frown
+\varnothing$ for all $Q$ so changing to a weightless configuration is always
+permitted, and this has the effect of stopping a Paxos cluster at a particular
+instance \cite{reconfiguring-a-state-machine,stoppable-paxos}.
 
 There is no requirement for the eras of consecutive instances to differ by at
 most one so an era may be skipped at instance $i$ by letting $e(i) = e(i-1) +
@@ -1207,19 +1203,18 @@ most one so an era may be skipped at instance $i$ by letting $e(i) = e(i-1) +
 single step as in Dynamic Paxos. In more detail, if the system is currently
 using configuration $Q_{e}$ and an operator wishes to change to an unrelated
 configuration $Q'$ then she can set $Q_{e+2} = Q'$ and pick an appropriate
-$Q_{e+1}$ such as $\varnothing$ or the joint configuration of $Q_{e}$ and $Q'$
-which satisfies that $Q_{e} \frown Q_{e + 1} \frown Q_{e+1} \frown Q'$.
-However, re-running phase I can only be delayed as described in section
-\ref{fully-concurrent} above if the era increases by $1$ and in this situation
-the era increases by $2$, so a new phase I must be completed before phase II of
-any new instances can be started.  To prevent this causing the pipeline to
-stall, the operator chooses a sufficiently large $\alpha > 0$ and sets
-$e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i + \alpha$,
-effectively delaying the configuration change for $\alpha$ instances in the
-hope that this is long enough to have completed the new phase I. This improves
-slightly on Dynamic Paxos as there is no need to limit the pipeline length
-unless a configuration change is in progress, and different changes may use
-different values of $\alpha$ if required.
+$Q_{e+1}$ (such as $\varnothing$) which satisfies that $Q_{e} \frown Q_{e + 1}
+\frown Q_{e+1} \frown Q'$.  However, re-running phase I can only be delayed as
+described in section \ref{fully-concurrent} above if the era increases by $1$
+and in this situation the era increases by $2$, so a new phase I must be
+completed before phase II of any new instances can be started.  To prevent this
+causing the pipeline to stall, the operator chooses a sufficiently large
+$\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i
++ \alpha$, effectively delaying the configuration change for $\alpha$ instances
+in the hope that this is long enough to have completed the new phase I. This
+improves slightly on Dynamic Paxos as there is no need to limit the pipeline
+length unless a configuration change is in progress, and different changes may
+use different values of $\alpha$ if required.
 
 \section{Conclusion}
 
@@ -1418,7 +1413,7 @@ $\acc{}{a}{b_2}$ for every $a \in q^\textrm{II}$.  By invariant
 q^\textrm{II}$.  Also since $\prop{}{b_1}$ by invariant \ref{synod-prop} there
 is a quorum $q^\textrm{I} \in Q^\textrm{I}(b_1)$ such that either
 $\fprom{}{a}{b_1}$ or $\exists b'.  \bprom{}{a}{b_1}{b'}$ for all $a \in
-q^\textrm{I}$.  Let $P = \{ b' \mid \exists a \in q^\textrm{I}.
+q^\textrm{I}$.  Let $P \triangleq \{ b' \mid \exists a \in q^\textrm{I}.
 \bprom{}{a}{b_1}{b'} \}$.  By invariant \ref{synod-quorums},
 ${Q^\textrm{I}(b_1) \frown Q^\textrm{II}(b_2)}$ and hence $q^\textrm{I} \cap
 q^\textrm{II} \ne \varnothing$ so it follows that $P \ne \varnothing$, which
@@ -1461,13 +1456,13 @@ $\chosen{i}{b_2}$ then ${v_i(b_1) = v_i(b_2)}$.  \end{theorem}
 \begin{proof} If $\chosen{i}{b_1}$ then the Paxos invariants imply the Synod
 invariants for instance $i$.  In more detail, let
 \[\begin{array}{rl}
-Q^\textrm{I}(b) &\triangleq \QI{e(b)}, \\
-Q^\textrm{II}(b) &\triangleq \QII{e(i)}, \\
+Q^\textrm{I}(b) &\triangleq \QI{e(b)} \\
+Q^\textrm{II}(b) &\triangleq \QII{e(i)} \\
 \fprom{}{a}{b} &\triangleq \fprom{i}{a}{b} \\
-& \ {}\vee \exists i' \le i. \mprom{i'}{a}{b}, \\
-\bprom{}{a}{b}{b'} &\triangleq \bprom{i}{a}{b}{b'}, \\
-\prop{}{b} &\triangleq \prop{i}{b}, \\
-\acc{}{a}{b} &\triangleq \acc{i}{a}{b}, \\
+& \ {}\vee \exists i' \le i. \mprom{i'}{a}{b} \\
+\bprom{}{a}{b}{b'} &\triangleq \bprom{i}{a}{b}{b'} \\
+\prop{}{b} &\triangleq \prop{i}{b} \\
+\acc{}{a}{b} &\triangleq \acc{i}{a}{b} \\
 \chosen{}{b} &\triangleq \chosen{i}{b} \textrm{ and} \\
 v(b) &\triangleq v_i(b) .\\
 \end{array}
