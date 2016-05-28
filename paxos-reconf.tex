@@ -516,8 +516,8 @@ and this can be achieved by holding the configuration within the RSM itself and
 using the consensus algorithm to choose special reconfiguration commands when a
 configuration change is desired.
 
-In Paxos, each value is chosen using a separate instance of a two-phase
-consensus protocol known as \textit{Synod}. The full Paxos algorithm
+In Paxos, each value is chosen using a conceptually-separate instance of a
+two-phase consensus protocol known as \textit{Synod}. The full Paxos algorithm
 essentially runs an infinite sequence of Synod instances in parallel, using
 uniformity of the instances to do so without requiring infinite time or
 resources.  It starts by running phase I of all instances at once and then runs
@@ -532,15 +532,15 @@ Both algorithms can achieve high throughput by allowing for \textit{pipelining}
 instances have fully completed. It is a little tricky to ensure that this
 preserves consistency when the configuration is held in the RSM itself because
 a value may only be proposed once a quorum of nodes are ready for it, but there
-may be a configuration change in the pipeline which would change the quorums
-that should be used which could make a proposal invalid. If this is not handled
-carefully then it may lead to inconsistency. Paxos implementations typically
-solve this problem by limiting the length of the pipeline to some $\alpha > 0$
-and requiring that a configuration change chosen at instance $i$ does not take
-effect until at least instance $i + \alpha$, which means that when a value is
-proposed there can be no as-yet-undecided configuration change in the pipeline
-that could cause a different value to be chosen. In contrast, Raft imposes no
-limit on the number of concurrently-running instances and instead restricts the
+may be a configuration change in the pipeline which would change the quorums so
+as to make a proposal invalid. If this case is not handled carefully then it
+may lead to inconsistency. Paxos implementations typically solve this problem
+by limiting the length of the pipeline to some $\alpha > 0$ and requiring that
+a configuration change chosen at instance $i$ does not take effect until at
+least instance $i + \alpha$, which means that when a value is proposed there
+can be no as-yet-undecided configuration change in the pipeline that could
+cause a different value to be chosen. In contrast, Raft imposes no limit on the
+number of concurrently-running instances and instead restricts the
 reconfigurations that may occur to only allow ones that cannot result in
 inconsistency. An operator may then then perform a sequence of these restricted
 reconfigurations in order to achieve an arbitrary reconfiguration.
@@ -593,8 +593,8 @@ itself to achieve higher resilience to failures that do not occur
 simultaneously, and which uses a heterogeneous set of nodes to reduce the costs
 of operating a cluster.
 
-Chandra, Griesemer and Redstone \cite{paxos-made-live} note that the details of
-reconfiguration are ``relatively minor'' but ``subtle'' and do not give any
+Chandra, Griesemer and Redstone \cite{paxos-made-live} noted that the details
+of reconfiguration are ``relatively minor'' but ``subtle'' and do not give any
 details on the reconfiguration scheme used in their Chubby system. It seems
 likely that they also used the bounded-pipeline approach.
 
@@ -612,6 +612,10 @@ Andersen and Kaminsky \cite{egalitarian-paxos} uses a similar reconfiguration
 scheme.  The problem with needing an external oracle is that for full
 resilience it must be possible to reconfigure the oracle itself, which requires
 another oracle and so on \textit{ad infinitum}.
+
+Birman, Malkhi and van Renesse \cite{virt-synch} noted that many real-world
+implementations of Paxos either do not support reconfiguration or set $\alpha =
+1$, effectively disabling pipelining.
 
 Ongaro and Ousterhout \cite{raft} developed the Raft protocol which supports an
 unbounded pipeline throughout the reconfiguration process without inconsistency
@@ -739,10 +743,10 @@ of data.
 In the original presentation of the Synod algorithm, the values of ballots are
 carried along with their identifiers in the messages $\bprom{}{a}{b}{ b',v(b')
 }$, $\prop{}{ b,v(b)}$ and $\acc{}{a}{ b,v(b) }$. This means that, in a unicast
-network, each value is transported from the proposing node to at least $f$
-other nodes which then must each send the value back to the proposer to
-indicate their acceptance, which requires the value to traverse the network at
-least $2f$ times in total.
+network of $2f + 1$ nodes, each value is transported from the proposing node to
+at least $f$ other nodes which then must each send the value back to the
+proposer to indicate their acceptance, which requires the value to traverse the
+network at least $2f$ times in total.
 
 Observation O4 in \cite{cheap-paxos} notes that these values can be replaced in
 some cases by hashes, but this idea can be taken a step further and the values
