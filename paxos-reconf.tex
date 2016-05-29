@@ -569,7 +569,7 @@ notation and because it modifies the original algorithm in ways that invalidate
 its consistency and liveness proofs.  We begin with a recap of the Synod
 algorithm in section \ref{synod-text} and follow this by covering the full
 Paxos algorithm in section \ref{paxos-text}, then in section
-\ref{types-of-configuration-change} it is shown how this work generalises and
+\ref{examples} it is shown how this work generalises and
 unifies the previously-known reconfiguration processes supported in Paxos and
 Raft. Reworked proofs of liveness and consistency are included in section
 \ref{liveness} and appendices \ref{synod-safety} and \ref{paxos-invariants} and
@@ -619,7 +619,11 @@ reconfiguration entirely.
 
 Ongaro and Ousterhout \cite{raft} developed the Raft protocol which supports an
 unbounded pipeline throughout the reconfiguration process without inconsistency
-by instead limiting the reconfigurations that can be performed.
+by instead limiting the reconfigurations that can be performed. They performed
+a formal proof of the correctness of Raft without reconfiguration, and an
+informal argument that consistency is preserved when a single node is added or
+removed from the cluster. Raft uses simple majorities of the set of nodes as
+its quorums.
 
 Viewstamped Replication and Zab are two other well-known consensus protocols.
 Viewstamped Replication supports reconfiguration as described by Liskov and
@@ -1089,7 +1093,7 @@ continue to hold if nodes fail but performance may be affected, for instance by
 meaning that $\ell$ no longer has a casting vote. In general it is not possible
 to prevent node failures from having a performance impact.
 
-\section{Examples}\label{types-of-configuration-change}
+\section{Examples}\label{examples}
 
 This section contains some examples of configuration changes that satisfy the
 conditions described above.  All the configurations described here have equal
@@ -1219,12 +1223,17 @@ use different values of $\alpha$ if required.
 
 \section{Conclusion}
 
-As discussed above, the approach described here generalises Dynamic
-Paxos\cite{cheap-paxos} to support changing the pipeline length parameter
-$\alpha$ and running with an unlimited-length pipeline while a configuration
-change is not in progress. It also supports Raft-style
-reconfigurations\cite{raft} which can be performed with an unlimited pipeline
-throughout, and implements the ``brick-wall'' stopping scheme as in Stoppable
+The approach described here generalises Dynamic Paxos\cite{cheap-paxos} to
+support changing the pipeline length parameter $\alpha$ and running with an
+unlimited-length pipeline while a configuration change is not in progress.
+
+It also supports Raft-style reconfigurations\cite{raft} which can be performed
+with an unlimited pipeline throughout, and gives a detailed argument that these
+preserve consistency. It generalises the simple majorities used in Raft to
+integer-weighted majorities which can reduce the costs of dealing with
+correlated failures during maintenance.
+
+In addition, it implements the ``brick-wall'' stopping scheme as in Stoppable
 Paxos\cite{stoppable-paxos}. Unlike in Stoppable Paxos, here an instance can be
 chosen only if the previous instances have also all been chosen, but this could
 be an acceptable restriction in many situations.
