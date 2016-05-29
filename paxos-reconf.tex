@@ -613,7 +613,7 @@ of reconfiguration are ``relatively minor'' but ``subtle'' and do not give any
 details on the reconfiguration scheme used in their Chubby system. It seems
 likely that they also used the bounded-pipeline approach. In contrast, Birman,
 Malkhi and van Renesse \cite{virt-synch} noted that allowing for $\alpha > 1$
-requires an unacceptably complex implementation, leading many real-world
+may require an unacceptably complex implementation, leading many real-world
 systems to disable pipelining by setting $\alpha = 1$, or even to disable
 reconfiguration entirely.
 
@@ -1079,7 +1079,7 @@ preventing further progress in era $e(b)$ since the nodes in $q$ can continue
 to accept proposals in this era throughout.  When it has received promises from
 all the other nodes in $q'$ it can instantaneously send itself
 $\mprom{i'}{\ell}{b'}$ for some sufficiently large $i'$, which completes phase
-I at $b'$ and restores the system to normal running.
+I at $b'$ and restores the system to normal running in era $e(b') = e(b)+1$.
 
 If $\ell$ does not have a casting vote, but there is some other node $\ell'$
 which does, then $\ell$ should first abdicate its leadership to $\ell'$ and
