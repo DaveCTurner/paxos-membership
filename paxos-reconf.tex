@@ -699,21 +699,20 @@ Let $\mathbb B$ be a set of \textit{ballot identifiers} with a wellfounded
 total order $\prec$. Let $\mathbb A$ be a set of \textit{node identifiers} and
 let $\mathbb V$ be the set of values that may be chosen.
 
-The Synod algorithm involves four kinds of message, in two phases, as described
+The Synod algorithm involves five kinds of message, in two phases, as described
 below.  Throughout, $a \in \mathbb A$ and $b, b' \in \mathbb B$.  Phase I
 starts with the broadcast of a \textit{prepare} message $\prep{b}$ to which
 each node may respond with a \textit{promise} message, either a \textit{free
 promise} written $\fprom{}{a}{b}$ or a \textit{forced promise} written
 $\bprom{}{a}{b}{b'}$ where $a$ identifies the responding node.  Phase II starts
 with the broadcast of a \textit{proposal} message $\prop{}{b}$ to which each
-node $a$ may respond with an \textit{acceptance} message $\acc{}{a}{b}$. It is
-convenient also to use these symbols as predicates indicating whether the
+node $a$ may respond with an \textit{acceptance} message $\acc{}{a}{b}$. Once
+phase II is complete a \textit{success} message $\chosen{}{b}$ is broadcast.
+It is convenient also to use these symbols as predicates indicating whether the
 corresponding messages have been sent.
 
 There is a function $v : \mathbb B \to \mathbb V$ assigning a value to each
-ballot, discussed in more detail in section \ref{value-function} below.  It is
-also useful to add another predicate $\chosen{}{b}$ which indicates that the
-value $v(b)$ associated with the ballot $b$ has been chosen.
+ballot, discussed in more detail in section \ref{value-function} below.
 
 The system satisfies a set of invariants listed in fig.
 \ref{synod-invariants-figure}, from which it follows that consistency is
@@ -729,7 +728,7 @@ nodes in the system's configuration.
 
 In more detail, a node may emit $\prop{}{b}$ when it considers phase I to be
 complete at ballot $b$, which is when promise messages for $b$ have been
-received from a quorum of nodes, and similarly may deduce $\chosen{}{b}$ when
+received from a quorum of nodes, and similarly may emit $\chosen{}{b}$ when
 it considers phase II to be complete at $b$, which is when acceptances of $b$
 from a quorum of nodes have been received.
 
@@ -876,12 +875,11 @@ Furthermore if $P \triangleq \{ b' \mid \exists a \in q. \bprom{i}{a}{b}{b'} \}
 Conceptually, Paxos is a sequence of distinct instances of the Synod algorithm
 all running simultaneously. To achieve this, the messages of the Synod
 algorithm above are indexed with the instance number $i \in \mathbb N$:
-$\fprom{i}{a}{b}$, $\bprom{i}{a}{b}{b'}$, $\prop{i}{b}$ and $\acc{i}{a}{b}$.
-There is another kind of message known as a \textit{multi-promise}, written
-$\mprom{i}{a}{b}$, which can be thought of as standing for the infinite set of
-free promises ${\{ \fprom{j}{a}{b} \mid j \ge i \}}$. The predicate
-$\chosen{i}{b}$ is also indexed by the instance number $i$, but prepare
-messages $\prep{b}$ apply to all instances so are not indexed.
+$\fprom{i}{a}{b}$, $\bprom{i}{a}{b}{b'}$, $\prop{i}{b}$, $\acc{i}{a}{b}$ and
+$\chosen{i}{b}$.  There is another kind of message known as a
+\textit{multi-promise}, written $\mprom{i}{a}{b}$, which can be thought of as
+standing for the infinite set of free promises ${\{ \fprom{j}{a}{b} \mid j \ge
+i \}}$. Prepare messages $\prep{b}$ apply to all instances so are not indexed.
 
 As in the Synod algorithm, phase I starts with a broadcast of $\prep{b}$ for
 some $b$ to which each node $a$ may respond with a set of promises
@@ -889,7 +887,8 @@ $\fprom{i}{a}{b}$, $\bprom{i}{a}{b}{b'}$ and $\mprom{i}{a}{b}$ according to its
 past behaviour. Each phase II instance $i$ operates just as in the Synod
 algorithm, starting with a broadcast of $\prop{i}{b}$ to which each node $a$
 may respond with an acceptance $\acc{i}{a}{b}$ and once acceptances have been
-received from a quorum of nodes it follows that $\chosen{i}{b}$ holds.
+received from a quorum of nodes it follows that $\chosen{i}{b}$ may be
+broadcast.
 
 There is a function $v_i : \mathbb B \to \mathbb V$ for each instance $i$
 giving a value to each ballot, and theorem \ref{paxos-safety-theorem} shows
@@ -925,16 +924,17 @@ throughout by the observation of \ref{per-phase-quorums} above.
 To achieve this there are also two nondecreasing integer-valued functions, both
 written $e(\cdot)$, which respectively assign an era $e(i)$ to each instance
 $i$, and an era $e(b)$ to each ballot $b$. Intuitively $e(b)$ records which
-quorums may be used to decide that $\prop{i}{b}$ can be sent in phase I, and
-$e(i)$ records which quorums may be used to decide that $\chosen{i}{b}$ holds
-in phase II. More precisely a node may emit $\prop{i}{b}$ only if it has
-received promises for ballot $b$ in instance $i$ from a quorum of nodes in
-$\QI{e(b)}$, which implies that $e(b) \le e(i)$, and similarly a node may decide
-$\chosen{i}{b}$ only if ${e(i) \le e(b)+1}$ and it has received $\acc{i}{a}{b}$
-from a quorum of nodes in $\QII{e(i)}$. These extra conditions on the eras of
-ballots and instances in messages ensure that if $\chosen{i}{b}$ then ${e(b)
-\le e(i) \le e(b)+1}$ and hence $\QI{e(b)} \frown \QII{e(i)}$ as required to
-ensure consistency, as shown in lemma \ref{paxos-synod-quorum-invariant}.
+quorums may be used in phase I to decide that $\prop{i}{b}$ can be sent, and
+$e(i)$ records which quorums may be used in phase II to decide that
+$\chosen{i}{b}$ can be sent. More precisely a node may emit $\prop{i}{b}$ only
+if it has received promises for ballot $b$ in instance $i$ from a quorum of
+nodes in $\QI{e(b)}$, which implies that $e(b) \le e(i)$, and similarly a node
+may emit $\chosen{i}{b}$ only if ${e(i) \le e(b)+1}$ and it has received
+$\acc{i}{a}{b}$ from a quorum of nodes in $\QII{e(i)}$. These extra conditions
+on the eras of ballots and instances in messages ensure that if $\chosen{i}{b}$
+then ${e(b) \le e(i) \le e(b)+1}$ and hence $\QI{e(b)} \frown \QII{e(i)}$ as
+required to ensure consistency, as shown in lemma
+\ref{paxos-synod-quorum-invariant}.
 
 \subsection{Dynamic configuration changes}
 
