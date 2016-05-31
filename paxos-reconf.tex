@@ -745,11 +745,13 @@ of data.
 
 In the original presentation of the Synod algorithm, the values of ballots are
 carried along with their identifiers in the messages $\bprom{}{a}{b}{ b',v(b')
-}$, $\prop{}{ b,v(b)}$ and $\acc{}{a}{ b,v(b) }$. This means that, in a unicast
-network of $2f + 1$ nodes, each value is transported from the proposing node to
-at least $f$ other nodes which then must each send the value back to the
-proposer to indicate their acceptance, which requires the value to traverse the
-network at least $2f$ times in total.
+}$, $\prop{}{ b,v(b)}$ and $\chosen{}{ b,v(b) }$. This means that, in a unicast
+network of $2f + 1$ nodes, each value is included in $2f$ messages (at least
+$f$ proposals and at least $f$ success messages) even in the absence of faults,
+which is twice as many as necessary. Furthermore, a simple method for detecting
+faults is to insist that each node sends at least one complete message within a
+certain period of time, but this method is unsatisfactory if messages can be
+unboundedly large.
 
 Observation O4 in \cite{cheap-paxos} notes that these values can be replaced in
 some cases by hashes, but this idea can be taken a step further and the values
