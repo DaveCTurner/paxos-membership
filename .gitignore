@@ -14,3 +14,6 @@ inc.tex
 *.fls
 *.inputs
 .paxos-reconf.tex.swp
+.stack-work
+*.fig.bak
+test.fig
