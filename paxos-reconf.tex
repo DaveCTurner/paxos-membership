@@ -548,20 +548,17 @@ reconfigurations in order to achieve an arbitrary reconfiguration.
 In Paxos, the choice of the pipeline length parameter $\alpha$ must be made
 carefully. If it is too small then the system may suffer from poor performance
 due to lack of parallelism, but if it is too large then configuration changes
-can be unreasonably expensive to complete. It would be better to be able to
-vary the value of $\alpha$ as the system is running rather than having to
-choose it up-front, and better still to be able to impose this limit only when
-a configuration change is in progress and allow an unbounded pipeline while the
-configuration is static\cite{reconfiguring-a-state-machine}. That said, it
-seems even more elegant to be able to avoid imposing any limit at all even
-during reconfiguration.
+can be unreasonably expensive to complete. It is more
+elegant\cite{reconfiguring-a-state-machine} to limit the pipeline length only
+during reconfiguration and to allow the limit to vary while the system is
+running, but it would be better still if there were no need for a limit at all,
+even during reconfiguration.
 
-Here it is shown that the pipeline length $\alpha$ can indeed be varied safely
-as the system is running and that the pipeline may indeed remain unbounded
-while the configuration is static. It is also shown that the pipeline may
-safely remain unbounded even during a configuration change as long as the
-reconfiguration satisfies certain conditions described in section
-\ref{configuration-changes} below.
+Here it is shown that the pipeline may indeed safely remain unbounded even
+during a configuration change as long as the reconfiguration satisfies certain
+conditions described in section \ref{configuration-changes} below. It is also
+shown that if these conditions are not satisfied then a reconfiguration can
+still take place as long as the pipeline length is temporarily limited.
 
 The algorithm is presented here in its entirety for the sake of consistency of
 notation and because it modifies the original algorithm in ways that invalidate
@@ -1120,32 +1117,29 @@ The leader starts by completing phase I at a sufficiently large ballot $b$,
 where $e(b) = e$, which starts a period of normal running in era $e$ and means
 that $\ell$ may emit $\prop{j}{b}$ for any $j \ge i$. It receives three client
 requests, causing it to propose values for instances $i$, $i+1$ and $i+2$ in
-turn.
+turn.  On the receipt of each proposal the node $a_2$ responds with an
+acceptance, which when ultimately received by $\ell$ allows it to decide that
+each value is chosen because $\{ \ell, a_2 \} \in \QII{e}$.
 
-Then, a configuration change is proposed at instance $i+3$. This is a
-particular value $v_{i+3}(b)$ which, when chosen, appends the next
-configuration $\langle \QI{e+1}, \QII{e+1} \rangle$ to the configuration
-sequence, sets $e(i+4) = e(i+5) = \ldots = e+1$, and increases $e_\mathrm{max}$
-and $i_\mathrm{max}$ accordingly.
-
-On the receipt of each proposal the node $a_2$ responds with an acceptance,
-which when received by $\ell$ allows it to deduce that each value is chosen
-because $\{ \ell, a_2 \} \in \QII{e}$. In particular when $\chosen{i+3}{b}$ it
-updates its configuration state machine, taking the system out of normal
-running because now $e(i_\mathrm{max}) = e + 1 \ne e(b)$.  In order to bring
-the system back into normal running, the leader must choose a ballot $b'$
+A configuration change is proposed at instance $i+3$ which, when chosen,
+appends the next configuration $\langle \QI{e+1}, \QII{e+1} \rangle$ to the
+configuration sequence, sets $e(i+4) = e(i+5) = \ldots = e+1$, and increases
+$e_\mathrm{max}$ and $i_\mathrm{max}$ accordingly. This takes the system out of
+normal running because now $e(i_\mathrm{max}) = e + 1 \ne e(b)$.  In order to
+bring the system back into normal running, the leader must choose a ballot $b'$
 having $e(b') = e_\mathrm{max}$ and complete a phase I at $b'$, so it sends
 $\prep{b'}$ to $a_1$.
 
 While instance $i+3$ was being chosen, the leader continued to service client
 requests by sending out $\prop{i+4}{b}$, $\prop{i+5}{b}$ and $\prop{i+6}{b}$,
-and $a_2$ started to accept these proposals. Even though these instances belong
-to the new configuration, when the leader receives $\acc{i+k}{a_2}{b}$ it may
-still safely deduce $\chosen{i+k}{b}$ since $e(i+k) = e + 1 \le e(b) + 1$ for
-$k \in \{4,5,6\}$, and $\{ \ell, a_2 \} \in \QII{e+1}$. It is important to
-notice that the leader is now using $\QII{e+1}$ and not $\QII{e}$ to determine
-when ballots are chosen. The horizontal dashed line shows the point in time at
-which the leader moves from era $e$ to era $e+1$.
+which $a_2$ accepts in due course. Although these instances come after the
+configuration change at instance $i+3$, when the leader receives
+$\acc{i+4}{a_2}{b}$ it may still safely deduce $\chosen{i+4}{b}$ since $e(i+4)
+= e + 1 \le e(b) + 1$ and $\{ \ell, a_2 \} \in \QII{e+1}$, and similarly for
+instances $i+5$ and $i+6$. It is important to notice that the leader is now
+using $\QII{e+1}$ and not $\QII{e}$ to determine when ballots are chosen. The
+horizontal dashed line shows the point in time at which the leader moves from
+era $e$ to era $e+1$.
 
 While the leader is waiting for the response from $a_1$, client requests
 continue to arrive, yielding proposals for subsequent instances $i+7$, $i+8$,
@@ -1180,7 +1174,7 @@ configuration changes can be expensive to complete. It is, in general,
 difficult to select an appropriate value for $\alpha$ up-front, and no matter
 what value is selected it is possible that a configuration change may cause a
 pause if a phase-I message is unexpectedly delayed or a sudden burst of client
-requests must be processed.
+requests are received.
 
 \begin{figure}[!t]
 \centering
@@ -1189,17 +1183,16 @@ requests must be processed.
 \end{figure}
 
 In contrast, fig. \ref{seq-diag-stoppable-ooo} shows an equivalent
-reconfiguration performed in a Stoppable Paxos cluster. This variant of Paxos
-allows for an unlimited number of proposals to run in parallel within each
-configuration, and permits out-of-order execution, so so in this illustration
-the stopping command is proposed at instance $i+3$ before proposals are made
-for the two preceding instances.
-By selecting instance $i+3$ for the reconfiguration, the operator is limiting
-the system to service at most 2 more client requests before the reconfiguration
-completes. As in the illustration of Dynamic Paxos above, the operator's choice
-is too conservative so the remaining two instances are exhausted before phase I
-is completed at ballot $b'$, which causes the system to have to pause its
-processing of client requests.
+reconfiguration performed in Stoppable Paxos. This variant of Paxos allows for
+an unlimited number of proposals to run in parallel within each configuration,
+and permits out-of-order execution, so so in this illustration the stopping
+command is proposed at instance $i+3$ before proposals are made for the two
+preceding instances.  By selecting instance $i+3$ for the reconfiguration, the
+operator is limiting the system to service at most 2 more client requests
+before the reconfiguration completes. As in the illustration of Dynamic Paxos
+above, the operator's choice is too conservative so the remaining two instances
+are exhausted before phase I is completed at ballot $b'$, which causes the
+system to temporarily suspend its processing of client requests.
 
 \section{Examples}\label{examples}
 
