@@ -7,21 +7,23 @@ import Text.Printf
 
 xLeader, x1, x2 :: Int
 x1      = 1000
-xLeader = 3000
-x2      = 5000
+xLeader = 1500
+x2      = 2000
 
 tellCoords :: Int -> Int -> Int -> Int -> Writer String ()
 tellCoords x1 y1 x2 y2 = tell $ printf "\t %d %d %d %d\n" x1 y1 x2 y2
 
-tellTimeline :: Int -> Int -> Writer String ()
-tellTimeline n x = do
+tellTimeline :: Int -> Int -> String -> Writer String ()
+tellTimeline n x label = do
   tell "2 1 0 1 0 7 50 -1 -1 0.000 0 0 -1 0 0 2\n"
   tellCoords x y x (y + timelineLen)
   tell "2 1 0 1 0 7 50 -1 -1 0.000 0 0 -1 0 0 2\n"
   tellCoords (x - halfHeaderWidth) y (x + halfHeaderWidth) y
+  tell $ printf "4 1 0 50 -1 0 12 0.0000 2 135 540 %d %d %s\\001\n"
+    x (y-90) label
 
   where
-  halfHeaderWidth = 700
+  halfHeaderWidth = 200
   y = timelineStart n
 
 tellRPC :: Int -> Int -> Int -> (Int -> Writer String ()) -> Writer String Int
@@ -54,14 +56,24 @@ propSpacing :: Int
 propSpacing = 290
 
 tellPrepare :: Int -> String -> String -> Writer String Int
-tellPrepare yStart ballot era = tellRPC x1 yStart 620 $ \labelY -> tell $ printf
-  "4 2 0 50 -1 0 12 0.0000 2 180 1890 935 %d $\\\\mathbf{prepare}(%s)$ (quorum from $Q_{%s}$)\\001\n"
-  (labelY + labelOffset) ballot era
+tellPrepare yStart ballot _ = tellRPC x1 yStart 620 $ \labelY -> tell $ printf
+  "4 2 0 50 -1 0 12 0.0000 2 180 1890 935 %d $\\\\mathbf{prepare}(%s)$\\001\n"
+  (labelY + labelOffset) ballot
 
 tellPropose :: Int -> String -> String -> String -> Writer String Int
-tellPropose yStart inst ballot era = tellRPC x2 yStart 350 $ \labelY -> tell $ printf
-  "4 0 0 50 -1 0 12 0.0000 2 180 2160 5105 %d $\\\\mathbf{proposed}_{%s}(%s)$ (quorum from $Q_{%s}$)\\001\n"
-  (labelY + labelOffset) inst ballot era
+tellPropose yStart inst ballot _ = tellRPC x2 yStart 350 $ \labelY -> tell $ printf
+  "4 0 0 50 -1 0 12 0.0000 2 180 2160 2160 %d $\\\\mathbf{proposed}_{%s}(%s)$\\001\n"
+  (labelY + labelOffset) inst ballot
+
+tellNewEra :: Int -> Writer String ()
+tellNewEra y = do
+  tell $ printf "2 1 1 1 0 7 50 -1 -1 4.000 0 0 -1 0 0 2\n"
+  tellCoords (x1 - 500) y' (x2 + 500) y'
+
+  tell $ printf "4 2 0 50 -1 0 12 0.0000 2 180 1890 935 %d era $e$\\001\n" (y' - 80)
+  tell $ printf "4 2 0 50 -1 0 12 0.0000 2 180 1890 935 %d era $e+1$\\001\n" (y' + 200)
+
+  where y' = y - div procTime 2
 
 main :: IO ()
 main = writeFile "test.fig" $ execWriter $ do
@@ -77,8 +89,8 @@ main = writeFile "test.fig" $ execWriter $ do
     , "1200 2"
     ]
 
-  mapM_ (tellTimeline 0) [xLeader, x1, x2]
-  mapM_ (tellTimeline 1) [xLeader, x1, x2]
+  let timelines = [(xLeader, "$\\\\ell$"), (x1, "I"), (x2, "II")]
+  forM_ [0..1] $ forM_ timelines . uncurry . tellTimeline
 
   tellStoppable  (100 + timelineStart 0)
   tellSmooth     (100 + timelineStart 1)
@@ -92,6 +104,8 @@ tellSmooth firstPrepareStartTime = do
   let secondPrepareStartTime = last finishTimes
   secondPrepareFinishTime <- tellPrepare secondPrepareStartTime "b'" "e+1"
 
+  tellNewEra $ last finishTimes
+
   forM_ [4..12] $ \n -> let
     proposeStartTime = firstPrepareFinishTime + propSpacing * n
     in tellPropose proposeStartTime
@@ -104,6 +118,9 @@ tellStoppable firstPrepareStartTime = do
 
   finishTimes <- forM [0..3] $ \n -> tellPropose (firstPrepareFinishTime + propSpacing * n)
     (if n == 0 then "i" else printf "i+%d" n) "b" "e"
+
+  tellNewEra $ last finishTimes
+
   let secondPrepareStartTime = last finishTimes
   secondPrepareFinishTime <- tellPrepare secondPrepareStartTime "b'" "e+1"
 
