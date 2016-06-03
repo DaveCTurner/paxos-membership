@@ -1165,16 +1165,15 @@ $\ell$ to make proposals $\prop{j}{b'}$ for all $j \ge i+12$.
 
 Fig. \ref{seq-diag-dynamic} shows an equivalent reconfiguration performed in a
 Dynamic Paxos cluster with the pipeline length $\alpha = 2$. As there are
-frequently two proposals being processed concurrently it seems likely that this
-value was selected poorly and that better performance could be achieved by
-selecting a higher value. A higher value still could have avoided the pause
-between instances $i+5$ and $i+6$ caused by the unexpected delay in completing
-phase I at ballot $b'$. On the other hand if the pipeline is too long then
-configuration changes can be expensive to complete. It is, in general,
-difficult to select an appropriate value for $\alpha$ up-front, and no matter
-what value is selected it is possible that a configuration change may cause a
-pause if a phase-I message is unexpectedly delayed or a sudden burst of client
-requests are received.
+frequently two proposals being processed concurrently it seems likely that
+better performance could be achieved by selecting a higher value. A higher
+value still could have avoided the pause between instances $i+5$ and $i+6$
+caused by the extra delay in completing phase I at ballot $b'$. On the other
+hand if the pipeline is too long then configuration changes can be expensive to
+complete. It is, in general, difficult to select an appropriate value for
+$\alpha$ up-front, and no matter what value is selected it is possible that a
+configuration change may cause a pause if a phase-I message is unexpectedly
+delayed or a sudden burst of client requests are received.
 
 \begin{figure}[!t]
 \centering
@@ -1185,14 +1184,14 @@ requests are received.
 In contrast, fig. \ref{seq-diag-stoppable-ooo} shows an equivalent
 reconfiguration performed in Stoppable Paxos. This variant of Paxos allows for
 an unlimited number of proposals to run in parallel within each configuration,
-and permits out-of-order execution, so so in this illustration the stopping
+and permits out-of-order execution, so in this illustration the stopping
 command is proposed at instance $i+3$ before proposals are made for the two
 preceding instances.  By selecting instance $i+3$ for the reconfiguration, the
-operator is limiting the system to service at most 2 more client requests
+operator is limiting the system to service at most two more client requests
 before the reconfiguration completes. As in the illustration of Dynamic Paxos
-above, the operator's choice is too conservative so the remaining two instances
-are exhausted before phase I is completed at ballot $b'$, which causes the
-system to temporarily suspend its processing of client requests.
+above, the operator's choice is too conservative so the remaining two free
+instances are used up before phase I is completed at ballot $b'$, which causes
+the system to temporarily suspend its processing of client requests.
 
 \section{Examples}\label{examples}
 
@@ -1321,14 +1320,13 @@ in the hope that this is long enough to have completed the new phase I.
 
 \section{Conclusion}
 
-The approach described here generalises Dynamic Paxos\cite{cheap-paxos} to
-support changing the pipeline length parameter $\alpha$ and running with an
-unlimited-length pipeline while a configuration change is not in progress.
-
-In that sense, it can be compared to that of Stoppable
-Paxos\cite{stoppable-paxos} which allows for an unlimited number of proposals
-to run in parallel within each configuration, but requires a temporary
-arbitrary limit on concurrency while a reconfiguration takes place.
+The approach described here improves on Dynamic Paxos\cite{cheap-paxos} by
+supporting changing the pipeline length parameter $\alpha$ and running with an
+unlimited-length pipeline while a configuration change is not in progress.  In
+that sense, it can be compared to that of Stoppable Paxos\cite{stoppable-paxos}
+which allows for an unlimited number of proposals to run in parallel within
+each configuration, but requires a temporary arbitrary limit on concurrency
+while a reconfiguration takes place.
 
 In both Dynamic and Stoppable Paxos, if the selected limit is either too small
 or too large then it may affect the system's performance. The approach
@@ -1355,12 +1353,6 @@ corresponding value, or even a hash of the value, which may allow for even
 cheaper implementations of Cheap Paxos\cite{cheap-paxos} and can simplify the
 transfer of state\cite{vertical-paxos} required when new nodes are
 commissioned.
-
-In the author's opinion, it was no harder to correctly implement a
-reconfigurable replicated state machine based on this approach than using other
-reconfigurable variants of Paxos. The invariants of fig.
-\ref{paxos-invariants-figure} are only slightly more complicated than those of
-Static Paxos and are straightforward to maintain.
 
 % An example of a floating figure using the graphicx package.
 % Note that \label must occur AFTER (or within) \caption.
