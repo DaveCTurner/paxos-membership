@@ -87,7 +87,7 @@ main = forM_
     , ("smooth.fig",     tellSmooth)
     , ("dynamic.fig",    tellDynamic)
     ] $ \(fileName, tellSequenceDiagram) -> do
-    
+
   writeFile fileName $ execWriter $ do
     tell $ unlines
       [ "#FIG 3.2  Produced by xfig version 3.2.5c"
@@ -101,11 +101,11 @@ main = forM_
       , "1200 2"
       ]
 
-    let timelines = [(xLeader, "$\\\\ell$"), (x1, "I"), (x2, "II")]
+    let timelines = [(xLeader, "$\\\\ell$"), (x1, "$a_1$"), (x2, "$a_2$")]
     forM_ timelines $ uncurry $ tellTimeline 0
     tellSequenceDiagram 0
-  
-  callCommand ("fig2ps  --nogv " ++ fileName)
+
+  callCommand ("fig2eps --nogv " ++ fileName)
   callCommand ("fig2pdf --nogv " ++ fileName)
 
 tellSmooth firstPrepareStartTime = do
@@ -142,10 +142,10 @@ tellStoppable firstPrepareStartTime = do
 showIPlus :: Int -> String
 showIPlus 0 = "i"
 showIPlus n = printf "i+%d" n
-    
+
 tellStoppable2 firstPrepareStartTime = do
   firstPrepareFinishTime <- tellPrepare firstPrepareStartTime "b"
-  
+
   let startIndex n
           | n == 1    = 2
           | n == 2    = 3
@@ -175,11 +175,11 @@ tellDynamic firstPrepareStartTime = do
       | otherwise = return []
     in go n0 (firstPrepareFinishTime + propSpacing * n0)
 
-  let finishTimes = sort $ concat finishTimeses 
-  
+  let finishTimes = sort $ concat finishTimeses
+
   secondPrepareFinishTime <- tellPrepare' (-200) (finishTimes !! 3) "b'"
   tellNewEra $ finishTimes !! 5
   tellPropose  secondPrepareFinishTime                (showIPlus 6) "b'"
   tellPropose (secondPrepareFinishTime + propSpacing) (showIPlus 7) "b'"
   return ()
-  
+

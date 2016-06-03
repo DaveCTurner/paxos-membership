@@ -127,7 +127,7 @@
   \graphicspath{{genfigs/}}
   % and their extensions so you won't have to specify these with
   % every instance of \includegraphics
-  \DeclareGraphicsExtensions{.ps}
+  \DeclareGraphicsExtensions{.eps}
 \fi
 % graphicx was written by David Carlisle and Sebastian Rahtz. It is
 % required if you want graphics, photos, etc. graphicx.sty is already
@@ -1099,41 +1099,69 @@ to prevent node failures from having a performance impact.
 \restylefloat{figure}
 \begin{figure}[!t]
 \centering
-\includegraphics[width=2.5in]{smooth}
+\includegraphics{smooth}
 \caption{Message flow during a reconfiguration \label{seq-diag-smooth}}
 \end{figure}
 
 To give a concrete example of this process, fig. \ref{seq-diag-smooth} shows
-the flow of messages during a reconfiguration involving the nodes I and II and
-the leader $\ell$. The system starts in era $e$ where $\{\ell, \textrm{I}\} \in
-\QI{e}$ and $\{\ell, \textrm{II}\} \in \QII{e}$, and moves to era $e+1$ where
-$\{\ell, \textrm{I}\} \in \QI{e+1}$ and $\{\ell, \textrm{II}\} \in \QII{e+1}$
-too. Because of these quorums, the leader only needs a response from node I to
-complete phase I, and similarly only needs a response from node II to complete
-phase II and chooses a value.  Notice that this means the leader has a casting
-vote.  Initially, $i_\mathrm{max} = i+3$ and $e(i) = e(i+1) = e(i+2) = e(i+3) =
-e$.
+the flow of messages during a reconfiguration involving the nodes $a_1$ and
+$a_2$ and the leader $\ell$. The system starts in era $e$ where $\{\ell, a_1\}
+\in \QI{e}$ and $\{\ell, a_2\} \in \QII{e}$, and moves to era $e+1$ where
+$\{\ell, a_1\} \in \QI{e+1}$ and $\{\ell, a_2\} \in \QII{e+1}$ too. Because of
+these quorums, the leader only needs a response from node $a_1$ to complete
+phase I, and similarly only needs a response from node $a_2$ to complete phase
+II and choose a value. Notice that this means the leader has a casting vote.
+The messages sent from $\ell$ to the other nodes are labelled on the diagram,
+but the successful responses (promises and acceptances from $a_1$ and $a_2$
+respectively) are left unlabelled for clarity. Initially, $i_\mathrm{max} =
+i+3$ and $e(i) = e(i+1) = e(i+2) = e(i+3) = e = e_\mathrm{max}$.
 
-The leader starts by completing phase I at ballot $b$, where $e(b) = e$, which
-starts a period of normal running in era $e$. It then proposes a series of
-values for instances $i, i+1, \ldots$ in sequence. The value chosen for
-instance $i+3$ defines $e(i+4) = e(i+5) = \ldots = e+1$ and increases
-$i_\mathrm{max}$ accordingly, which starts the configuration change and takes
-the system out of normal running. Before this point (indicated by the
-horizontal dashed line on the diagram) the leader uses $\QII{e}$ to determine
-when values where chosen, and afterwards it uses $\QII{e+1}$.
+The leader starts by completing phase I at a sufficiently large ballot $b$,
+where $e(b) = e$, which starts a period of normal running in era $e$ and means
+that $\ell$ may emit $\prop{j}{b}$ for any $j \ge i$. It receives three client
+requests, causing it to propose values for instances $i$, $i+1$ and $i+2$ in
+turn.
 
-To return to normal running the leader then chooses a new ballot $b'$ having
-$e(b') = e+1$ and sends $\prep{b'}$ to node I. It has already proposed values
-for instances up to $i+6$ when this occurs, but because $e(i+6) \le e(b) + 1$
-it can continue to choose these values even though they were proposed in the
-previous era. Indeed, while the new phase I is in progress it may continue to
-make even more proposals at ballot $b$, and these can be successfully chosen
-once node II responds with its acceptance. Finally the response is received
-from node I between the proposals for instances $i+11$ and $i+12$ so the leader
-sends itself the message $\mprom{i+12}{\ell}{b'}$, which completes phase I at
-ballot $b'$ and restores the system to normal running in era $e+1$. Subsequent
-proposals are then made using ballot $b'$ as shown.
+Then, a configuration change is proposed at instance $i+3$. This is a
+particular value $v_{i+3}(b)$ which, when chosen, appends the next
+configuration $\langle \QI{e+1}, \QII{e+1} \rangle$ to the configuration
+sequence, sets $e(i+4) = e(i+5) = \ldots = e+1$, and increases $e_\mathrm{max}$
+and $i_\mathrm{max}$ accordingly.
+
+On the receipt of each proposal the node $a_2$ responds with an acceptance,
+which when received by $\ell$ allows it to deduce that each value is chosen
+because $\{ \ell, a_2 \} \in \QII{e}$. In particular when $\chosen{i+3}{b}$ it
+updates its configuration state machine, taking the system out of normal
+running because now $e(i_\mathrm{max}) = e + 1 \ne e(b)$.  In order to bring
+the system back into normal running, the leader must choose a ballot $b'$
+having $e(b') = e_\mathrm{max}$ and complete a phase I at $b'$, so it sends
+$\prep{b'}$ to $a_1$.
+
+While instance $i+3$ was being chosen, the leader continued to service client
+requests by sending out $\prop{i+4}{b}$, $\prop{i+5}{b}$ and $\prop{i+6}{b}$,
+and $a_2$ started to accept these proposals. Even though these instances belong
+to the new configuration, when the leader receives $\acc{i+k}{a_2}{b}$ it may
+still safely deduce $\chosen{i+k}{b}$ since $e(i+k) = e + 1 \le e(b) + 1$ for
+$k \in \{4,5,6\}$, and $\{ \ell, a_2 \} \in \QII{e+1}$. It is important to
+notice that the leader is now using $\QII{e+1}$ and not $\QII{e}$ to determine
+when ballots are chosen. The horizontal dashed line shows the point in time at
+which the leader moves from era $e$ to era $e+1$.
+
+While the leader is waiting for the response from $a_1$, client requests
+continue to arrive, yielding proposals for subsequent instances $i+7$, $i+8$,
+\ldots.  Notice that the leader is still using ballot $b$ for these requests as
+it has not yet completed phase I at $b'$, but that it is still safe to deduce
+$\chosen{i+7}{b}$, $\chosen{i+8}{b}$, $\ldots$ because $e(i+7) = e(i+8) =
+e(b)+1$.  Importantly, there is no limit to how many requests the leader can
+handle in this way, so the system will continue to be able to process client
+requests even if the phase I messages are arbitrarily delayed.
+
+At last the response from $a_1$ is received just after the sending of
+$\prop{i+11}{b}$ and before a proposal has been made for instance $i+12$. The
+leader can then instantaneously send itself the message
+$\mprom{i+12}{\ell}{b'}$ which completes phase I at ballot $b'$ since $\{\ell,
+a_1\} \in \QI{e+1}$.  This restores the system to normal running, and allows
+$\ell$ to make proposals $\prop{j}{b'}$ for all $j \ge i+12$.
 
 \section{Examples}\label{examples}
 
@@ -1267,13 +1295,13 @@ use different values of $\alpha$ if required.
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=2.5in]{dynamic}
+\includegraphics{dynamic}
 \caption{Message flow for Dynamic Paxos with $\alpha = 2$. \label{seq-diag-dynamic}}
 \end{figure}
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=2.5in]{stoppable2}
+\includegraphics{stoppable2}
 \caption{Message flow for Stoppable Paxos. \label{seq-diag-stoppable-ooo}}
 \end{figure}
 
