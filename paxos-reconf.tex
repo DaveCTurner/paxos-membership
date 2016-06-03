@@ -114,20 +114,20 @@
 \ifCLASSINFOpdf
   \usepackage[pdftex]{graphicx}
   % declare the path(s) where your graphic files are
-  % \graphicspath{{../pdf/}{../jpeg/}}
+  \graphicspath{{genfigs/}}
   % and their extensions so you won't have to specify these with
   % every instance of \includegraphics
-  % \DeclareGraphicsExtensions{.pdf,.jpeg,.png}
+  \DeclareGraphicsExtensions{.pdf}
 \else
   % or other class option (dvipsone, dvipdf, if not using dvips). graphicx
   % will default to the driver specified in the system graphics.cfg if no
   % driver is specified.
-  % \usepackage[dvips]{graphicx}
+  \usepackage[dvips]{graphicx}
   % declare the path(s) where your graphic files are
-  % \graphicspath{{../eps/}}
+  \graphicspath{{genfigs/}}
   % and their extensions so you won't have to specify these with
   % every instance of \includegraphics
-  % \DeclareGraphicsExtensions{.eps}
+  \DeclareGraphicsExtensions{.ps}
 \fi
 % graphicx was written by David Carlisle and Sebastian Rahtz. It is
 % required if you want graphics, photos, etc. graphicx.sty is already
@@ -1095,6 +1095,46 @@ continue to hold if nodes fail but performance may be affected, for instance by
 meaning that $\ell$ no longer has a casting vote. In general it is not possible
 to prevent node failures from having a performance impact.
 
+\floatstyle{plain}
+\restylefloat{figure}
+\begin{figure}[!t]
+\centering
+\includegraphics[width=2.5in]{smooth}
+\caption{Message flow during a reconfiguration \label{seq-diag-smooth}}
+\end{figure}
+
+To give a concrete example of this process, fig. \ref{seq-diag-smooth} shows
+the flow of messages during a reconfiguration involving the nodes I and II and
+the leader $\ell$. The system starts in era $e$ where $\{\ell, \textrm{I}\} \in
+\QI{e}$ and $\{\ell, \textrm{II}\} \in \QII{e}$, and moves to era $e+1$ where
+$\{\ell, \textrm{I}\} \in \QI{e+1}$ and $\{\ell, \textrm{II}\} \in \QII{e+1}$
+too. Because of these quorums, the leader only needs a response from node I to
+complete phase I, and similarly only needs a response from node II to complete
+phase II and chooses a value.  Notice that this means the leader has a casting
+vote.  Initially, $i_\mathrm{max} = i+3$ and $e(i) = e(i+1) = e(i+2) = e(i+3) =
+e$.
+
+The leader starts by completing phase I at ballot $b$, where $e(b) = e$, which
+starts a period of normal running in era $e$. It then proposes a series of
+values for instances $i, i+1, \ldots$ in sequence. The value chosen for
+instance $i+3$ defines $e(i+4) = e(i+5) = \ldots = e+1$ and increases
+$i_\mathrm{max}$ accordingly, which starts the configuration change and takes
+the system out of normal running. Before this point (indicated by the
+horizontal dashed line on the diagram) the leader uses $\QII{e}$ to determine
+when values where chosen, and afterwards it uses $\QII{e+1}$.
+
+To return to normal running the leader then chooses a new ballot $b'$ having
+$e(b') = e+1$ and sends $\prep{b'}$ to node I. It has already proposed values
+for instances up to $i+6$ when this occurs, but because $e(i+6) \le e(b) + 1$
+it can continue to choose these values even though they were proposed in the
+previous era. Indeed, while the new phase I is in progress it may continue to
+make even more proposals at ballot $b$, and these can be successfully chosen
+once node II responds with its acceptance. Finally the response is received
+from node I between the proposals for instances $i+11$ and $i+12$ so the leader
+sends itself the message $\mprom{i+12}{\ell}{b'}$, which completes phase I at
+ballot $b'$ and restores the system to normal running in era $e+1$. Subsequent
+proposals are then made using ballot $b'$ as shown.
+
 \section{Examples}\label{examples}
 
 This section contains some examples of configuration changes that satisfy the
@@ -1225,20 +1265,51 @@ use different values of $\alpha$ if required.
 
 \section{Conclusion}
 
+\begin{figure}[!t]
+\centering
+\includegraphics[width=2.5in]{dynamic}
+\caption{Message flow for Dynamic Paxos with $\alpha = 2$. \label{seq-diag-dynamic}}
+\end{figure}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=2.5in]{stoppable2}
+\caption{Message flow for Stoppable Paxos. \label{seq-diag-stoppable-ooo}}
+\end{figure}
+
 The approach described here generalises Dynamic Paxos\cite{cheap-paxos} to
 support changing the pipeline length parameter $\alpha$ and running with an
-unlimited-length pipeline while a configuration change is not in progress.
+unlimited-length pipeline while a configuration change is not in progress. Fig.
+\ref{seq-diag-dynamic} shows a sequence of messages and a configuration change
+in a Dynamic Paxos cluster with $\alpha = 2$, and should be compared with the
+similar situation shown in fig.  \ref{seq-diag-smooth}. It is clear that a
+longer pipeline would achieve better performance by allowing more proposals to
+be made concurrently, and may even avoid the pause between instances $i+5$ and
+$i+6$ caused by the unexpected delay in completing phase I at ballot $b'$. On
+the other hand if the pipeline were too long then configuration changes can be
+expensive to complete. It is, in general, difficult to select an appropriate
+value for $\alpha$, so it is advantageous to be able to change it while the
+system is running, but no matter what value is selected there is always a risk
+that a configuration change may cause a pause in execution.
+
+This approach can be compared to that of Stoppable Paxos\cite{stoppable-paxos}
+whose message flow during reconfiguration is illustrated in fig.
+\ref{seq-diag-stoppable-ooo}.  Stoppable Paxos allows for an unlimited number
+of proposals to run in parallel within each configuration, and permits
+out-of-order execution, so in this illustration the stopping command is
+proposed at instance $i+3$ before proposals are made for the two preceding
+instances. As in fig. \ref{seq-diag-dynamic}, phase I at ballot $b'$ runs more
+slowly than expected which causes a pause in the system's execution. Had the
+stopping command been proposed at a later instance this pause may have been
+avoided, but as with Dynamic Paxos it is not possible to completely eliminate
+the risk of such a pause.
 
 It also supports Raft-style reconfigurations\cite{raft} which can be performed
-with an unlimited pipeline throughout, and gives a detailed argument that these
-preserve consistency. It generalises the simple majorities used in Raft to
-integer-weighted majorities which can reduce the costs of dealing with
-correlated failures during maintenance.
-
-In addition, it implements the ``brick-wall'' stopping scheme as in Stoppable
-Paxos\cite{stoppable-paxos}. Unlike in Stoppable Paxos, here an instance can be
-chosen only if the previous instances have also all been chosen, but this could
-be an acceptable restriction in many situations.
+with an unlimited pipeline throughout. Unlike in Raft, here a configuration
+change only takes effect once it is chosen, which avoids the need to back-track
+to an earlier state if a leader fails during reconfiguration.  It generalises
+the simple majorities used in Raft to integer-weighted majorities which can
+reduce the costs of dealing with correlated failures during maintenance.
 
 It achieves equivalent goals to those of Vertical Paxos\cite{vertical-paxos}
 except that here there is no requirement for a separate oracle to manage the
@@ -1263,15 +1334,7 @@ commissioned.
 % option should be used if it is desired that the figures are to be
 % displayed while in draft mode.
 %
-%\begin{figure}[!t]
-%\centering
-%\includegraphics[width=2.5in]{myfigure}
-% where an .eps filename suffix will be assumed under latex, 
-% and a .pdf suffix will be assumed for pdflatex; or what has been declared
-% via \DeclareGraphicsExtensions.
-%\caption{Simulation results for the network.}
-%\label{fig_sim}
-%\end{figure}
+
 
 % Note that the IEEE typically puts floats only at the top, even when this
 % results in a large percentage of a column being occupied by floats.
@@ -1343,6 +1406,8 @@ commissioned.
 % Note that, LaTeX2e, unlike IEEE journals/conferences, places
 % footnotes above bottom floats. This can be corrected via the
 % \fnbelowfloat command of the stfloats package.
+
+\vfill \pagebreak
 
 \appendices
 

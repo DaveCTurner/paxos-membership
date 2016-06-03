@@ -26,6 +26,7 @@ executable genfigs-exe
   build-depends:       base
                      , genfigs
     , mtl
+    , process
   default-language:    Haskell2010
 
 test-suite genfigs-test
