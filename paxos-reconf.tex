@@ -595,11 +595,9 @@ of operating a cluster.
 Malkhi, Lamport and Zhou \cite{stoppable-paxos} proposed Stoppable Paxos, an
 alternative method for reconfiguring clusters in which an RSM may be stopped,
 reconfigured, and then restarted with the new configuration. Stoppable Paxos
-allows values to be chosen out-of-order within a single configuration, but the
-pipeline cannot cross configurations as the old RSM must stop before the new
-one starts. Stoppable Paxos improves on Dynamic Paxos by removing the need for
-a pipeline limit when the configuration is static and only imposes a limit when
-a reconfiguration is in progress.
+improves on Dynamic Paxos by removing the need for a pipeline limit when the
+configuration is static and by allowing a different limit to be selected for
+different reconfigurations.
 
 Malkhi, Lamport and Zhou \cite{vertical-paxos} then proposed Vertical Paxos
 which keeps the RSM running throughout a reconfiguration, but requires a
@@ -1034,12 +1032,12 @@ $\QII{e(i)}$ it follows that $\chosen{i}{b_i}$ as required. \end{proof}
 
 \subsection{Fully concurrent configuration changes}\label{fully-concurrent}
 
-The discussion so far shows that, like Dynamic Paxos, this algorithm satisfies
-consistency and liveness properties.  The benefit of this scheme compared with
-Dynamic Paxos is that, under normal running conditions, it is possible to
-perform a reconfiguration without needing to impose a limit on the number of
-concurrently-running instances. This section describes the details of this
-procedure.
+The discussion so far shows that, like other Paxos variants, this algorithm
+satisfies consistency and liveness properties.  The benefit of this scheme
+compared with other variants is that, under normal running conditions, it is
+possible to perform a reconfiguration without needing to impose a limit on the
+number of concurrently-running instances. This section describes the details of
+this procedure.
 
 In normal running there is an instance $i_0$ and a ballot $b$ with ${e(b) =
 e(i_0) = e(i_\mathrm{max}) = e_\mathrm{max}}$ and the distinguished node $\ell
@@ -1099,12 +1097,10 @@ continue to hold if nodes fail but performance may be affected, for instance by
 meaning that $\ell$ no longer has a casting vote. In general it is not possible
 to prevent node failures from having a performance impact.
 
-%\floatstyle{plain}
-%\restylefloat{figure}
 \begin{figure}[!t]
 \centering
 \includegraphics{smooth}
-\caption{Message flow during a reconfiguration \label{seq-diag-smooth}}
+\caption{Message flow during a reconfiguration. \label{seq-diag-smooth}}
 \end{figure}
 
 To give a concrete example of this process, fig. \ref{seq-diag-smooth} shows
@@ -1166,6 +1162,44 @@ leader can then instantaneously send itself the message
 $\mprom{i+12}{\ell}{b'}$ which completes phase I at ballot $b'$ since $\{\ell,
 a_1\} \in \QI{e+1}$.  This restores the system to normal running, and allows
 $\ell$ to make proposals $\prop{j}{b'}$ for all $j \ge i+12$.
+
+\begin{figure}[!t]
+\centering
+\includegraphics{dynamic}
+\caption{Message flow for Dynamic Paxos with $\alpha = 2$. \label{seq-diag-dynamic}}
+\end{figure}
+
+Fig. \ref{seq-diag-dynamic} shows an equivalent reconfiguration performed in a
+Dynamic Paxos cluster with the pipeline length $\alpha = 2$. As there are
+frequently two proposals being processed concurrently it seems likely that this
+value was selected poorly and that better performance could be achieved by
+selecting a higher value. A higher value still could have avoided the pause
+between instances $i+5$ and $i+6$ caused by the unexpected delay in completing
+phase I at ballot $b'$. On the other hand if the pipeline is too long then
+configuration changes can be expensive to complete. It is, in general,
+difficult to select an appropriate value for $\alpha$ up-front, and no matter
+what value is selected it is possible that a configuration change may cause a
+pause if a phase-I message is unexpectedly delayed or a sudden burst of client
+requests must be processed.
+
+\begin{figure}[!t]
+\centering
+\includegraphics{stoppable2}
+\caption{Message flow for Stoppable Paxos. \label{seq-diag-stoppable-ooo}}
+\end{figure}
+
+In contrast, fig. \ref{seq-diag-stoppable-ooo} shows an equivalent
+reconfiguration performed in a Stoppable Paxos cluster. This variant of Paxos
+allows for an unlimited number of proposals to run in parallel within each
+configuration, and permits out-of-order execution, so so in this illustration
+the stopping command is proposed at instance $i+3$ before proposals are made
+for the two preceding instances.
+By selecting instance $i+3$ for the reconfiguration, the operator is limiting
+the system to service at most 2 more client requests before the reconfiguration
+completes. As in the illustration of Dynamic Paxos above, the operator's choice
+is too conservative so the remaining two instances are exhausted before phase I
+is completed at ballot $b'$, which causes the system to have to pause its
+processing of client requests.
 
 \section{Examples}\label{examples}
 
@@ -1279,7 +1313,7 @@ instance \cite{reconfiguring-a-state-machine,stoppable-paxos}.
 There is no requirement for the eras of consecutive instances to differ by at
 most one so an era may be skipped at instance $i$ by letting $e(i) = e(i-1) +
 2$.  This recovers the ability to perform arbitrary configuration changes in a
-single step as in Dynamic Paxos. In more detail, if the system is currently
+single step as in Stoppable Paxos. In more detail, if the system is currently
 using configuration $Q_{e}$ and an operator wishes to change to an unrelated
 configuration $Q'$ then she can set $Q_{e+2} = Q'$ and pick an appropriate
 $Q_{e+1}$ (such as $\varnothing$) which satisfies that $Q_{e} \frown Q_{e + 1}
@@ -1290,58 +1324,34 @@ completed before phase II of any new instances can be started.  To prevent this
 causing the pipeline to stall, the operator chooses a sufficiently large
 $\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i
 + \alpha$, effectively delaying the configuration change for $\alpha$ instances
-in the hope that this is long enough to have completed the new phase I. This
-improves slightly on Dynamic Paxos as there is no need to limit the pipeline
-length unless a configuration change is in progress, and different changes may
-use different values of $\alpha$ if required.
+in the hope that this is long enough to have completed the new phase I.
 
 \section{Conclusion}
 
-\begin{figure}[!t]
-\centering
-\includegraphics{dynamic}
-\caption{Message flow for Dynamic Paxos with $\alpha = 2$. \label{seq-diag-dynamic}}
-\end{figure}
-
-\begin{figure}[!t]
-\centering
-\includegraphics{stoppable2}
-\caption{Message flow for Stoppable Paxos. \label{seq-diag-stoppable-ooo}}
-\end{figure}
-
 The approach described here generalises Dynamic Paxos\cite{cheap-paxos} to
 support changing the pipeline length parameter $\alpha$ and running with an
-unlimited-length pipeline while a configuration change is not in progress. Fig.
-\ref{seq-diag-dynamic} shows a sequence of messages and a configuration change
-in a Dynamic Paxos cluster with $\alpha = 2$, and should be compared with the
-similar situation shown in fig.  \ref{seq-diag-smooth}. It is clear that a
-longer pipeline would achieve better performance by allowing more proposals to
-be made concurrently, and may even avoid the pause between instances $i+5$ and
-$i+6$ caused by the unexpected delay in completing phase I at ballot $b'$. On
-the other hand if the pipeline were too long then configuration changes can be
-expensive to complete. It is, in general, difficult to select an appropriate
-value for $\alpha$, so it is advantageous to be able to change it while the
-system is running, but no matter what value is selected there is always a risk
-that a configuration change may cause a pause in execution.
+unlimited-length pipeline while a configuration change is not in progress.
 
-This approach can be compared to that of Stoppable Paxos\cite{stoppable-paxos}
-whose message flow during reconfiguration is illustrated in fig.
-\ref{seq-diag-stoppable-ooo}.  Stoppable Paxos allows for an unlimited number
-of proposals to run in parallel within each configuration, and permits
-out-of-order execution, so in this illustration the stopping command is
-proposed at instance $i+3$ before proposals are made for the two preceding
-instances. As in fig. \ref{seq-diag-dynamic}, phase I at ballot $b'$ runs more
-slowly than expected which causes a pause in the system's execution. Had the
-stopping command been proposed at a later instance this pause may have been
-avoided, but as with Dynamic Paxos it is not possible to completely eliminate
-the risk of such a pause.
+In that sense, it can be compared to that of Stoppable
+Paxos\cite{stoppable-paxos} which allows for an unlimited number of proposals
+to run in parallel within each configuration, but requires a temporary
+arbitrary limit on concurrency while a reconfiguration takes place.
 
-It also supports Raft-style reconfigurations\cite{raft} which can be performed
-with an unlimited pipeline throughout. Unlike in Raft, here a configuration
-change only takes effect once it is chosen, which avoids the need to back-track
-to an earlier state if a leader fails during reconfiguration.  It generalises
-the simple majorities used in Raft to integer-weighted majorities which can
-reduce the costs of dealing with correlated failures during maintenance.
+In both Dynamic and Stoppable Paxos, if the selected limit is either too small
+or too large then it may affect the system's performance. The approach
+described here avoids the need to select any such limit and responds to
+changing system conditions without needing further tuning. Once a
+reconfiguration is chosen, it completes after a single round-trip to a quorum
+of nodes and it continues to serve clients while this is in progress, no matter
+how long it takes.
+
+This is achieved by using Raft-style reconfigurations\cite{raft} which can be
+performed with an unlimited pipeline throughout. Unlike in Raft, here a
+configuration change only takes effect once it is chosen, which avoids the need
+to back-track to an earlier state if a leader fails during reconfiguration. It
+generalises the simple majorities used in Raft to integer-weighted majorities
+which can reduce the costs of dealing with correlated failures during
+maintenance.
 
 It achieves equivalent goals to those of Vertical Paxos\cite{vertical-paxos}
 except that here there is no requirement for a separate oracle to manage the
@@ -1352,6 +1362,12 @@ corresponding value, or even a hash of the value, which may allow for even
 cheaper implementations of Cheap Paxos\cite{cheap-paxos} and can simplify the
 transfer of state\cite{vertical-paxos} required when new nodes are
 commissioned.
+
+In the author's opinion, it was no harder to correctly implement a
+reconfigurable replicated state machine based on this approach than using other
+reconfigurable variants of Paxos. The invariants of fig.
+\ref{paxos-invariants-figure} are only slightly more complicated than those of
+Static Paxos and are straightforward to maintain.
 
 % An example of a floating figure using the graphicx package.
 % Note that \label must occur AFTER (or within) \caption.
@@ -1438,8 +1454,6 @@ commissioned.
 % Note that, LaTeX2e, unlike IEEE journals/conferences, places
 % footnotes above bottom floats. This can be corrected via the
 % \fnbelowfloat command of the stfloats package.
-
-\vfill \pagebreak
 
 \appendices
 
