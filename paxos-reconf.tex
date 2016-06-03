@@ -329,9 +329,9 @@
 % later in the document, say, to conditionally put the References on a 
 % page by themselves.
 
-\usepackage{float}
-\floatstyle{boxed}
-\restylefloat{figure}
+%\usepackage{float}
+%\floatstyle{boxed}
+%\restylefloat{figure}
 
 
 
@@ -550,12 +550,11 @@ carefully. If it is too small then the system may suffer from poor performance
 due to lack of parallelism, but if it is too large then configuration changes
 can be unreasonably expensive to complete. It would be better to be able to
 vary the value of $\alpha$ as the system is running rather than having to
-choose it up-front, but there seems to be no published method for doing so
-whilst ensuring consistency. It would be better still to be able to impose this
-limit only when a configuration change is in progress and allow an unbounded
-pipeline while the configuration is static. The need for any such limit seems
-inelegant\cite{reconfiguring-a-state-machine} particularly when compared with
-Raft's approach.
+choose it up-front, and better still to be able to impose this limit only when
+a configuration change is in progress and allow an unbounded pipeline while the
+configuration is static\cite{reconfiguring-a-state-machine}. That said, it
+seems even more elegant to be able to avoid imposing any limit at all even
+during reconfiguration.
 
 Here it is shown that the pipeline length $\alpha$ can indeed be varied safely
 as the system is running and that the pipeline may indeed remain unbounded
@@ -598,7 +597,9 @@ alternative method for reconfiguring clusters in which an RSM may be stopped,
 reconfigured, and then restarted with the new configuration. Stoppable Paxos
 allows values to be chosen out-of-order within a single configuration, but the
 pipeline cannot cross configurations as the old RSM must stop before the new
-one starts.
+one starts. Stoppable Paxos improves on Dynamic Paxos by removing the need for
+a pipeline limit when the configuration is static and only imposes a limit when
+a reconfiguration is in progress.
 
 Malkhi, Lamport and Zhou \cite{vertical-paxos} then proposed Vertical Paxos
 which keeps the RSM running throughout a reconfiguration, but requires a
@@ -653,6 +654,8 @@ may be elected and thus in which further progress can be made.
 
 \begin{figure*}[t!]
 \caption{Invariants preserved by the Synod algorithm\label{synod-invariants-figure}}
+
+\vspace{3mm}
 
 \renewcommand{\theenumi}{S\arabic{enumi}}
 
@@ -793,14 +796,14 @@ processors, with the $f$ auxiliary processors storing just the hashes of values
 to ensure integrity.
 
 It is also worth comparing this approach to that of Vertical
-Paxos\cite{vertical-paxos} which takes care to ensure that the system state is
-completely transferred between nodes before they start to participate fully in
-the cluster, with certain optimisations in recognition of the fact that this
-state transfer could be an expensive and time-consuming operation involving a
-very large quantity of data. However if the implementation of $v$ is separated
-out then the quantity of data that must be transferred as part of the consensus
-algorithm becomes small enough that it needs no special treatment and a
-consensus-free technique may be used to implement $v$ more efficiently.
+Paxos\cite{vertical-paxos} which takes great care to ensure that the system
+state is completely transferred between nodes before they start to participate
+fully in the cluster, with certain optimisations in recognition of the fact
+that this state transfer could be an expensive and time-consuming operation
+involving a very large quantity of data. However if the implementation of $v$
+is separated out then the quantity of data that must be transferred as part of
+the consensus algorithm becomes small enough that it needs no special treatment
+and a consensus-free technique may be used to implement $v$ more efficiently.
 
 \subsection{Per-phase quorums}\label{per-phase-quorums}
 
@@ -832,6 +835,8 @@ safely as described in section \ref{configuration-changes} below.
 
 \begin{figure*} \caption{Invariants preserved by the Paxos
   algorithm\label{paxos-invariants-figure}}
+
+\vspace{3mm}
 
 \renewcommand{\theenumi}{P\arabic{enumi}}
 
@@ -872,7 +877,6 @@ Furthermore if $P \triangleq \{ b' \mid \exists a \in q. \bprom{i}{a}{b}{b'} \}
 \end{enumerate}
 
 \end{figure*}
-
 
 Conceptually, Paxos is a sequence of distinct instances of the Synod algorithm
 all running simultaneously. To achieve this, the messages of the Synod
@@ -1095,8 +1099,8 @@ continue to hold if nodes fail but performance may be affected, for instance by
 meaning that $\ell$ no longer has a casting vote. In general it is not possible
 to prevent node failures from having a performance impact.
 
-\floatstyle{plain}
-\restylefloat{figure}
+%\floatstyle{plain}
+%\restylefloat{figure}
 \begin{figure}[!t]
 \centering
 \includegraphics{smooth}
