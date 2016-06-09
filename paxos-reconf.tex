@@ -537,13 +537,13 @@ as to make a proposal invalid. If this case is not handled carefully then it
 may lead to inconsistency. Paxos implementations typically solve this problem
 by limiting the length of the pipeline to some $\alpha > 0$ and requiring that
 a configuration change chosen at instance $i$ does not take effect until at
-least instance $i + \alpha$, which means that when a value is proposed there
-can be no as-yet-undecided configuration change in the pipeline that could
-cause a different value to be chosen. In contrast, Raft imposes no limit on the
-number of concurrently-running instances and instead restricts the
-reconfigurations that may occur to only allow ones that cannot result in
-inconsistency. An operator may then perform a sequence of these restricted
-reconfigurations in order to achieve an arbitrary reconfiguration.
+least instance $i + \alpha$, which means that when a proposal is made there can
+be no as-yet-undecided configuration change in the pipeline that could affect
+it. In contrast, Raft imposes no limit on the number of concurrently-running
+instances and instead restricts the reconfigurations that may occur to only
+allow ones that cannot result in inconsistency. An operator may then perform a
+sequence of these restricted reconfigurations in order to achieve an arbitrary
+reconfiguration.
 
 In Paxos, the choice of the pipeline length parameter $\alpha$ must be made
 carefully. If it is too small then the system may suffer from poor performance
@@ -700,14 +700,14 @@ let $\mathbb V$ be the set of values that may be chosen.
 The Synod algorithm involves five kinds of message, in two phases, as described
 below.  Throughout, $a \in \mathbb A$ and $b, b' \in \mathbb B$.  Phase I
 starts with the broadcast of a \textit{prepare} message $\prep{b}$ to which
-each node may respond with a \textit{promise} message, either a \textit{free
-promise} written $\fprom{}{a}{b}$ or a \textit{forced promise} written
-$\bprom{}{a}{b}{b'}$ where $a$ identifies the responding node.  Phase II starts
-with the broadcast of a \textit{proposal} message $\prop{}{b}$ to which each
-node $a$ may respond with an \textit{acceptance} message $\acc{}{a}{b}$. Once
-phase II is complete a \textit{success} message $\chosen{}{b}$ is broadcast.
-It is convenient also to use these symbols as predicates indicating whether the
-corresponding messages have been sent.
+each node may respond with a \textit{promise}, either a \textit{free promise},
+written $\fprom{}{a}{b}$, or a \textit{forced promise}, written
+$\bprom{}{a}{b}{b'}$, where $a$ identifies the responding node.  Phase II
+starts with the broadcast of a \textit{proposal}, written $\prop{}{b}$, to
+which each node $a$ may respond with an \textit{acceptance}, written
+$\acc{}{a}{b}$. Once phase II is complete a \textit{success} message, written
+$\chosen{}{b}$, is broadcast.  It is convenient also to use these symbols as
+predicates indicating whether the corresponding messages have been sent.
 
 There is a function $v : \mathbb B \to \mathbb V$ assigning a value to each
 ballot, discussed in more detail in section \ref{value-function} below.
@@ -725,10 +725,10 @@ nodes, where ``sufficiently many'' is defined in terms of sets of quorums of
 nodes in the system's configuration.
 
 In more detail, a node may emit $\prop{}{b}$ when it considers phase I to be
-complete at ballot $b$, which is when promise messages for $b$ have been
-received from a quorum of nodes, and similarly may emit $\chosen{}{b}$ when
-it considers phase II to be complete at $b$, which is when acceptances of $b$
-from a quorum of nodes have been received.
+complete at ballot $b$, which is when promises for $b$ have been received from
+a quorum of nodes, and similarly may emit $\chosen{}{b}$ when it considers
+phase II to be complete at $b$, which is when acceptances of $b$ have
+been received from a quorum of nodes.
 
 The phase-I and phase-II quorums are defined so as to always contain at least
 one node in common, but may vary depending on the ballot $b$ and the phase as
@@ -828,6 +828,8 @@ safely as described in section \ref{configuration-changes} below.
 
 \section{The Paxos algorithm}\label{paxos-text}
 
+\def\promiseEraOk{$e(b) \le e(\mathrm{min}(i, i_\mathrm{max}))$ }
+
 \begin{figure*} \caption{Invariants preserved by the Paxos
   algorithm\label{paxos-invariants-figure}}
 
@@ -841,13 +843,13 @@ safely as described in section \ref{configuration-changes} below.
   \rangle, \langle \QI{1}, \QII{1} \rangle, \ldots$ where ${\QII{e} \frown
   \QI{e} \frown \QII{e+1}}$ for each $e$.
 
-\item\label{paxos-mprom} If $\mprom{i}{a}{b}$ then $e(b) \le e(i)$ and
+\item\label{paxos-mprom} If $\mprom{i}{a}{b}$ then \promiseEraOk and
   $\neg\acc{j}{a}{b'}$ for all $j \ge i$ and all $b' \prec b$.
 
-\item\label{paxos-fprom} If $\fprom{i}{a}{b}$ then $e(b) \le e(i)$ and
+\item\label{paxos-fprom} If $\fprom{i}{a}{b}$ then \promiseEraOk and
   $\neg\acc{i}{a}{b'}$ for all $b' \prec b$.
 
-\item\label{paxos-bprom} If $\bprom{i}{a}{b}{b'}$ then $e(b) \le e(i)$, $b'
+\item\label{paxos-bprom} If $\bprom{i}{a}{b}{b'}$ then \promiseEraOk, $b'
   \prec b$, $\acc{i}{a}{b'}$, and $b'$ is the greatest such ballot in the sense
   that $\neg \acc{i}{a}{b''}$ for all $b''$ having $b' \prec b'' \prec b$.
 
@@ -865,9 +867,9 @@ Furthermore if $P \triangleq \{ b' \mid \exists a \in q. \bprom{i}{a}{b}{b'} \}
 
 \item \label{paxos-acc} If $\acc{i}{a}{b}$ then $\prop{i}{b}$.
 
-\item \label{paxos-chosen} If $\chosen{i}{b}$ then $e(i) \le e(b) + 1$, for
-  each $j < i$ there is a $b'$ with $\chosen{j}{b'}$, and there is a quorum
-  $q \in \QII{e(i)}$ with $\acc{i}{a}{b}$ for every $a \in q$.
+\item \label{paxos-chosen} If $\chosen{i}{b}$ then $i \le i_\mathrm{max}$,
+  $e(i) \le e(b) + 1$, and there is a quorum $q \in \QII{e(i)}$ with
+  $\acc{i}{a}{b}$ for every $a \in q$.
 
 \end{enumerate}
 
@@ -898,10 +900,10 @@ v_i(b')$.
 
 The invariants listed in fig. \ref{paxos-invariants-figure} are roughly the
 same as for many other presentations of Paxos with the addition of constraints
-on the eras of instances and ballots as discussed below. Note that invariants
-\ref{paxos-mprom}, \ref{paxos-fprom} and \ref{paxos-bprom} limit the
-acceptances that can be sent as well as the promises, so there is no need to
-define separate invariants concerning the sending of acceptances.
+on the configurations associated with instances and ballots as discussed below.
+Note that invariants \ref{paxos-mprom}, \ref{paxos-fprom} and \ref{paxos-bprom}
+limit the acceptances that can be sent as well as the promises, so there is no
+need to define separate invariants concerning the sending of acceptances.
 
 \subsection{Configuration changes}\label{configuration-changes}
 
@@ -918,9 +920,9 @@ the cluster is ``in era $e$'' while instances are being chosen using $\langle
 some instances may use the interim configuration $\langle \QI{e}, \QII{e+1}
 \rangle$, and once the change to era $e+1$ is complete instances will use
 $\langle \QI{e+1}, \QII{e+1} \rangle$. This intuition is captured more
-precisely in section \ref{fully-concurrent}, and since $\QII{e} \frown \QI{e}
-\frown \QII{e+1} \frown \QI{e+1}$ it follows that consistency is preserved
-throughout by the observation of \ref{per-phase-quorums} above.
+precisely in section \ref{fully-concurrent} below, and since $\QII{e} \frown
+\QI{e} \frown \QII{e+1} \frown \QI{e+1}$ it follows that consistency is
+preserved throughout by the observation of \ref{per-phase-quorums} above.
 
 To achieve this there are also two nondecreasing integer-valued functions, both
 written $e(\cdot)$, which respectively assign an era $e(i)$ to each instance
@@ -955,10 +957,11 @@ The sequences are always long enough to make progress, in the sense that
 $e_\mathrm{max} \ge e(i_\mathrm{max})$ and if $\chosen{j}{b}$ for all $j < i$
 then $i_\mathrm{max} \ge i$.
 
-Note that a node may emit a promise for $b$ at instance $i$ only if $e(b) \le
-e(i)$.  If $i > i_\mathrm{max}$ then $e(i)$ is not known, but $e(\cdot)$ is
-nondecreasing so if $e(b) \le e(i_\mathrm{max})$ then it follows that $e(b) \le
-e(i)$ as required.
+Note that a node may emit a promise for $b$ at instance $i$ only if
+\promiseEraOk. This allows nodes to make promises for an instance $i$ even if
+$e(i)$ is not yet known, i.e. if $i > i_\mathrm{max}$. Invariant
+\ref{paxos-chosen} requires that $i \le i_\mathrm{max}$, and hence $e(i)$ is
+known, before $\chosen{i}{b}$.
 
 \subsection{Liveness}\label{liveness}
 
@@ -975,12 +978,11 @@ The original liveness proof then proceeded by having $\ell$ emit $\prep{b}$ for
 some $b$ that is chosen to be large enough that a quorum of nodes may respond
 with promises. In contrast, here there is an upper bound on suitable ballots
 since a proposed ballot must not belong to an era which is too large, because
-if ${e(b) > e(i)}$ then $\prop{i}{b}$ may never be sent and nor may
-$\prop{i}{b'}$ for any $b' \succ b$ as $e(\cdot)$ is nondecreasing.  Therefore
-here $\ell$ must be able to choose a ballot that is large enough to be accepted
-but which still belongs to the correct era, or, more precisely, for each ballot
-$b$, each era $e \ge e(b)$ and each node $a$ there must be a ballot $b' \succ
-b$ having $e(b') = e$ and $\owner{b'} = a$.
+if ${e(b) > e(i)}$ then no promise for ballot $b$ at instance $i$ may be made.
+Therefore here $\ell$ must be able to choose a ballot that is large enough to
+be accepted but which still belongs to the correct era, or, more precisely, for
+each ballot $b$, each era $e \ge e(b)$ and each node $a$ there must be a ballot
+$b' \succ b$ having $e(b') = e$ and $\owner{b'} = a$.
 
 This means that ballot numbers cannot be simple integers because this would
 imply that there exist eras containing only finitely many ballots. Instead an
