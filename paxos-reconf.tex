@@ -1042,9 +1042,9 @@ In normal running there is an instance $i_0$ and a ballot $b$ with ${e(b) =
 e(i_0) = e(i_\mathrm{max}) = e_\mathrm{max}}$ and the distinguished node $\ell
 = \owner{b}$ has received a quorum of promises $q^\textrm{I} \in \QI{e(b)}$ for
 ballot $b$ for all instances $i \ge i_0$. In this state, $\ell$ may emit
-$\prop{i}{b}$ for any $i \ge i_0$, since $e(b) = e(i_0) \le e(i)$ as $e$ is
-nondecreasing.  The node $\ell$ is known as the \textit{leader} and its
-proposals are normally accepted without undue delay by all other nodes.
+$\prop{i}{b}$ for any $i \ge i_0$ as long as $v_i(b)$ is set appropriately.
+The node $\ell$ is known as the \textit{leader} and its proposals are normally
+accepted without undue delay by all other nodes.
 
 \def\Qnew#1{Q^\textrm{#1}_\textrm{new}}
 
