@@ -828,7 +828,7 @@ safely as described in section \ref{configuration-changes} below.
 
 \section{The Paxos algorithm}\label{paxos-text}
 
-\def\promiseEraOk{$e(b) \le e(\mathrm{min}(i, i_\mathrm{max}))$ }
+\def\promiseEraOk{$e(b) \le e(\mathrm{min}(i, i_\mathrm{max}))$}
 
 \begin{figure*} \caption{Invariants preserved by the Paxos
   algorithm\label{paxos-invariants-figure}}
@@ -843,10 +843,10 @@ safely as described in section \ref{configuration-changes} below.
   \rangle, \langle \QI{1}, \QII{1} \rangle, \ldots$ where ${\QII{e} \frown
   \QI{e} \frown \QII{e+1}}$ for each $e$.
 
-\item\label{paxos-mprom} If $\mprom{i}{a}{b}$ then \promiseEraOk and
+\item\label{paxos-mprom} If $\mprom{i}{a}{b}$ then \promiseEraOk\ and
   $\neg\acc{j}{a}{b'}$ for all $j \ge i$ and all $b' \prec b$.
 
-\item\label{paxos-fprom} If $\fprom{i}{a}{b}$ then \promiseEraOk and
+\item\label{paxos-fprom} If $\fprom{i}{a}{b}$ then \promiseEraOk\ and
   $\neg\acc{i}{a}{b'}$ for all $b' \prec b$.
 
 \item\label{paxos-bprom} If $\bprom{i}{a}{b}{b'}$ then \promiseEraOk, $b'
