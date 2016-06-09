@@ -1008,7 +1008,8 @@ propose, then eventually a value is chosen for every instance.  \end{theorem}
 that $\chosen{j}{b_j}$ for all $j < i$ and show that eventually
 $\chosen{i}{b_i}$ as follows.
 
-Firstly recall that $i \le i_{\mathrm{max}}$ and $e(i_{\mathrm{max}}) \le
+Firstly recall that the sequences of eras and configurations are long enough,
+in the sense that $i \le i_{\mathrm{max}}$ and $e(i_{\mathrm{max}}) \le
 e_{\mathrm{max}}$, so that the values of $e(i)$, $\QI{e(i)-1}$, $\QI{e(i)}$ and
 $\QII{e(i)}$ are known to $\ell$.
 
@@ -1059,7 +1060,9 @@ $e(i) = e(i_0)$ for $i_0 \le i < i_c$ and $e(i_c) = e(i_0) + 1$.  Since $e(i_c)
 = e(i_0) + 1 \le e(b) + 1$, values for instance $i_c$ and any future instances
 with the same era may be proposed and chosen even though phase I has not yet
 run for a ballot in this era, so this does not prevent any further instances
-from running concurrently.
+from running concurrently. There is therefore no drawback to choosing as small
+a value for $i_c$ as possible, so it makes sense to choose $i_c =
+i_\mathrm{max} + 1$.
 
 At this point, the system is no longer in normal running as defined above
 because $e(b) = e(i_\mathrm{max}) - 1$. If the operator were to increase
@@ -1080,9 +1083,11 @@ that there are quorums of nonfailed nodes $q \in \QII{e(b)}$ and $q' \in
 broadcast $\prep{b'}$ just to the nodes in $q' \setminus \{\ell\}$ without
 preventing further progress in era $e(b)$ since the nodes in $q$ can continue
 to accept proposals in this era throughout.  When it has received promises from
-all the other nodes in $q'$ it can instantaneously send itself
-$\mprom{i'}{\ell}{b'}$ for some sufficiently large $i'$, which completes phase
-I at $b'$ and restores the system to normal running in era $e(b') = e(b)+1$.
+all the other nodes in $q'$ it can send itself $\mprom{i'}{\ell}{b'}$ for some
+sufficiently large $i'$, which completes phase I at $b'$ and restores the
+system to normal running in era $e(b') = e(b)+1$.  A message from a node to
+itself does not incur any network delays so the last step occurs essentially
+instantaneously.
 
 If $\ell$ does not have a casting vote, but there is some other node $\ell'$
 which does, then $\ell$ should first abdicate its leadership to $\ell'$ and
@@ -1113,7 +1118,8 @@ II and choose a value. Notice that this means the leader has a casting vote.
 The messages sent from $\ell$ to the other nodes are labelled on the diagram,
 but the successful responses (promises and acceptances from $a_1$ and $a_2$
 respectively) are left unlabelled for clarity. Initially, $i_\mathrm{max} =
-i+3$ and $e(i) = e(i+1) = e(i+2) = e(i+3) = e = e_\mathrm{max}$.
+i+3$ and $e(i) = e(i+1) = e(i+2) = e(i+3) = e = e_\mathrm{max}$, and all
+instances before $i$ have already been chosen.
 
 The leader starts by completing phase I at a sufficiently large ballot $b$,
 where $e(b) = e$, which starts a period of normal running in era $e$ and means
@@ -1154,10 +1160,13 @@ requests even if the phase I messages are arbitrarily delayed.
 
 At last the response from $a_1$ is received just after the sending of
 $\prop{i+11}{b}$ and before a proposal has been made for instance $i+12$. The
-leader can then instantaneously send itself the message
-$\mprom{i+12}{\ell}{b'}$ which completes phase I at ballot $b'$ since $\{\ell,
-a_1\} \in \QI{e+1}$.  This restores the system to normal running, and allows
-$\ell$ to make proposals $\prop{j}{b'}$ for all $j \ge i+12$.
+leader can then send itself the message $\mprom{i+12}{\ell}{b'}$ which
+completes phase I at ballot $b'$ since $\{\ell, a_1\} \in \QI{e+1}$.  This
+restores the system to normal running, and allows $\ell$ to make proposals
+$\prop{j}{b'}$ for all $j \ge i+12$. It is imporant to notice that the leader
+did not need to predict how long it would take to complete phase I at $b'$ in
+advance, nor how many requests it might have to handle during this time, in
+order to ensure that it can continue to process these requests without delay.
 
 \begin{figure}[!t]
 \centering
@@ -1173,7 +1182,8 @@ value still could have avoided the pause between instances $i+5$ and $i+6$
 caused by the extra delay in completing phase I at ballot $b'$. On the other
 hand if the pipeline is too long then configuration changes can be expensive to
 complete. It is, in general, difficult to select an appropriate value for
-$\alpha$ up-front, and no matter what value is selected it is possible that a
+$\alpha$ up-front as the best choice may depend on changeable system
+conditions, and no matter what value is selected it is possible that a
 configuration change may cause a pause if a phase-I message is unexpectedly
 delayed or a sudden burst of client requests are received.
 
@@ -1231,7 +1241,7 @@ justifies the restriction against adding or removing more than one node at
 once.
 
 In fact there is no need to restrict attention just to weight functions taking
-values in $\{0, 1\}$ as shown by theorem \ref{weights-nearly-equal} which is
+values in $\{0, 1\}$ as shown by lemma \ref{weights-nearly-equal} which is
 reminiscent of the amoeba analogy in \cite{cheap-paxos}: any two integer-valued
 weight functions whose total absolute difference is at most one can be used to
 define consecutive configurations. This extra generality is important for
@@ -1294,18 +1304,16 @@ $Q_{e}$ to an unrelated configuration $Q'$ (i.e.  $Q_{e} \not\frown Q' \frown
 Q'$) it is possible to set $Q_{e+2} = Q'$ and set $Q_{e+1}$ to be the
 \textit{joint configuration} of $Q_{e}$ and $Q'$: \[Q_{e+1} = \{ q \cup q' \mid
 q \in Q_{e}, q' \in Q' \}\] as this satisfies that $Q_{e} \frown Q_{e + 1}
-\frown Q_{e+1} \frown Q_{e + 2} \frown Q_{e + 2}$.
+\frown Q_{e+1} \frown Q'$.
 
 If $w(a) = 0$ for all $a$ then $w$ is said to be \textit{weightless} and $M(w)
 = \varnothing$. Clearly if there is an instance $i$ such that $Q_{e(i)} =
-\varnothing$ then no value can ever be chosen for $i$ or any subsequent
-instance, by invariant \ref{paxos-chosen}. On the other hand $Q \frown
-\varnothing$ for all $Q$ so changing to a weightless configuration is always
-permitted, and this has the effect of stopping a Paxos cluster at a particular
-instance \cite{reconfiguring-a-state-machine,stoppable-paxos}.
+\varnothing$ then no value can ever be chosen for $i$. On the other hand $Q
+\frown \varnothing$ for all $Q$ so changing to or from a weightless
+configuration is always permitted.
 
 There is no requirement for the eras of consecutive instances to differ by at
-most one so an era may be skipped at instance $i$ by letting $e(i) = e(i-1) +
+most one so an era may be skipped at instance $i$ by setting $e(i) = e(i-1) +
 2$.  This recovers the ability to perform arbitrary configuration changes in a
 single step as in Stoppable Paxos. In more detail, if the system is currently
 using configuration $Q_{e}$ and an operator wishes to change to an unrelated
@@ -1318,7 +1326,9 @@ completed before phase II of any new instances can be started.  To prevent this
 causing the pipeline to stall, the operator chooses a sufficiently large
 $\alpha > 0$ and sets $e(i+\alpha) = e(i)+2$ and $e(j) = e(i)$ for $i < j \le i
 + \alpha$, effectively delaying the configuration change for $\alpha$ instances
-in the hope that this is long enough to have completed the new phase I.
+in the hope that this is long enough to have completed the new phase I. The
+pattern of communication in this situation is very similar to that shown in
+fig. \ref{seq-diag-stoppable-ooo} where $\alpha$ was chosen to be $3$.
 
 \section{Conclusion}
 
@@ -1331,12 +1341,13 @@ each configuration, but requires a temporary arbitrary limit on concurrency
 while a reconfiguration takes place.
 
 In both Dynamic and Stoppable Paxos, if the selected limit is either too small
-or too large then it may affect the system's performance. The approach
-described here avoids the need to select any such limit and responds to
-changing system conditions without needing further tuning. Once a
-reconfiguration is chosen, it completes after a single round-trip to a quorum
-of nodes and it continues to serve clients while this is in progress, no matter
-how long it takes.
+or too large then it may affect the system's performance, and the best choice
+of limit depends on a prediction of the system's future performance.  The
+approach described here avoids the need to make any such prediction or select
+any such limit and responds to changing system conditions without needing
+further tuning. Once a reconfiguration is chosen, it can complete after a
+single round-trip to a quorum of nodes and the system can continue to serve all
+clients while this round-trip is in progress, no matter how long it takes.
 
 This is achieved by using Raft-style reconfigurations\cite{raft} which can be
 performed with an unlimited pipeline throughout. Unlike in Raft, here a
@@ -1446,13 +1457,13 @@ commissioned.
 
 \section{}\label{weights-appendix}
 
-\begin{theorem} \label{weights-nearly-equal} If $w, w' : \mathbb A \to \mathbb
-N$ are weight functions such that $\sum_{a \in \mathbb A} |w'(a) - w(a)| \le 1$
-then $M(w) \frown M(w')$.  \end{theorem}
+\begin{lemma} \label{weights-nearly-equal-factors} If $w, w' : \mathbb A \to
+\mathbb N$ are weight functions and $k, k'$ are positive integers such that
+$\sum_{a \in \mathbb A} |k'w'(a) - kw(a)| \le 1$ then $M(w) \frown M(w')$.
+\end{lemma}
 
-\begin{proof}Since $w$ and $w'$ take integer values they must take equal values
-  except possibly at a single node, so let $a_0$ be a node such that $w(a) =
-  w'(a)$ for all $a \ne a_0$.
+\begin{proof}Since $kw(a)$ and $k'w'(a)$ are integers for all $a$, there must
+  be a node $a_0$ such that $kw(a) = k'w'(a)$ for all $a \ne a_0$.
 %
 Let $q \in M(w)$ and $q' \in M(w')$. By the definition of $M$, and since $w$
 and $w'$ take only integer values,
@@ -1463,43 +1474,59 @@ and
 %
 $\sum_{a \in q'} 2 w'(a) \ge \sum_{a \in \mathbb A} w'(a) + 1$.
 %
-Let $d_{\mathbb A} \triangleq w'(a_0) - w(a_0)$ so that $\sum_{a \in \mathbb A}
-w'(a) = \sum_{a \in \mathbb A} w(a) + d_{\mathbb A}$ and $|d_\mathbb A| \le 1$.
-Also let \[ d_{q'} \triangleq \begin{cases}
+Let $d_{\mathbb A} \triangleq k'w'(a_0) - kw(a_0)$ so that $\sum_{a \in \mathbb
+A} k'w'(a) = \sum_{a \in \mathbb A} kw(a) + d_{\mathbb A}$ and $|d_\mathbb A|
+\le 1$.  Also let \[ d_{q'} \triangleq \begin{cases}
 %
 d_{\mathbb A} & a_0 \in q' \\
 %
 0 & \textrm{otherwise,}
 %
-\end{cases} \] so that $\sum_{a \in q'} w'(a) = \sum_{a \in q'} w(a) + d_{q'}$.
+\end{cases} \] so that $\sum_{a \in q'} k'w'(a) = \sum_{a \in q'} kw(a) +
+d_{q'}$.
 %
 Then
 %
 \[\begin{split}
 %
-\sum_{a \in \mathbb A} 2w(a) &+ d_{\mathbb A} + 2 \\
+\sum_{a \in \mathbb A} 2kw(a) &+ d_{\mathbb A} + k + k' \\
 %
-&= \left( \sum_{a \in \mathbb A} w(a)  + 1\right) +  \left( \sum_{a \in \mathbb
-A} w'(a) + 1\right) \\
+&= k \left( \sum_{a \in \mathbb A} w(a)  + 1\right) + k' \left( \sum_{a \in
+\mathbb A} w'(a) + 1\right) \\
 %
-&\le \sum_{a \in q}  2w(a) +    \sum_{a \in q'} 2w'(a) \\
+&\le \sum_{a \in q}  2kw(a) +    \sum_{a \in q'} 2k'w'(a) \\
 %
-&= \sum_{a \in q}  2w(a) +  \sum_{a \in q'} 2w(a) + 2d_{q'}\\
+&= \sum_{a \in q}  2kw(a) +  \sum_{a \in q'} 2kw(a) + 2d_{q'}\\
 %
-&= \sum_{a \in q \cup q'} 2w(a) +  \sum_{a \in q \cap q'} 2w(a) + 2d_{q'}\\
+&= \sum_{a \in q \cup q'} 2kw(a) +  \sum_{a \in q \cap q'} 2kw(a) + 2d_{q'}\\
 %
-&\le \sum_{a \in \mathbb A} 2w(a) +    \sum_{a \in q \cap q'} 2w(a) + 2d_{q'}\\
+&\le \sum_{a \in \mathbb A} 2kw(a) +    \sum_{a \in q \cap q'} 2kw(a) +
+2d_{q'}\\
 %
-\end{split}\] so that $\sum_{a \in q \cap q'} 2w(a) \ge d_{\mathbb A} + 2 -
-2d_{q'} = 2 \pm d_\mathbb A \ge 1$ and hence $q \cap q' \ne \varnothing$ as
-desired.  \end{proof}
+\end{split}\] so that $\sum_{a \in q \cap q'} 2kw(a) \ge d_{\mathbb A} + k + k'
+- 2d_{q'} = k + k' \pm d_\mathbb A \ge 1$ and hence $q \cap q' \ne \varnothing$
+as desired.  \end{proof}
+
+\begin{lemma} \label{weights-nearly-equal} If $w, w' : \mathbb A \to \mathbb
+N$ are weight functions such that $\sum_{a
+\in \mathbb A} |w'(a) - w(a)| \le 1$ then $M(w) \frown M(w')$.
+\end{lemma}
+
+\begin{proof}By lemma \ref{weights-nearly-equal-factors} with $k = k' = 1$.
+\end{proof}
+
+\begin{lemma} \label{weights-factors} If $w, w' : \mathbb A \to \mathbb N$ are
+weight functions and $k, k'$ are positive integers such that $k'w'(a) = kw(a)$
+for all $a$ then then $M(w) \frown M(w')$.  \end{lemma}
+
+\begin{proof} By lemma \ref{weights-nearly-equal-factors}, since $\sum_{a \in
+\mathbb A} |kw'(a) - kw(a)| = 0$.  \end{proof}
 
 \begin{corollary} \label{weights-equal} If $w : \mathbb A \to \mathbb N$ is a
 weight function then \[M(w) \frown M(w).\]  \end{corollary}
 
-\begin{proof} This is a special case of theorem \ref{weights-nearly-equal},
-where $w' = w$.  \end{proof}
-
+\begin{proof} By lemma \ref{weights-factors} with $w' = w$ and $k' = k$.
+\end{proof}
 
 \section{Consistency of the Synod algorithm}
 \label{synod-safety}
@@ -1554,11 +1581,12 @@ that $v(b_1) = v(b_2)$ as required.  \end{proof}
 ${\QI{e(b_1)} \frown \QII{e(i)}}$.  \end{lemma}
 
 \begin{proof} $\prop{i}{b_1}$ implies that $\mprom{i'}{a}{b_1}$ or
-$\fprom{i'}{a}{b_1}$ or $\bprom{i'}{a}{b_1}{b'}$ for some node $a$ and some $i'
-\le i$. Therefore $e(i) \le e(b_2) + 1 \le e(b_1) + 1 \le e(i') + 1 \le e(i) +
-1$ since $\chosen{i}{b_2}$ and $e$ is nondecreasing so that $e(i) \in \{
-e(b_1), e(b_1) + 1 \}$ and hence ${\QI{e(b_1)} \frown \QII{e(i)}}$ by invariant
-\ref{paxos-quorums}.  \end{proof}
+  $\fprom{i'}{a}{b_1}$ or $\bprom{i'}{a}{b_1}{b'}$ for some node $a$ and some
+  $i' \le i$ with $e(b_1) \le e(\mathrm{min}(i', i_\mathrm{max}))$. Therefore
+  $e(b_1) \le e(i)$ since $e$ is nondecreasing. It follows that $e(i) \le
+  e(b_2) + 1 \le e(b_1) + 1 \le e(i) + 1$ since $\chosen{i}{b_2}$ so that $e(i)
+\in \{ e(b_1), e(b_1) + 1 \}$ and hence ${\QI{e(b_1)} \frown \QII{e(i)}}$ by
+invariant \ref{paxos-quorums}.  \end{proof}
 
 \begin{theorem}\label{paxos-safety-theorem} If $\chosen{i}{b_1}$ and
 $\chosen{i}{b_2}$ then ${v_i(b_1) = v_i(b_2)}$.  \end{theorem}
