@@ -613,6 +613,12 @@ may require an unacceptably complex implementation, leading many real-world
 systems to disable pipelining by setting $\alpha = 1$, or even to disable
 reconfiguration entirely.
 
+Bortnikov et al. \cite{bortnikov} implemented a reconfigurable RSM using static
+RSMs which may pass responsibility to each other in a manner that is similar to
+that of Stoppable Paxos. They improve the performance of their system compared
+with Stoppable Paxos by allowing each RSM to speculatively start executing
+commands before the transfer of responsibility has been fully agreed.
+
 Ongaro and Ousterhout \cite{raft} developed the Raft protocol which supports an
 unbounded pipeline throughout the reconfiguration process without inconsistency
 by instead limiting the reconfigurations that can be performed. They performed
@@ -732,7 +738,9 @@ been received from a quorum of nodes.
 
 The phase-I and phase-II quorums are defined so as to always contain at least
 one node in common, but may vary depending on the ballot $b$ and the phase as
-discussed in section \ref{per-phase-quorums} below.
+discussed in section \ref{per-phase-quorums} below. In particular, the quorums
+need not all mutually intersect, as discovered independently by Howard, Malkhi
+and Spiegelman \cite{flexible-paxos}.
 
 \subsection{Implementing the value function}\label{value-function}
 
