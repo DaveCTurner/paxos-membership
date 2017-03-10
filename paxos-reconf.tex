@@ -1321,7 +1321,7 @@ If $w(a) = 0$ for all $a$ then $w$ is said to be \textit{weightless} and $M(w)
 configuration is always permitted.
 
 There is no requirement for the eras of consecutive instances to differ by at
-most one so an era may be skipped at instance $i$ by setting $e(i) = e(i-1) +
+most one so an era may be skipped at instance $i+1$ by setting $e(i+1) = e(i) +
 2$.  This recovers the ability to perform arbitrary configuration changes in a
 single step as in Stoppable Paxos. In more detail, if the system is currently
 using configuration $Q_{e}$ and an operator wishes to change to an unrelated
