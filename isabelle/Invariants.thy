@@ -28,7 +28,7 @@ lemma (in paxosL) finite_forced: "finite (forced i p S)"
 
 definition (in paxosL) "isConsistent multi_promised' promised_free' promised_prev' proposed' accepted' chosen' value_proposed'
   == paxosL prop_topology_version lt quorums_seq epochs_seq
-                                     multi_promised' promised_free' promised_prev' proposed' accepted' chosen' value_proposed' (%i. THE v. EX p'. chosen' i p' \<and> value_proposed' i p' = v)"
+                                     multi_promised' promised_free' promised_prev' proposed' accepted' chosen' value_proposed' (\<lambda>i. THE v. EX p'. chosen' i p' \<and> value_proposed' i p' = v)"
 
 lemma (in topologyL) paxos_empty:
   assumes propTv:    "propTvL lt prop_topology_version"
@@ -43,7 +43,7 @@ lemma (in topologyL) paxos_empty:
   assumes no_acc:    "\<And> i a p.    \<not>accepted       i a p"
   assumes no_chosen: "\<And> i p.      \<not>chosen         i   p"
 
-  shows "paxosL prop_topology_version lt quorums_seq epochs_seq multi_promised promised_free promised_prev proposed accepted chosen value_proposed (%i. THE v. False)"
+  shows "paxosL prop_topology_version lt quorums_seq epochs_seq multi_promised promised_free promised_prev proposed accepted chosen value_proposed (\<lambda>i. THE v. False)"
 proof (intro_locales)
   from propTv
   show "propNoL lt" "propTvL_axioms lt prop_topology_version"
@@ -52,7 +52,7 @@ proof (intro_locales)
   have i0: "\<And>i. (\<forall>j. \<not> j < i) = (i = (0 :: nat))" by auto
 
   have e0: "epochs_seq (map (\<lambda>i. THE v. False) [0..<SOME n. epochs_seq (map (\<lambda>i. THE v. False) [0..<n]) \<noteq> []]) ! 0 = epochs_seq [] ! 0"
-  proof (intro someI2 [where Q = "%n. epochs_seq (map (\<lambda>i. THE v. False) [0..<n]) ! 0 = epochs_seq [] ! 0"])
+  proof (intro someI2 [where Q = "\<lambda>n. epochs_seq (map (\<lambda>i. THE v. False) [0..<n]) ! 0 = epochs_seq [] ! 0"])
     from epoch0 show "epochs_seq (map (\<lambda>i. THE v. False) [0..<0]) \<noteq> []" by simp
     fix n
     from e.sequence_append_only [of "[]" "map (\<lambda>i. THE v. False) [0..<n]"]
@@ -71,7 +71,7 @@ proof (intro_locales)
   have f: "{(i, p). False} = {}" by auto
 
   from assms i0 e0
-  show "paxosL_axioms prop_topology_version lt quorums_seq epochs_seq multi_promised promised_free promised_prev proposed accepted chosen value_proposed (%i. THE v. False)"
+  show "paxosL_axioms prop_topology_version lt quorums_seq epochs_seq multi_promised promised_free promised_prev proposed accepted chosen value_proposed (\<lambda>i. THE v. False)"
     by (auto simp add: paxosL_axioms_def g0 f)
 qed
 
@@ -350,7 +350,7 @@ lemma (in paxosL) multiPaxos_add_accepted:
   assumes promised_prev_le: "\<And>p1 p2. promised_prev i0 a0 p1 p2 \<Longrightarrow> p1 \<preceq> p0"
   assumes multi_promised_le: "\<And>j p1. multi_promised j a0 p1 \<Longrightarrow> j \<le> i0 \<Longrightarrow> p1 \<preceq> p0"
 
-  defines "accepted' == (%i a p. (i,a,p) = (i0, a0, p0) \<or> accepted i a p)"
+  defines "accepted' == (\<lambda>i a p. (i,a,p) = (i0, a0, p0) \<or> accepted i a p)"
   shows "isConsistent multi_promised promised_free promised_prev proposed accepted' chosen value_proposed"
 using proposed_quorum promised_topology all_proposed_finite proposed_finite
   promised_prev_accepted promised_prev_prev promised_prev_max
@@ -528,7 +528,7 @@ lemma (in paxosL) multiPaxos_add_choice:
   assumes topo_version: "epoch i0 \<le> Suc (prop_topology_version p0)"
   assumes i0_max: "i0 < i_max"
 
-  defines "chosen' == (%i p. (i, p) = (i0, p0) \<or> chosen i p)"
+  defines "chosen' == (\<lambda>i p. (i, p) = (i0, p0) \<or> chosen i p)"
 
   shows "isConsistent multi_promised promised_free promised_prev proposed accepted chosen' value_proposed"
 proof -
@@ -938,7 +938,7 @@ lemma (in paxosL) multiPaxos_add_accepted_:
           "\<And>  p1.    promised_free i0 a0 p1               \<Longrightarrow> p1 \<preceq> p0"
           "\<And>  p1 p2. promised_prev i0 a0 p1 p2            \<Longrightarrow> p1 \<preceq> p0"
 
-  defines "accepted' == (%i a p. (i,a,p) = (i0, a0, p0) \<or> accepted i a p)"
+  defines "accepted' == (\<lambda>i a p. (i,a,p) = (i0, a0, p0) \<or> accepted i a p)"
   shows "isConsistent multi_promised promised_free promised_prev proposed accepted' chosen value_proposed"
 using assms
 apply (unfold accepted'_def)
@@ -951,7 +951,7 @@ lemma (in paxosL) multiPaxos_add_choice_:
           "epoch i0 \<le> Suc (prop_topology_version p0)"
           "i0 < i_max"
 
-  defines "chosen' == (%i p. (i, p) = (i0, p0) \<or> chosen i p)"
+  defines "chosen' == (\<lambda>i p. (i, p) = (i0, p0) \<or> chosen i p)"
   shows "isConsistent multi_promised promised_free promised_prev proposed accepted chosen' value_proposed"
 using assms
 apply (unfold chosen'_def)

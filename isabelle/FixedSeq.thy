@@ -66,13 +66,13 @@ locale fixedSeqL
   fixes all_values :: "nat \<Rightarrow> 'value"
     (* the first n values to be chosen defines a finite sequence *)
   fixes sequence_to :: "nat \<Rightarrow> 'x list"
-  defines "sequence_to == %n. sequence (map all_values [0..<n])"
+  defines "sequence_to == \<lambda>n. sequence (map all_values [0..<n])"
     (* the nth element in the sequence, assuming it ever gets that long  *)
   fixes element_at :: "nat \<Rightarrow> 'x"
-  defines "element_at == %i. sequence_to (SOME n. i < length (sequence_to n)) ! i"
+  defines "element_at == \<lambda>i. sequence_to (SOME n. i < length (sequence_to n)) ! i"
     (* whether the sequence ever gets long enough *)
   fixes valid_index :: "nat \<Rightarrow> bool"
-  defines "valid_index == %i. EX n. i < length (sequence_to n)"
+  defines "valid_index == \<lambda>i. EX n. i < length (sequence_to n)"
 
 lemma (in fixedSeqL)
   assumes long_enough: "i \<le> length (sequence_to m)"
@@ -119,7 +119,7 @@ qed
 lemma (in fixedSeqL)
   assumes long_enough: "i < length (sequence_to n)"
   shows element_at: "element_at i = sequence_to n ! i"
-proof (unfold element_at_def, intro someI2 [where Q = "%m. sequence_to m ! i = sequence_to n ! i"])
+proof (unfold element_at_def, intro someI2 [where Q = "\<lambda>m. sequence_to m ! i = sequence_to n ! i"])
   from long_enough show "i < length (sequence_to n)".
   hence inp1: "i+1 \<le> length (sequence_to n)" by simp
   fix m

@@ -27,10 +27,10 @@ locale paxosL
     (* Message predicates *)
     (* some proposal chosen for an instance *)
   fixes some_chosen    :: "nat \<Rightarrow> bool"
-  defines "some_chosen == (%i. EX p. chosen i p)"
+  defines "some_chosen == (\<lambda>i. EX p. chosen i p)"
     (* all previous instances chosen *)
   fixes chosen_to      :: "nat \<Rightarrow> bool"
-  defines "chosen_to == (%i. ALL j < i. some_chosen j)"
+  defines "chosen_to == (\<lambda>i. ALL j < i. some_chosen j)"
     (* first unchosen instance *)
   fixes max_chosen_to :: nat
   defines "max_chosen_to == GREATEST i. chosen_to i"
@@ -41,7 +41,7 @@ locale paxosL
   fixes e_max :: nat
   defines "e_max == length (quorums_to max_chosen_to)"
     (* the value chosen for an instance *)
-  assumes value_chosen_def: "value_chosen == (%i. THE v. EX p'. chosen i p' \<and> value_proposed i p' = v)"
+  assumes value_chosen_def: "value_chosen == (\<lambda>i. THE v. EX p'. chosen i p' \<and> value_proposed i p' = v)"
     (* topology is well-defined for at least the next slot to be chosen *)
   assumes some_chosen_i_max: "some_chosen i \<Longrightarrow> i < i_max"
   assumes i_max_positive:    "0 < i_max"
@@ -216,7 +216,7 @@ qed
 lemma (in paxosL)
   shows proposed_finite: "finite {p. proposed i p}"
 proof -
-  have "{p. proposed i p} \<subseteq> snd ` ((%p. (i,p)) ` {p. proposed i p})" by (simp add: image_Collect)
+  have "{p. proposed i p} \<subseteq> snd ` ((\<lambda>p. (i,p)) ` {p. proposed i p})" by (simp add: image_Collect)
   also have "... \<subseteq> snd ` {(i,p). proposed i p}" by auto
   finally show "finite {p. proposed i p}"
     by (intro finite_subset [OF _ finite_imageI [OF all_proposed_finite]])
@@ -225,9 +225,9 @@ qed
 lemma (in paxosL)
   assumes chosen: "some_chosen i"
   shows multi_instances: "synodL lt
-    (%p S. read_quorum  (prop_topology_version p) S)
-    (%p S. write_quorum (epoch i)                 S)
-    (%a p. (EX j. j \<le> i \<and> multi_promised j a p) \<or> promised_free i a p)
+    (\<lambda>p S. read_quorum  (prop_topology_version p) S)
+    (\<lambda>p S. write_quorum (epoch i)                 S)
+    (\<lambda>a p. (EX j. j \<le> i \<and> multi_promised j a p) \<or> promised_free i a p)
     (promised_prev i) (proposed i) (accepted i) (chosen i)
     (value_proposed i)"
   apply unfold_locales

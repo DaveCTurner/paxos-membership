@@ -157,7 +157,7 @@ lemma (in synodL)
     \<lbrakk> quorum_proposer p1 SP; quorum_learner p0 SL; proposed p1; p0 \<prec> p1 \<rbrakk>
     \<Longrightarrow> SP \<inter> SL \<noteq> {}"
   shows synod_add_chosen: "synodL lt quorum_proposer quorum_learner promised_free promised_prev
-  proposed accepted (%p. p = p0 \<or> chosen p) value_proposed"
+  proposed accepted (\<lambda>p. p = p0 \<or> chosen p) value_proposed"
   using accepts_proposed chosen_quorum promised_free
     promised_prev_accepted promised_prev_max promised_prev_prev
     proposed_quorum proposed_finite quorum_inter

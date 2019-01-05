@@ -36,7 +36,7 @@ proof -
 qed
 
 lemma weight_mul:
-  shows "weight (%a. k * f a) S = k * weight f S"
+  shows "weight (\<lambda>a. k * f a) S = k * weight f S"
 proof (cases "k = 0")
   case True
   thus ?thesis by auto
@@ -50,13 +50,13 @@ next
     hence p: "weight f S = 0" by auto
     from False nz_eq
     have "\<not> finite { a \<in> S. k * f a \<noteq> 0 }" by simp
-    hence q: "weight (%a. k * f a) S = 0" by simp
+    hence q: "weight (\<lambda>a. k * f a) S = 0" by simp
     with p show ?thesis by simp
   next
     case True
     with nz_eq have True': "finite { a \<in> S. k * f a \<noteq> 0 }" by simp
     from nz_eq
-    have "weight (\<lambda>a. k * f a) S = sum ((%a. k * a) o f) { a \<in> S. f a \<noteq> 0 }" by simp
+    have "weight (\<lambda>a. k * f a) S = sum ((\<lambda>a. k * a) o f) { a \<in> S. f a \<noteq> 0 }" by simp
     also have "... = k * sum f { a \<in> S. f a \<noteq> 0 }"
       by  (intro sum_comp_morphism, simp_all add: distrib_left)
     also have "... = k * weight f S" by simp
@@ -93,8 +93,8 @@ lemma
   shows weighted_majority_intersects_asym: "S1 \<inter> S2 \<noteq> ({} :: 'acc set)"
 proof -
 
-  define kf1 where "kf1 == %a. k1 * f1 a"
-  define kf2 where "kf2 == %a. k2 * f2 a"
+  define kf1 where "kf1 == \<lambda>a. k1 * f1 a"
+  define kf2 where "kf2 == \<lambda>a. k2 * f2 a"
 
   have weight_kf1: "\<And>S. weight kf1 S = k1 * weight f1 S" by (unfold kf1_def, intro weight_mul)
   have weight_kf2: "\<And>S. weight kf2 S = k2 * weight f2 S" by (unfold kf2_def, intro weight_mul)
@@ -134,13 +134,13 @@ proof -
     also from kS2 have "... = kf2 a0 + weight kf2 (S - {a0})"
       by (intro weight_insert, auto)
     also have "... = kf2 a0 + weight kf1 (S - {a0})"
-      by (intro cong [OF refl, where f = "%n. kf2 a0 + n"] weight_eq, simp)
+      by (intro cong [OF refl, where f = "\<lambda>n. kf2 a0 + n"] weight_eq, simp)
     also have "... = (kf1 a0 + d) + weight kf1 (S - {a0})" by (simp add: kfa0)
     also have "... = (kf1 a0 + weight kf1 (S - {a0})) + d" by simp
     also from kS1 have "... = weight kf1 (insert a0 (S - {a0})) + d"
-      by (intro cong [OF refl, where f = "%n. n + d"] sym [OF weight_insert], auto)
+      by (intro cong [OF refl, where f = "\<lambda>n. n + d"] sym [OF weight_insert], auto)
     also from a0 have "... = weight kf1 S + d"
-      by (intro cong [OF refl, where f = "%n. n + d"] cong [OF refl, where f = "weight kf1"], auto)
+      by (intro cong [OF refl, where f = "\<lambda>n. n + d"] cong [OF refl, where f = "weight kf1"], auto)
     finally show "?thesis S" .
   qed
 
@@ -195,23 +195,23 @@ lemma
   assumes S1: "isWeightedMajority f1 S1"
   assumes S2: "isWeightedMajority f2 S2"
   assumes k1: "k1 \<noteq> 0" and k2: "k2 \<noteq> 0"
-  assumes similar: "weight (%a. abs_diff (k1 * f1 a) (k2 * f2 a)) UNIV \<le> 1"
+  assumes similar: "weight (\<lambda>a. abs_diff (k1 * f1 a) (k2 * f2 a)) UNIV \<le> 1"
   shows weighted_majority_intersects: "S1 \<inter> S2 \<noteq> ({} :: 'acc set)"
 proof -
-  define kf1 where "kf1 == %a. k1 * f1 a"
-  define kf2 where "kf2 == %a. k2 * f2 a"
+  define kf1 where "kf1 == \<lambda>a. k1 * f1 a"
+  define kf2 where "kf2 == \<lambda>a. k2 * f2 a"
 
   from k1 have kf1z: "\<And>a. (kf1 a = 0) = (f1 a = 0)" by (simp add: kf1_def)
   from k2 have kf2z: "\<And>a. (kf2 a = 0) = (f2 a = 0)" by (simp add: kf2_def)
 
-  from similar have ksim: "weight (%a. abs_diff (kf1 a) (kf2 a)) UNIV \<le> 1"
+  from similar have ksim: "weight (\<lambda>a. abs_diff (kf1 a) (kf2 a)) UNIV \<le> 1"
     by (simp add: kf1_def kf2_def)
 
   obtain a0
     where kfa0: "abs_diff (kf1 a0) (kf2 a0) \<le> 1"
       and kf_eq: "\<And>a. a \<noteq> a0 \<Longrightarrow> kf1 a = kf2 a"
   proof -
-    define df where "df == %a. abs_diff (kf1 a) (kf2 a)"
+    define df where "df == \<lambda>a. abs_diff (kf1 a) (kf2 a)"
     define deviations where "deviations == {a. df a \<noteq> 0}"
 
     have deviations_subset: "deviations \<subseteq> {a . kf1 a \<noteq> 0} \<union> {a. kf2 a \<noteq> 0}"
@@ -315,8 +315,8 @@ proof (intro ext iffI)
     have d21: "\<And>T. d2 * sum f2 T = d1 * sum f1 T"
     proof -
       fix T
-      have "d2 * sum f2 T = sum (%n. d2 * f2 n) T" by (simp add: sum_distrib_left)
-      also have "... = sum (%n. d1 * f1 n) T"
+      have "d2 * sum f2 T = sum (\<lambda>n. d2 * f2 n) T" by (simp add: sum_distrib_left)
+      also have "... = sum (\<lambda>n. d1 * f1 n) T"
       proof (intro sum.cong refl)
         fix a
         have "d1 * f1 a = f1 a * d1" by simp
