@@ -4,9 +4,9 @@ begin
 
 locale synodL
   = propNoL lt
-  for lt :: "'pid \<Rightarrow> 'pid \<Rightarrow> bool" (infixl "\<prec>" 50) 
-  +
-
+  for lt :: "'pid \<Rightarrow> 'pid \<Rightarrow> bool" (infixl "\<prec>" 50)
+    +
+    (* predicates indicating the messages that have been sent *)
   fixes quorum_proposer :: "'pid \<Rightarrow> 'aid set \<Rightarrow> bool"
   fixes quorum_learner  :: "'pid \<Rightarrow> 'aid set \<Rightarrow> bool"
   fixes promised_free :: "'aid \<Rightarrow> 'pid \<Rightarrow> bool"
@@ -15,39 +15,40 @@ locale synodL
   fixes accepted :: "'aid \<Rightarrow> 'pid \<Rightarrow> bool"
   fixes chosen :: "'pid \<Rightarrow> bool"
   fixes value_proposed :: "'pid \<Rightarrow> 'value"
-
+    (* generalising promises *)
   fixes promised :: "'aid \<Rightarrow> 'pid \<Rightarrow> bool"
   defines "promised a p == promised_free a p \<or> (\<exists> p1. promised_prev a p p1)"
-
+    (* proposals to which bound promises are bound *)
   fixes forced :: "'pid \<Rightarrow> 'aid set \<Rightarrow> 'pid set"
   defines "forced p S == { p1. \<exists> a \<in> S. promised_prev a p p1 }"
-
+    (* invariants: *)
+    (* quorums intersect *)
   assumes quorum_inter:
-   "\<lbrakk> quorum_proposer p1 SP; quorum_learner p0 SL; chosen p0; proposed p1; p0 \<prec> p1 \<rbrakk>
+    "\<lbrakk> quorum_proposer p1 SP; quorum_learner p0 SL; chosen p0; proposed p1; p0 \<prec> p1 \<rbrakk>
     \<Longrightarrow> SP \<inter> SL \<noteq> {}"
-
+    (* quorums are nonempty *)
   assumes quorum_nonempty: "quorum_learner p SL \<Longrightarrow> SL \<noteq> {}"
-
+    (* proposal are only made after a quorum of promises *)
   assumes proposed_quorum:
     "proposed p \<Longrightarrow> EX S. quorum_proposer p S
       \<and> (\<forall> a \<in> S. promised a p)
       \<and> (forced p S = {} \<or> value_proposed p = value_proposed (max_of (forced p S)))"
-
+    (* there are only ever finitely-many proposals *)
   assumes proposed_finite: "finite {p. proposed p}"
-
+    (* free promises indicate no acceptances *)
   assumes promised_free:
     "\<lbrakk> promised_free a p0; accepted a p1 \<rbrakk> \<Longrightarrow> p0 \<preceq> p1"
-
+    (* bound promises bind to the previous acceptance *)
   assumes promised_prev_accepted:
     "promised_prev a p0 p1 \<Longrightarrow> accepted a p1"
   assumes promised_prev_prev:
     "promised_prev a p0 p1 \<Longrightarrow> p1 \<prec> p0"
   assumes promised_prev_max:
     "\<lbrakk> promised_prev a p0 p1; accepted a p2; p2 \<prec> p0 \<rbrakk> \<Longrightarrow> p2 \<preceq> p1"
-
+    (* a proposal can only be accepted once it has been proposed *)
   assumes accepts_proposed:
     "accepted a p \<Longrightarrow> proposed p"
-
+    (* a proposal can only be chosen once a quorum have accepted it *)
   assumes chosen_quorum:
     "chosen p \<Longrightarrow> EX S. quorum_learner p S \<and> (ALL a:S. accepted a p)"
 
@@ -74,7 +75,7 @@ lemma (in synodL) finite_forced: "finite (forced p S)"
 lemma (in synodL) p2b:
   assumes chosen: "chosen p0" and proposed_p1: "proposed p1" and p01: "p0 \<prec> p1"
   shows "value_proposed p0 = value_proposed p1"
-using wf proposed_p1 p01
+  using wf proposed_p1 p01
 proof (induct p1)
   case (less p2)
   hence p02: "p0 \<prec> p2" and proposed_p2: "proposed p2"
@@ -86,7 +87,7 @@ proof (induct p1)
 
   from chosen_quorum [OF chosen] obtain SL
     where SC_quorum: "quorum_learner p0 SL"
-    and SC_accepts: "\<And>a. \<lbrakk> a \<in> SL \<rbrakk> \<Longrightarrow> accepted a p0" by auto
+      and SC_accepts: "\<And>a. \<lbrakk> a \<in> SL \<rbrakk> \<Longrightarrow> accepted a p0" by auto
 
   from SP_quorum SC_quorum quorum_inter chosen proposed_p2 p02
   obtain a where aSP: "a \<in> SP" and aSL: "a \<in> SL"
@@ -157,12 +158,12 @@ lemma (in synodL)
     \<Longrightarrow> SP \<inter> SL \<noteq> {}"
   shows synod_add_chosen: "synodL lt quorum_proposer quorum_learner promised_free promised_prev
   proposed accepted (%p. p = p0 \<or> chosen p) value_proposed"
-using accepts_proposed chosen_quorum promised_free
-  promised_prev_accepted promised_prev_max promised_prev_prev 
-  proposed_quorum proposed_finite quorum_inter 
-  quorum_nonempty assms
-apply unfold_locales
-apply (fold promised_def forced_def max_of_def)
+  using accepts_proposed chosen_quorum promised_free
+    promised_prev_accepted promised_prev_max promised_prev_prev
+    proposed_quorum proposed_finite quorum_inter
+    quorum_nonempty assms
+  apply unfold_locales
+  apply (fold promised_def forced_def max_of_def)
 proof -
   fix SP SL p0a p1
   assume "quorum_proposer p1 SP" "quorum_learner p0a SL" "proposed p1" "p0a \<prec> p1" "p0a = p0 \<or> chosen p0a"
