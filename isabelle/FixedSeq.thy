@@ -49,7 +49,7 @@ lemma (in appendOnlyL) append_only_initial:
 proof -
   from ex1 obtain vs1' where vs1: "vs1 = vs0 @ vs1'" by auto
   from ex2 obtain vs2' where vs2: "vs2 = vs0 @ vs2'" by auto
-  
+
   have "take n (sequence vs1) = take n (sequence vs0)"
     by (unfold vs1, simp add: append_only_take [OF n])
   also have "... = take n (sequence vs2)"
@@ -60,23 +60,23 @@ qed
 locale fixedSeqL
   = appendOnlyL sequence property
   for sequence :: "'value list \<Rightarrow> 'x list"
-  and property :: "'x \<Rightarrow> 'x \<Rightarrow> bool"
-  +
-
+    and property :: "'x \<Rightarrow> 'x \<Rightarrow> bool"
+    +
+    (* the infinite list of all values that will ever be chosen *)
   fixes all_values :: "nat \<Rightarrow> 'value"
-
+    (* the first n values to be chosen defines a finite sequence *)
   fixes sequence_to :: "nat \<Rightarrow> 'x list"
   defines "sequence_to == %n. sequence (map all_values [0..<n])"
-
+    (* the nth element in the sequence, assuming it ever gets that long  *)
   fixes element_at :: "nat \<Rightarrow> 'x"
   defines "element_at == %i. sequence_to (SOME n. i < length (sequence_to n)) ! i"
-
+    (* whether the sequence ever gets long enough *)
   fixes valid_index :: "nat \<Rightarrow> bool"
   defines "valid_index == %i. EX n. i < length (sequence_to n)"
 
 lemma (in fixedSeqL)
   assumes long_enough: "i \<le> length (sequence_to m)"
-  and mn: "m \<le> n"
+    and mn: "m \<le> n"
   shows take_le_sequence_to: "take i (sequence_to m) = take i (sequence_to n)"
 proof -
   from mn
@@ -86,7 +86,7 @@ proof -
     hence "m \<le> n \<or> m = Suc n" by auto
     with Suc.hyps show ?case by auto
   qed simp
-  
+
   have "take i (sequence_to n) = take i (sequence (map all_values [0..<m] @ map all_values [m..<n]))"
     by (simp add: sequence_to_def n_seq)
   also from long_enough have "... = take i (sequence_to m)"
@@ -152,7 +152,7 @@ proof -
 
   show ?thesis
   proof (intro property_reflexive)
-  
+
     have "element_at i = sequence_to n ! i"
       by (intro element_at long_enough)
     also from long_enough have "... \<in> set (sequence (map all_values [0..<n]))"
