@@ -69,7 +69,7 @@ lemma weight_mono:
   assumes fin2: "finite {a. f2 a \<noteq> 0}"
   assumes le: "\<And>a. a \<in> S \<Longrightarrow> f1 a \<le> f2 a"
   shows "weight f1 S \<le> weight f2 S"
-proof - 
+proof -
   have "weight f1 S = sum f1 { a \<in> S. f1 a \<noteq> 0}" by simp
   also from fin1 fin2 have "... \<le> sum f1 { a \<in> S. f1 a \<noteq> 0 \<or> f2 a \<noteq> 0 }"
     by (intro sum_mono2, auto)
@@ -162,8 +162,8 @@ proof -
   qed
 
   have union_inter_eq:
-      "{ a \<in> S1 \<union> S2. kf1 a \<noteq> 0 } = { a \<in> S1. kf1 a \<noteq> 0 } \<union> { a \<in> S2. kf1 a \<noteq> 0 }"
-      "{ a \<in> S1 \<inter> S2. kf1 a \<noteq> 0 } = { a \<in> S1. kf1 a \<noteq> 0 } \<inter> { a \<in> S2. kf1 a \<noteq> 0 }"
+    "{ a \<in> S1 \<union> S2. kf1 a \<noteq> 0 } = { a \<in> S1. kf1 a \<noteq> 0 } \<union> { a \<in> S2. kf1 a \<noteq> 0 }"
+    "{ a \<in> S1 \<inter> S2. kf1 a \<noteq> 0 } = { a \<in> S1. kf1 a \<noteq> 0 } \<inter> { a \<in> S2. kf1 a \<noteq> 0 }"
     by auto
 
   have le_plus_eq: "\<And>a b c :: nat. a \<le> b \<Longrightarrow> 2 * a + c \<le> 2 * b + c" by auto
@@ -205,15 +205,15 @@ proof -
   from k2 have kf2z: "\<And>a. (kf2 a = 0) = (f2 a = 0)" by (simp add: kf2_def)
 
   from similar have ksim: "weight (%a. abs_diff (kf1 a) (kf2 a)) UNIV \<le> 1"
-  by (simp add: kf1_def kf2_def)
+    by (simp add: kf1_def kf2_def)
 
   obtain a0
     where kfa0: "abs_diff (kf1 a0) (kf2 a0) \<le> 1"
-    and   kf_eq: "\<And>a. a \<noteq> a0 \<Longrightarrow> kf1 a = kf2 a"
+      and kf_eq: "\<And>a. a \<noteq> a0 \<Longrightarrow> kf1 a = kf2 a"
   proof -
     define df where "df == %a. abs_diff (kf1 a) (kf2 a)"
     define deviations where "deviations == {a. df a \<noteq> 0}"
-    
+
     have deviations_subset: "deviations \<subseteq> {a . kf1 a \<noteq> 0} \<union> {a. kf2 a \<noteq> 0}"
     proof (intro subsetI)
       fix a assume a: "a \<in> deviations"
@@ -235,7 +235,7 @@ proof -
     proof (elim disjE)
       assume "card deviations = 0"
       with finite_deviations have no_deviations: "deviations = {}" by simp
-      
+
       fix a
       show thesis
       proof (intro that)
@@ -243,7 +243,7 @@ proof -
           by (simp add: deviations_def df_def)
         fix a'
         from no_deviations show "kf1 a' = kf2 a'"
-        apply (simp add: deviations_def df_def)
+          apply (simp add: deviations_def df_def)
           by (metis less_not_refl linorder_cases zero_less_diff)
       qed
     next
@@ -251,7 +251,7 @@ proof -
       then obtain a where a: "a \<in> deviations" by (cases "deviations = {}", auto)
       have deviations: "deviations = {a}"
         by (intro sym [OF card_seteq] finite_deviations, auto simp add: c1 a)
-      
+
       show thesis
       proof (intro that)
         from ksim deviations
@@ -262,7 +262,7 @@ proof -
         assume "a' \<noteq> a"
         hence "a' \<notin> deviations" by (simp add: deviations)
         thus "kf1 a' = kf2 a'"
-        apply (simp add: deviations_def df_def)
+          apply (simp add: deviations_def df_def)
           by (metis less_not_refl linorder_cases zero_less_diff)
       qed
     qed
@@ -306,7 +306,7 @@ proof (intro ext iffI)
 
     hence s0: "\<And> T. {a \<in> T. f2 a \<noteq> 0} = {a \<in> T. f1 a \<noteq> 0}"
       by (metis le0 mult_is_0 not_le)
-    
+
     hence s1: "{a. f2 a \<noteq> 0} = {a. f1 a \<noteq> 0}" by auto
 
     have d2I: "\<And>n m. d2 * n < d2 * (2 * m) \<Longrightarrow> n < 2 * m"
