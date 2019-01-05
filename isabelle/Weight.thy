@@ -55,10 +55,6 @@ next
   next
     case True
     with nz_eq have True': "finite { a \<in> S. k * f a \<noteq> 0 }" by simp
-    note sum_image_gen [OF True]
-
-    note sum_comp_morphism
-
     from nz_eq
     have "weight (\<lambda>a. k * f a) S = sum ((%a. k * a) o f) { a \<in> S. f a \<noteq> 0 }" by simp
     also have "... = k * sum f { a \<in> S. f a \<noteq> 0 }"

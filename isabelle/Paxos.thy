@@ -141,7 +141,7 @@ lemma (in paxosL)
     and instance_with_epoch_lt: "instance_with_epoch i < i_max"
 proof -
   have "(GREATEST j. j \<le> i \<and> j < i_max) \<le> i \<and> (GREATEST j. j \<le> i \<and> j < i_max) < i_max"
-  proof (intro GreatestI, auto)
+  proof (intro GreatestI_nat, auto)
     show "0 < i_max" by (intro i_max_positive chosen_to_initial)
   qed
   thus "instance_with_epoch i \<le> i" "instance_with_epoch i < i_max"

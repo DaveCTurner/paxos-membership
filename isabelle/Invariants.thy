@@ -304,8 +304,7 @@ lemma Greatest_lt:
   assumes ex: "P n0"
   shows "(GREATEST n. P n) < (m :: nat)"
 proof -
-  from lt have "P (GREATEST n. P n)"
-    by (intro GreatestI [of P, OF ex] allI impI)
+  have "P (GREATEST n. P n)" using lt GreatestI_nat ex nat_less_le by blast
   from lt [OF this] show ?thesis .
 qed
 
@@ -483,7 +482,7 @@ proof -
     from not_proposed
     have v': "isConsistent multi_promised promised_free promised_prev proposed accepted chosen value_proposed'"
       by (intro multiPaxos_change_value_proposed, auto simp add: value_proposed'_def)
-    thus "paxosL prop_topology_version op \<prec> quorums_seq epochs_seq multi_promised promised_free promised_prev proposed accepted chosen value_proposed' value_chosen"
+    thus "paxosL prop_topology_version (\<prec>) quorums_seq epochs_seq multi_promised promised_free promised_prev proposed accepted chosen value_proposed' value_chosen"
       by (simp add: isConsistent_def value_chosen_def value_chosen_eq)
   qed (auto simp add: read_quorum_def value_proposed'_def)
 qed
@@ -508,15 +507,15 @@ proof -
   hence not_chosen: "\<not> some_chosen im" by (auto simp add: some_chosen_def)
 
   show ?thesis
-  proof (unfold max_chosen_to_def, intro GreatestI impI)
+  proof (unfold max_chosen_to_def, intro GreatestI_nat impI)
     from chosen_to_initial show "chosen_to 0" .
-    show "\<forall>i. chosen_to i \<longrightarrow> i < Suc im"
+    show "\<forall>i. chosen_to i \<longrightarrow> i \<le> im"
     proof (intro allI impI)
       fix i assume "chosen_to i"
       hence sc: "\<And>j. j < i \<Longrightarrow> some_chosen j" by (simp add: chosen_to_def)
-      show "i < Suc im"
+      show "i \<le> im"
       proof (rule ccontr)
-        assume "\<not>i < Suc im" hence "im < i" by auto
+        assume "\<not>i \<le> im" hence "im < i" by auto
         with sc not_chosen show False by simp
       qed
     qed
@@ -534,24 +533,24 @@ lemma (in paxosL) multiPaxos_add_choice:
   shows "isConsistent multi_promised promised_free promised_prev proposed accepted chosen' value_proposed"
 proof -
 
-  def value_chosen' == "%i. THE v. \<exists>p'. chosen' i p' \<and> value_proposed i p' = v"
+  define value_chosen'        where "value_chosen' \<equiv> \<lambda>i. THE v. \<exists>p'. chosen' i p' \<and> value_proposed i p' = v"
 
-  def epochs_to'  == "%n. epochs_seq   (map value_chosen' [0..<n])"
-  def quorums_to' == "%n. quorums_seq  (map value_chosen' [0..<n])"
+  define epochs_to'           where "epochs_to'  \<equiv> \<lambda>n. epochs_seq   (map value_chosen' [0..<n])"
+  define quorums_to'          where "quorums_to' \<equiv> \<lambda>n. quorums_seq  (map value_chosen' [0..<n])"
 
-  def epoch'      == "%i. epochs_to'  (SOME n. i < length (epochs_to' n))  ! i"
-  def quorum'     == "%i. quorums_to' (SOME n. i < length (quorums_to' n)) ! i"
+  define epoch'               where "epoch'      \<equiv> \<lambda>i. epochs_to'  (SOME n. i < length (epochs_to' n))  ! i"
+  define quorum'              where "quorum'     \<equiv> \<lambda>i. quorums_to' (SOME n. i < length (quorums_to' n)) ! i"
 
-  def read_quorum'  == "%e S. S \<noteq> {} \<and> fst (quorum' e) S"
-  def write_quorum' == "%e S. S \<noteq> {} \<and> snd (quorum' e) S"
+  define read_quorum'         where "read_quorum'  \<equiv> \<lambda>e S. S \<noteq> {} \<and> fst (quorum' e) S"
+  define write_quorum'        where "write_quorum' \<equiv> \<lambda>e S. S \<noteq> {} \<and> snd (quorum' e) S"
 
-  def some_chosen'   == "%i. \<exists>p. chosen' i p"
-  def chosen_to'     == "%i. \<forall>j<i. some_chosen' j"
-  def max_chosen_to' == "GREATEST i. chosen_to' i"
+  define some_chosen'         where "some_chosen'   \<equiv> \<lambda>i. \<exists>p. chosen' i p"
+  define chosen_to'           where "chosen_to'     \<equiv> \<lambda>i. \<forall>j<i. some_chosen' j"
+  define max_chosen_to'       where "max_chosen_to' \<equiv> GREATEST i. chosen_to' i"
 
-  def i_max' == "length (epochs_to' max_chosen_to')"
-  def e_max' == "length (quorums_to' max_chosen_to')"
-  def instance_with_epoch' == "%i. GREATEST j. j \<le> i \<and> j < i_max'"
+  define i_max'               where "i_max' \<equiv> length (epochs_to' max_chosen_to')"
+  define e_max'               where "e_max' \<equiv> length (quorums_to' max_chosen_to')"
+  define instance_with_epoch' where "instance_with_epoch' \<equiv> \<lambda>i. GREATEST j. j \<le> i \<and> j < i_max'"
 
   have s: "\<And>n. epochs_to'   n = epochs_seq  (map value_chosen' [0..<n])"
           "\<And>n. quorums_to'  n = quorums_seq (map value_chosen' [0..<n])"
@@ -664,19 +663,19 @@ proof -
       by (auto simp add: chosen_to_def chosen_to'_def some_chosen_def some_chosen'_def chosen'_def)
   
     show ?thesis
-    proof (unfold max_chosen_to_def max_chosen_to'_def, intro Greatest_le chosen_to_implies GreatestI impI)
+    proof (unfold max_chosen_to_def max_chosen_to'_def, intro Greatest_le_nat chosen_to_implies GreatestI_nat impI)
       from chosen_to_initial show "chosen_to 0" .
-      show "\<forall>i. chosen_to' i \<longrightarrow> i < Suc im"
+      show "\<forall>i. chosen_to' i \<longrightarrow> i \<le> im"
       proof (intro allI impI)
         fix i assume "chosen_to' i"
         hence sc: "\<And>j. j < i \<Longrightarrow> some_chosen' j" by (simp add: chosen_to'_def)
-        show "i < Suc im"
+        show "i \<le> im"
         proof (rule ccontr)
-          assume "\<not>i < Suc im" hence "im < i" by auto
+          assume "\<not>i \<le> im" hence "im < i" by auto
           with sc not_chosen show False by simp
         qed
       qed
-      with chosen_to_implies show "\<forall>i. chosen_to i \<longrightarrow> i < Suc im" by auto
+      with chosen_to_implies show "\<forall>i. chosen_to i \<longrightarrow> i \<le> im" by auto
     qed
   qed
 
@@ -835,14 +834,13 @@ proof -
     also have "... \<le> epoch' (instance_with_epoch' i)"
     proof (intro epoch'_mono)
       show "instance_with_epoch i \<le> instance_with_epoch' i"
-      proof (unfold instance_with_epoch'_def, intro Greatest_le allI impI conjI instance_with_epoch_le)
+      proof (unfold instance_with_epoch'_def, intro Greatest_le_nat allI impI conjI instance_with_epoch_le)
         note instance_with_epoch_lt also note i_max_le
         finally show "instance_with_epoch i < i_max'" .
       qed auto
 
-      note GreatestI instance_with_epoch'_def
       have "instance_with_epoch' i \<le> i \<and> instance_with_epoch' i < i_max'"
-      proof (unfold instance_with_epoch'_def, intro GreatestI conjI)
+      proof (unfold instance_with_epoch'_def, intro GreatestI_nat conjI)
         note i_max_positive also note i_max_le finally show "0 < i_max'" .
       qed auto
       thus "instance_with_epoch' i < i_max'" by simp
