@@ -30,7 +30,7 @@ locale synodL
   assumes quorum_nonempty: "quorum_learner p SL \<Longrightarrow> SL \<noteq> {}"
     (* proposal are only made after a quorum of promises *)
   assumes proposed_quorum:
-    "proposed p \<Longrightarrow> EX S. quorum_proposer p S
+    "proposed p \<Longrightarrow> \<exists> S. quorum_proposer p S
       \<and> (\<forall> a \<in> S. promised a p)
       \<and> (forced p S = {} \<or> value_proposed p = value_proposed (max_of (forced p S)))"
     (* there are only ever finitely-many proposals *)
@@ -50,7 +50,7 @@ locale synodL
     "accepted a p \<Longrightarrow> proposed p"
     (* a proposal can only be chosen once a quorum have accepted it *)
   assumes chosen_quorum:
-    "chosen p \<Longrightarrow> EX S. quorum_learner p S \<and> (ALL a:S. accepted a p)"
+    "chosen p \<Longrightarrow> \<exists> S. quorum_learner p S \<and> (ALL a:S. accepted a p)"
 
 lemma (in synodL) promised_some_none:
   assumes "promised_prev a p0 p1" "promised_free a p0"

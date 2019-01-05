@@ -43,8 +43,8 @@ qed
 
 lemma (in appendOnlyL) append_only_initial:
   assumes n: "n \<le> length (sequence vs0)"
-  assumes ex1: "EX vs_new. vs1 = vs0 @ vs_new"
-  assumes ex2: "EX vs_new. vs2 = vs0 @ vs_new"
+  assumes ex1: "\<exists> vs_new. vs1 = vs0 @ vs_new"
+  assumes ex2: "\<exists> vs_new. vs2 = vs0 @ vs_new"
   shows "take n (sequence vs1) = take n (sequence vs2)"
 proof -
   from ex1 obtain vs1' where vs1: "vs1 = vs0 @ vs1'" by auto
@@ -72,7 +72,7 @@ locale fixedSeqL
   defines "element_at == \<lambda>i. sequence_to (SOME n. i < length (sequence_to n)) ! i"
     (* whether the sequence ever gets long enough *)
   fixes valid_index :: "nat \<Rightarrow> bool"
-  defines "valid_index == \<lambda>i. EX n. i < length (sequence_to n)"
+  defines "valid_index == \<lambda>i. \<exists> n. i < length (sequence_to n)"
 
 lemma (in fixedSeqL)
   assumes long_enough: "i \<le> length (sequence_to m)"

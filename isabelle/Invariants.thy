@@ -28,7 +28,7 @@ lemma (in paxosL) finite_forced: "finite (forced i p S)"
 
 definition (in paxosL) "isConsistent multi_promised' promised_free' promised_prev' proposed' accepted' chosen' value_proposed'
   == paxosL prop_topology_version lt quorums_seq epochs_seq
-                                     multi_promised' promised_free' promised_prev' proposed' accepted' chosen' value_proposed' (\<lambda>i. THE v. EX p'. chosen' i p' \<and> value_proposed' i p' = v)"
+                                     multi_promised' promised_free' promised_prev' proposed' accepted' chosen' value_proposed' (\<lambda>i. THE v. \<exists> p'. chosen' i p' \<and> value_proposed' i p' = v)"
 
 lemma (in topologyL) paxos_empty:
   assumes propTv:    "propTvL lt prop_topology_version"
@@ -111,7 +111,7 @@ lemma (in paxosL) multiPaxos_intro_simple:
     "\<And> i p a. accepted' i a p \<Longrightarrow> proposed' i p"
 
   assumes chosen_quorum:
-    "\<And> i p. chosen i p \<Longrightarrow> EX S. write_quorum (epoch i) S \<and> (ALL a:S. accepted' i a p)"
+    "\<And> i p. chosen i p \<Longrightarrow> \<exists> S. write_quorum (epoch i) S \<and> (ALL a:S. accepted' i a p)"
 
   shows "isConsistent
   multi_promised' promised_free' promised_prev' proposed' accepted' chosen value_proposed"

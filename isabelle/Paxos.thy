@@ -27,7 +27,7 @@ locale paxosL
     (* Message predicates *)
     (* some proposal chosen for an instance *)
   fixes some_chosen    :: "nat \<Rightarrow> bool"
-  defines "some_chosen == (\<lambda>i. EX p. chosen i p)"
+  defines "some_chosen == (\<lambda>i. \<exists> p. chosen i p)"
     (* all previous instances chosen *)
   fixes chosen_to      :: "nat \<Rightarrow> bool"
   defines "chosen_to == (\<lambda>i. ALL j < i. some_chosen j)"
@@ -41,7 +41,7 @@ locale paxosL
   fixes e_max :: nat
   defines "e_max == length (quorums_to max_chosen_to)"
     (* the value chosen for an instance *)
-  assumes value_chosen_def: "value_chosen == (\<lambda>i. THE v. EX p'. chosen i p' \<and> value_proposed i p' = v)"
+  assumes value_chosen_def: "value_chosen == (\<lambda>i. THE v. \<exists> p'. chosen i p' \<and> value_proposed i p' = v)"
     (* topology is well-defined for at least the next slot to be chosen *)
   assumes some_chosen_i_max: "some_chosen i \<Longrightarrow> i < i_max"
   assumes i_max_positive:    "0 < i_max"
@@ -84,7 +84,7 @@ locale paxosL
     "accepted i a p \<Longrightarrow> proposed i p"
     (* a proposal can only be chosen after a quorum of acceptance *)
   assumes chosen_quorum:
-    "chosen i p \<Longrightarrow> EX S. write_quorum (epoch i) S \<and> (ALL a:S. accepted i a p)"
+    "chosen i p \<Longrightarrow> \<exists> S. write_quorum (epoch i) S \<and> (ALL a:S. accepted i a p)"
     (* a proposal can only be chosen if its topology is well-defined *)
   assumes chosen_topology:
     "chosen i p \<Longrightarrow> epoch i \<le> Suc (prop_topology_version p)"
@@ -227,7 +227,7 @@ lemma (in paxosL)
   shows multi_instances: "synodL lt
     (\<lambda>p S. read_quorum  (prop_topology_version p) S)
     (\<lambda>p S. write_quorum (epoch i)                 S)
-    (\<lambda>a p. (EX j. j \<le> i \<and> multi_promised j a p) \<or> promised_free i a p)
+    (\<lambda>a p. (\<exists> j. j \<le> i \<and> multi_promised j a p) \<or> promised_free i a p)
     (promised_prev i) (proposed i) (accepted i) (chosen i)
     (value_proposed i)"
   apply unfold_locales
