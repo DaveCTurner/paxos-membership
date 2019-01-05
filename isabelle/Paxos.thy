@@ -30,7 +30,7 @@ locale paxosL
   defines "some_chosen == (\<lambda>i. \<exists> p. chosen i p)"
     (* all previous instances chosen *)
   fixes chosen_to      :: "nat \<Rightarrow> bool"
-  defines "chosen_to == (\<lambda>i. ALL j < i. some_chosen j)"
+  defines "chosen_to == (\<lambda>i. \<forall> j < i. some_chosen j)"
     (* first unchosen instance *)
   fixes max_chosen_to :: nat
   defines "max_chosen_to == GREATEST i. chosen_to i"
@@ -84,7 +84,7 @@ locale paxosL
     "accepted i a p \<Longrightarrow> proposed i p"
     (* a proposal can only be chosen after a quorum of acceptance *)
   assumes chosen_quorum:
-    "chosen i p \<Longrightarrow> \<exists> S. write_quorum (epoch i) S \<and> (ALL a:S. accepted i a p)"
+    "chosen i p \<Longrightarrow> \<exists> S. write_quorum (epoch i) S \<and> (\<forall> a\<in>S. accepted i a p)"
     (* a proposal can only be chosen if its topology is well-defined *)
   assumes chosen_topology:
     "chosen i p \<Longrightarrow> epoch i \<le> Suc (prop_topology_version p)"

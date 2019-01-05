@@ -50,7 +50,7 @@ locale synodL
     "accepted a p \<Longrightarrow> proposed p"
     (* a proposal can only be chosen once a quorum have accepted it *)
   assumes chosen_quorum:
-    "chosen p \<Longrightarrow> \<exists> S. quorum_learner p S \<and> (ALL a:S. accepted a p)"
+    "chosen p \<Longrightarrow> \<exists> S. quorum_learner p S \<and> (\<forall> a\<in>S. accepted a p)"
 
 lemma (in synodL) promised_some_none:
   assumes "promised_prev a p0 p1" "promised_free a p0"

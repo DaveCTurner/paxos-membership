@@ -111,7 +111,7 @@ lemma (in paxosL) multiPaxos_intro_simple:
     "\<And> i p a. accepted' i a p \<Longrightarrow> proposed' i p"
 
   assumes chosen_quorum:
-    "\<And> i p. chosen i p \<Longrightarrow> \<exists> S. write_quorum (epoch i) S \<and> (ALL a:S. accepted' i a p)"
+    "\<And> i p. chosen i p \<Longrightarrow> \<exists> S. write_quorum (epoch i) S \<and> (\<forall> a\<in>S. accepted' i a p)"
 
   shows "isConsistent
   multi_promised' promised_free' promised_prev' proposed' accepted' chosen value_proposed"
