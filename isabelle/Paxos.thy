@@ -6,9 +6,8 @@ locale propTvL
   = propNoL lt
   for lt :: "'pid \<Rightarrow> 'pid \<Rightarrow> bool" (infixl "\<prec>" 50)
     +
-
-fixes prop_topology_version          :: "'pid \<Rightarrow> nat"
-assumes prop_topology_version_mono: "p0 \<preceq> p1 \<Longrightarrow> prop_topology_version p0 \<le> prop_topology_version p1"
+  fixes prop_topology_version          :: "'pid \<Rightarrow> nat"
+  assumes prop_topology_version_mono: "p0 \<preceq> p1 \<Longrightarrow> prop_topology_version p0 \<le> prop_topology_version p1"
 
 locale paxosL
   = topologyL quorums_seq epochs_seq value_chosen
