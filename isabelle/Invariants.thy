@@ -59,7 +59,7 @@ proof (intro_locales)
       obtain appended
       where eq: "epochs_seq (map (\<lambda>i. THE v. False) [0..<n]) = epochs_seq [] @ appended"
       by auto
-    
+
     from epoch0
     show "epochs_seq (map (\<lambda>i. THE v. False) [0..<n]) ! 0 = epochs_seq [] ! 0"
       by (cases "epochs_seq []", auto simp add: eq)
@@ -144,7 +144,7 @@ lemma (in paxosL) multiPaxos_add_multi_promise:
   assumes topology: "prop_topology_version p0 \<le> epoch (instance_with_epoch i0)"
   defines "multi_promised' i a p == (i,a,p) = (i0,a0,p0) \<or> multi_promised i a p"
   shows "isConsistent multi_promised' promised_free promised_prev proposed accepted chosen value_proposed"
-using promised_topology all_proposed_finite promised_free 
+using promised_topology all_proposed_finite promised_free
   promised_prev_accepted promised_prev_prev promised_prev_max
   accepts_proposed chosen_quorum
 apply (intro multiPaxos_intro_simple, fold forced_def instance_with_epoch_def, unfold multi_promised'_def)
@@ -191,7 +191,7 @@ lemma (in paxosL) multiPaxos_add_promise_free:
   assumes topology: "prop_topology_version p0 \<le> epoch (instance_with_epoch i0)"
   defines "promised_free' i a p == (i,a,p) = (i0,a0,p0) \<or> promised_free i a p"
   shows "isConsistent multi_promised promised_free' promised_prev proposed accepted chosen value_proposed"
-using all_proposed_finite multi_promised 
+using all_proposed_finite multi_promised
   promised_prev_accepted promised_prev_prev promised_prev_max
   accepts_proposed chosen_quorum
 apply (intro multiPaxos_intro_simple, fold forced_def instance_with_epoch_def, unfold promised_free'_def)
@@ -211,7 +211,7 @@ next
   assume "(i, a, p) = (i0, a0, p0) \<or> promised_free i a p"
   with promised_free [OF _ a] not_accepted a show "p \<preceq> p1" by auto
 next
-  
+
   fix i a p
   assume promised': "((\<exists>j\<le>i. multi_promised j a p) \<or> (i, a, p) = (i0, a0, p0) \<or> promised_free i a p) \<or> (\<exists>p1. promised_prev i a p p1)"
   from topology
@@ -275,7 +275,7 @@ next
   fix i a p p'
   assume "(i, a, p, p') = (i0, a0, p0, p'0) \<or> promised_prev i a p p'"
   hence p: "promised_prev i a p p' \<or> (i, a, p, p') = (i0, a0, p0, p'0)" by auto
-    
+
   from p accepted show "accepted i a p'"
     by (elim disjE, intro promised_prev_accepted, simp_all)
 
@@ -528,7 +528,7 @@ lemma (in paxosL) multiPaxos_add_choice:
   assumes topo_version: "epoch i0 \<le> Suc (prop_topology_version p0)"
   assumes i0_max: "i0 < i_max"
 
-  defines "chosen' == (%i p. (i, p) = (i0, p0) \<or> chosen i p)" 
+  defines "chosen' == (%i p. (i, p) = (i0, p0) \<or> chosen i p)"
 
   shows "isConsistent multi_promised promised_free promised_prev proposed accepted chosen' value_proposed"
 proof -
@@ -578,9 +578,9 @@ proof -
       case True
       with chosen have chosen0: "some_chosen i0" by simp
       then obtain p where chosen_p: "chosen i0 p" by (auto simp add: some_chosen_def)
-    
+
       from multiPaxos_the_value [OF chosen_p] have "value_chosen i0 = value_proposed i0 p" .
-    
+
       moreover have "value_chosen' i0 = value_proposed i0 p"
       proof (unfold value_chosen'_def, intro the_equality exI [of _ p] conjI refl)
         from chosen_p show "chosen' i0 p" by (auto simp add: chosen'_def)
@@ -598,7 +598,7 @@ proof -
           assume SP: "read_quorum (prop_topology_version p1) SP"
              and SL: "write_quorum (epoch i0) SL"
              and proposed: "proposed i0 p1" and p01: "p0 \<prec> p1"
-    
+
           show "SP \<inter> SL \<noteq> {}"
           proof (cases "epoch i0 = prop_topology_version p1")
             case True
@@ -616,20 +616,20 @@ proof -
             have "prop_topology_version p1 \<le> epoch (instance_with_epoch i0)" .
             moreover have "instance_with_epoch i0 = i0" by (metis instance_with_epoch_chosen_eq chosen0)
             ultimately have p1i0: "prop_topology_version p1 < epoch i0" by simp
-    
+
             note topo_version
             moreover from p01 have "prop_topology_version p0 \<le> prop_topology_version p1"
               by (intro prop_topology_version_mono, simp)
             ultimately have "epoch i0 \<le> Suc (prop_topology_version p1)" by simp
-            
+
             with p1i0 False have eq: "epoch i0 = Suc (prop_topology_version p1)" by auto
-            
+
             show ?thesis
               by (intro chosen_quorum_inter' [of i0] some_chosen_valid_quorum SL chosen0, simp add: eq SP)
           qed
         qed
       qed
-    
+
       ultimately show ?thesis by (simp add: True)
     qed
   qed
@@ -653,7 +653,7 @@ proof -
     hence "{i. i \<le> i0 \<or> (\<exists> p. proposed i p)} \<noteq> UNIV" by (intro notI, simp)
     then obtain im where "\<not> (im \<le> i0 \<or> (\<exists> p. proposed im p))" by auto
     hence imi0: "im > i0" and not_proposed: "\<And>p. \<not> proposed im p" by auto
-  
+
     have "\<And>p. \<not> chosen im p"
       by (intro contrapos_nn [OF not_proposed] chosen_proposed)
     with imi0 have "\<And>p. \<not> chosen' im p" by (auto simp add: chosen'_def)
@@ -661,7 +661,7 @@ proof -
 
     have chosen_to_implies: "\<And>i. chosen_to i \<Longrightarrow> chosen_to' i"
       by (auto simp add: chosen_to_def chosen_to'_def some_chosen_def some_chosen'_def chosen'_def)
-  
+
     show ?thesis
     proof (unfold max_chosen_to_def max_chosen_to'_def, intro Greatest_le_nat chosen_to_implies GreatestI_nat impI)
       from chosen_to_initial show "chosen_to 0" .
@@ -688,16 +688,16 @@ proof -
       by (intro upt_add_eq_append, simp)
     also have "... = [0..<max_chosen_to] @ [max_chosen_to..<max_chosen_to']" by (simp add: eq)
     finally have upt': "[0..<max_chosen_to'] = ..." .
-  
+
     moreover have "map value_chosen' [0..<max_chosen_to] = map value_chosen [0..<max_chosen_to]"
     proof (intro map_ext impI sym [OF value_chosen'_eq], simp)
       fix i assume "i < max_chosen_to"
       with chosen_to_max show "some_chosen i" by (simp add: chosen_to_def)
     qed
-  
+
     ultimately obtain vs where vs: "map value_chosen' [0..<max_chosen_to']
       = map value_chosen [0..<max_chosen_to] @ vs" by auto
-  
+
     show "i_max \<le> i_max'"
       by (unfold i_max_def i_max'_def e.sequence_to_def epochs_to'_def vs, intro e.append_only_length_mono)
   qed
@@ -718,14 +718,14 @@ proof -
 
     from e.element_at [OF lt] epochs_to_max_eq
     have "epoch i = epochs_to' max_chosen_to ! i" by simp
-  
+
     moreover
     have "epoch' i = ..."
     proof (unfold epoch'_def epochs_to'_def, intro fixedSeqL.element_at, intro_locales)
       from lt epochs_to_max_eq have "i < length (epochs_to' max_chosen_to)" by simp
       thus "i < length (epochs_seq (map value_chosen' [0..<max_chosen_to]))" by (simp add: epochs_to'_def)
     qed
-  
+
     ultimately show "?thesis i" by simp
   qed
 
@@ -745,14 +745,14 @@ proof -
 
     from q.element_at [OF lt] quorums_to_max_eq
     have "quorum e = quorums_to' max_chosen_to ! e" by simp
-  
+
     moreover
     have "quorum' e = ..."
     proof (unfold quorum'_def quorums_to'_def, intro fixedSeqL.element_at, intro_locales)
       from lt quorums_to_max_eq have "e < length (quorums_to' max_chosen_to)" by simp
       thus "e < length (quorums_seq (map value_chosen' [0..<max_chosen_to]))" by (simp add: quorums_to'_def)
     qed
-  
+
     ultimately show "?thesis e" by simp
   qed
 
@@ -825,7 +825,7 @@ proof -
 
       with S_quorum show "read_quorum' (prop_topology_version p) S" by simp
     qed
-  next     
+  next
     fix i a p
     assume promised: "promised i a p"
     note promised_topology [OF this]
@@ -858,7 +858,7 @@ proof -
       assume "chosen i p"
       thus ?thesis by (intro some_chosen_i_max, auto simp add: some_chosen_def)
     qed
-    
+
     have epochs_eq: "epoch' i = epoch i"
       by (intro sym [OF epochs_eq_i_max] lt)
 
@@ -943,7 +943,7 @@ lemma (in paxosL) multiPaxos_add_accepted_:
 using assms
 apply (unfold accepted'_def)
   by (rule multiPaxos_add_accepted)
-      
+
 lemma (in paxosL) multiPaxos_add_choice_:
 
   assumes "write_quorum (epoch i0) S"
@@ -951,7 +951,7 @@ lemma (in paxosL) multiPaxos_add_choice_:
           "epoch i0 \<le> Suc (prop_topology_version p0)"
           "i0 < i_max"
 
-  defines "chosen' == (%i p. (i, p) = (i0, p0) \<or> chosen i p)" 
+  defines "chosen' == (%i p. (i, p) = (i0, p0) \<or> chosen i p)"
   shows "isConsistent multi_promised promised_free promised_prev proposed accepted chosen' value_proposed"
 using assms
 apply (unfold chosen'_def)
