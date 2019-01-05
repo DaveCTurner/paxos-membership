@@ -4,89 +4,89 @@ begin
 
 locale propTvL
   = propNoL lt
-  for lt :: "'pid \<Rightarrow> 'pid \<Rightarrow> bool" (infixl "\<prec>" 50) 
-  +
+  for lt :: "'pid \<Rightarrow> 'pid \<Rightarrow> bool" (infixl "\<prec>" 50)
+    +
 
-  fixes prop_topology_version          :: "'pid \<Rightarrow> nat"
-  assumes prop_topology_version_mono: "p0 \<preceq> p1 \<Longrightarrow> prop_topology_version p0 \<le> prop_topology_version p1"
+fixes prop_topology_version          :: "'pid \<Rightarrow> nat"
+assumes prop_topology_version_mono: "p0 \<preceq> p1 \<Longrightarrow> prop_topology_version p0 \<le> prop_topology_version p1"
 
 locale paxosL
   = topologyL quorums_seq epochs_seq value_chosen
   + propTvL lt
   for lt :: "'pid \<Rightarrow> 'pid \<Rightarrow> bool" (infixl "\<prec>" 50)
-  and quorums_seq :: "'value list \<Rightarrow> (('aid set \<Rightarrow> bool) * ('aid set \<Rightarrow> bool)) list"
-  and epochs_seq :: "'value list \<Rightarrow> nat list"
-  and multi_promised :: "nat \<Rightarrow> 'aid \<Rightarrow> 'pid \<Rightarrow> bool"
-  and promised_free  :: "nat \<Rightarrow> 'aid \<Rightarrow> 'pid \<Rightarrow> bool"
-  and promised_prev  :: "nat \<Rightarrow> 'aid \<Rightarrow> 'pid \<Rightarrow> 'pid \<Rightarrow> bool"
-  and proposed       :: "nat \<Rightarrow> 'pid \<Rightarrow> bool"
-  and accepted       :: "nat \<Rightarrow> 'aid \<Rightarrow> 'pid \<Rightarrow> bool"
-  and chosen :: "nat \<Rightarrow> 'pid \<Rightarrow> bool"
-  and value_proposed :: "nat \<Rightarrow> 'pid \<Rightarrow> 'value"
-  and value_chosen :: "nat \<Rightarrow> 'value"
-  +
-
-  (* Message predicates *)
-
+    and quorums_seq :: "'value list \<Rightarrow> (('aid set \<Rightarrow> bool) * ('aid set \<Rightarrow> bool)) list"
+    and epochs_seq :: "'value list \<Rightarrow> nat list"
+    and multi_promised :: "nat \<Rightarrow> 'aid \<Rightarrow> 'pid \<Rightarrow> bool"
+    and promised_free  :: "nat \<Rightarrow> 'aid \<Rightarrow> 'pid \<Rightarrow> bool"
+    and promised_prev  :: "nat \<Rightarrow> 'aid \<Rightarrow> 'pid \<Rightarrow> 'pid \<Rightarrow> bool"
+    and proposed       :: "nat \<Rightarrow> 'pid \<Rightarrow> bool"
+    and accepted       :: "nat \<Rightarrow> 'aid \<Rightarrow> 'pid \<Rightarrow> bool"
+    and chosen :: "nat \<Rightarrow> 'pid \<Rightarrow> bool"
+    and value_proposed :: "nat \<Rightarrow> 'pid \<Rightarrow> 'value"
+    and value_chosen :: "nat \<Rightarrow> 'value"
+    +
+    (* Message predicates *)
+    (* some proposal chosen for an instance *)
   fixes some_chosen    :: "nat \<Rightarrow> bool"
   defines "some_chosen == (%i. EX p. chosen i p)"
-
+    (* all previous instances chosen *)
   fixes chosen_to      :: "nat \<Rightarrow> bool"
   defines "chosen_to == (%i. ALL j < i. some_chosen j)"
-
+    (* first unchosen instance *)
   fixes max_chosen_to :: nat
   defines "max_chosen_to == GREATEST i. chosen_to i"
-
+    (* maximum slot with well-defined era *)
   fixes i_max :: nat
   defines "i_max == length (epochs_to max_chosen_to)"
-
+    (* maximum era with well-defined topology *)
   fixes e_max :: nat
   defines "e_max == length (quorums_to max_chosen_to)"
-
+    (* the value chosen for an instance *)
   assumes value_chosen_def: "value_chosen == (%i. THE v. EX p'. chosen i p' \<and> value_proposed i p' = v)"
-
+    (* topology is well-defined for at least the next slot to be chosen *)
   assumes some_chosen_i_max: "some_chosen i \<Longrightarrow> i < i_max"
   assumes i_max_positive:    "0 < i_max"
-
+    (* any kind of promise has been sent *)
   fixes promised :: "nat \<Rightarrow> 'aid \<Rightarrow> 'pid \<Rightarrow> bool"
   defines "promised i a p == ((\<exists>j \<le> i. multi_promised j a p) \<or> promised_free i a p) \<or> (\<exists> p1. promised_prev i a p p1)"
-
+    (* proposals to which bound promises are bound *)
   fixes forced :: "nat \<Rightarrow> 'pid \<Rightarrow> 'aid set \<Rightarrow> 'pid set"
   defines "forced i p S == { p1. \<exists> a \<in> S. promised_prev i a p p1 }"
-
+    (* Invariants *)
+    (* proposals can only be sent after a quorum of promises *)
   assumes proposed_quorum:
-    "proposed i p \<Longrightarrow> \<exists> S. 
+    "proposed i p \<Longrightarrow> \<exists> S.
         (read_quorum (prop_topology_version p) S)
       \<and> (\<forall> a \<in> S. promised i a p)
       \<and> (forced i p S = {} \<or> value_proposed i p = value_proposed i (max_of (forced i p S)))"
-
+    (* only finitely many proposal can be made *)
   assumes all_proposed_finite: "finite {(i,p). proposed i p}"
-
+    (* find the last instance with a well-defined era *)
   fixes instance_with_epoch :: "nat \<Rightarrow> nat"
   defines "instance_with_epoch i == (GREATEST j. j \<le> i \<and> j < i_max)"
-
+    (* promises can only be made in well-defined epochs *)
   assumes promised_topology:
     "promised i a p \<Longrightarrow> prop_topology_version p \<le> epoch (instance_with_epoch i)"
-
+    (* multi-promises imply no acceptances for any future instances *)
   assumes multi_promised:
     "\<lbrakk> multi_promised i a p0; accepted j a p1; i \<le> j \<rbrakk> \<Longrightarrow> p0 \<preceq> p1"
-
+    (* free-promises imply no acceptances for the current instance *)
   assumes promised_free:
     "\<lbrakk> promised_free i a p0; accepted i a p1 \<rbrakk> \<Longrightarrow> p0 \<preceq> p1"
-
+    (* bound-promises are bound to the previously-accepted proposal *)
   assumes promised_prev_accepted:
     "promised_prev i a p0 p1 \<Longrightarrow> accepted i a p1"
   assumes promised_prev_prev:
     "promised_prev i a p0 p1 \<Longrightarrow> p1 \<prec> p0"
   assumes promised_prev_max:
     "\<lbrakk> promised_prev i a p0 p1; accepted i a p2; p2 \<prec> p0 \<rbrakk> \<Longrightarrow> p2 \<preceq> p1"
-
+    (* a proposal can only be accepted after it was made *)
   assumes accepts_proposed:
     "accepted i a p \<Longrightarrow> proposed i p"
-
+    (* a proposal can only be chosen after a quorum of acceptance *)
   assumes chosen_quorum:
     "chosen i p \<Longrightarrow> EX S. write_quorum (epoch i) S \<and> (ALL a:S. accepted i a p)"
-
+    (* a proposal can only be chosen if its topology is well-defined *)
   assumes chosen_topology:
     "chosen i p \<Longrightarrow> epoch i \<le> Suc (prop_topology_version p)"
 
@@ -103,7 +103,7 @@ lemma (in paxosL)
 lemma (in paxosL)
   assumes chosen: "some_chosen i"
   shows some_chosen_valid_epoch: "valid_epoch i"
-using assms some_chosen_i_max by (auto simp add: i_max_def e.valid_index_def)
+  using assms some_chosen_i_max by (auto simp add: i_max_def e.valid_index_def)
 
 lemma (in paxosL)
   assumes i_max: "i < i_max"
@@ -129,7 +129,7 @@ lemma (in paxosL)
 lemma (in paxosL)
   assumes chosen: "some_chosen i"
   shows some_chosen_valid_quorum:  "valid_quorum (epoch i)"
-using assms some_chosen_e_max by (auto simp add: e_max_def q.valid_index_def)
+  using assms some_chosen_e_max by (auto simp add: e_max_def q.valid_index_def)
 
 lemma (in paxosL)
   assumes chosen: "some_chosen i"
@@ -151,14 +151,14 @@ qed
 lemma (in paxosL)
   assumes lt: "i < i_max"
   shows instance_with_epoch_eq: "instance_with_epoch i = i"
-using assms by (unfold instance_with_epoch_def, intro Greatest_equality, auto)
+  using assms by (unfold instance_with_epoch_def, intro Greatest_equality, auto)
 
 lemma (in paxosL)
   assumes le: "i1 \<le> i2"
   shows instance_with_epoch_mono: "instance_with_epoch i1 \<le> instance_with_epoch i2"
-apply (unfold instance_with_epoch_def)
-apply (intro Greatest_le [where b = i_max] conjI)
-apply (fold instance_with_epoch_def)
+  apply (unfold instance_with_epoch_def)
+  apply (intro Greatest_le_nat [where b = i_max] conjI)
+  apply (fold instance_with_epoch_def)
 proof -
   note instance_with_epoch_le
   also note le
@@ -168,7 +168,7 @@ qed simp
 
 lemma (in paxosL)
   shows instance_with_epoch_valid: "valid_epoch (instance_with_epoch i)"
-using instance_with_epoch_lt
+  using instance_with_epoch_lt
   by (auto simp add: e.valid_index_def i_max_def)
 
 lemma (in paxosL)
@@ -231,8 +231,8 @@ lemma (in paxosL)
     (%a p. (EX j. j \<le> i \<and> multi_promised j a p) \<or> promised_free i a p)
     (promised_prev i) (proposed i) (accepted i) (chosen i)
     (value_proposed i)"
-apply unfold_locales
-apply (fold promised_def forced_def max_of_def)
+  apply unfold_locales
+  apply (fold promised_def forced_def max_of_def)
 proof -
   fix i
   show "finite {p. proposed i p}" by (intro proposed_finite)
@@ -288,7 +288,7 @@ next
     by (intro some_chosen_valid_quorum chosen)
   fix SP SL p0 p1
   assume SP: "read_quorum (prop_topology_version p1) SP"
-     and SL: "write_quorum (epoch i) SL"
+    and SL: "write_quorum (epoch i) SL"
 
   assume "chosen i p0" "proposed i p1" "p0 \<prec> p1"
   from chosen_proposed_epochs [OF this]
