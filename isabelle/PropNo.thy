@@ -19,15 +19,15 @@ definition (in propNoL) "max_of S == THE p. p \<in> S \<and> (\<forall> p'. p' \
 
 lemma (in propNoL) propNo_cases:
   assumes lt: "p1 \<prec> p2  \<Longrightarrow> P"
-  and eq: "p1 = p2  \<Longrightarrow> P"
-  and gt: "p2 \<prec> p1  \<Longrightarrow> P"
+    and eq: "p1 = p2  \<Longrightarrow> P"
+    and gt: "p2 \<prec> p1  \<Longrightarrow> P"
   shows P
   using assms total by auto
 
 lemma (in propNoL) propNo_leE [elim]:
   assumes le1: "p1 \<preceq> p2"
-  and lt: "p1 \<prec> p2 \<Longrightarrow> P"
-  and eq: "p1 = p2 \<Longrightarrow> P"
+    and lt: "p1 \<prec> p2 \<Longrightarrow> P"
+    and eq: "p1 = p2 \<Longrightarrow> P"
   shows P
   using assms local.le_lt_eq by auto
 
@@ -37,7 +37,7 @@ lemma (in propNoL) propNo_trans_lt_lt [trans]:
 
 lemma (in propNoL) propNo_lt_not_ge_E [elim]:
   assumes lt: "p1 \<prec> p2"
-  and not_gt: "\<lbrakk> p1 \<noteq> p2; \<not>(p2 \<prec> p1) \<rbrakk>  \<Longrightarrow> P"
+    and not_gt: "\<lbrakk> p1 \<noteq> p2; \<not>(p2 \<prec> p1) \<rbrakk>  \<Longrightarrow> P"
   shows P
   by (metis lt not_gt irreflexive propNo_trans_lt_lt)
 
@@ -57,7 +57,7 @@ lemma (in propNoL) propNo_trans_le_le [trans]:
 lemma (in propNoL)
   assumes finite: "finite S" and nonempty: "S \<noteq> {}"
   shows max_of_mem: "max_of S \<in> S"
-  and max_of_max_nonempty: "\<And>p. p \<in> S \<Longrightarrow> p \<preceq> max_of S"
+    and max_of_max_nonempty: "\<And>p. p \<in> S \<Longrightarrow> p \<preceq> max_of S"
 proof -
   from finite nonempty
   have "\<exists> p_max \<in> S. \<forall> p \<in> S. p \<preceq> p_max"
@@ -79,10 +79,7 @@ proof -
       next
         case False
         hence lt: "p_max \<prec> p" using propNo_cases by auto
-        with p_max_max show ?thesis
-          apply (intro bexI [where x = p])
-          apply (metis insertE le_lt_eq propNo_trans_le_lt)
-          by simp
+        with p_max_max show ?thesis using propNo_trans_le_lt by auto
       qed
     qed
   qed simp
@@ -99,7 +96,7 @@ qed
 lemma (in propNoL)
   assumes finite: "finite S" and pS: "p \<in> S"
   shows max_of_max: "p \<preceq> max_of S"
-using pS
+  using pS
   by (intro max_of_max_nonempty finite pS, auto)
 
 lemma (in propNoL)
